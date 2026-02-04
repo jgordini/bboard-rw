@@ -349,7 +349,7 @@ fn DiggCard(
                     disabled=has_voted
                     on:click=handle_vote
                 >
-                    {move || if has_voted() { "voted" } else { "digg" }}
+                    {move || if has_voted() { "voted" } else { "vote" }}
                 </button>
             </div>
             <div class="digg-content">
