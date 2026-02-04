@@ -337,10 +337,13 @@ fn IdeaSubmissionDialog(
             </CardHeader>
             <CardContent class="sidebar-card-body">
                 <p class="sidebar-intro">"Share your suggestions to improve UAB IT services."</p>
+                <button
+                    class="submit-btn dialog-trigger-btn"
+                    on:click=move |_| is_open.set(true)
+                >
+                    "Post Idea"
+                </button>
                 <Dialog open=is_open on_open_change=handle_open_change>
-                    <DialogTrigger>
-                        <Button class="submit-btn dialog-trigger-btn">"Post Idea"</Button>
-                    </DialogTrigger>
                     <DialogContent class="idea-dialog-content">
                         <DialogHeader>
                             <DialogTitle class="dialog-title">"Submit Your Idea"</DialogTitle>
@@ -399,6 +402,7 @@ fn IdeaSubmissionDialog(
                         </form>
                     </DialogContent>
                 </Dialog>
+                
             </CardContent>
         </Card>
     }
