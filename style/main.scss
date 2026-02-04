@@ -7,7 +7,7 @@
   --campus-green: #90d408;
   --evergreen: #306745;
   --sky-blue: #42caf0;
-  
+
   // UAB Color Variations
   --campus-green-20: #d7efa6;
   --campus-green-10: #eaf7d0;
@@ -21,7 +21,7 @@
   --sky-blue-20: #bbecfa;
   --sky-blue-10: #dbf5fc;
   --sky-blue-5: #edf9fd;
-  
+
   // Neutral Colors
   --white: #ffffff;
   --black: #000000;
@@ -29,9 +29,9 @@
   --light-grey: #dddddd;
   --gray-500: #6b7280;
   --gray-200: #e5e7eb;
-  
+
   // shadcn-ui theme variables (mapped to UAB colors)
-  --background: var(--white);
+  --background: #f5f5f0;
   --foreground: var(--dragons-lair-green);
   --primary: var(--uab-green);
   --primary-foreground: var(--white);
@@ -55,9 +55,9 @@
 :root {
   --font-sans: 'Inter', 'Aktiv Grotesk', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Kulturista', ui-serif, Georgia, serif;
-  --font-base-size: 18px;
-  --font-small: 14px;
-  --font-tiny: 12px;
+  --font-base-size: 16px;
+  --font-small: 13px;
+  --font-tiny: 11px;
 }
 
 * {
@@ -78,72 +78,312 @@ body {
 .header-banner {
   background: linear-gradient(135deg, var(--uab-green) 0%, var(--dragons-lair-green) 100%);
   color: var(--white);
-  padding: 3rem 0;
-  margin-bottom: 2rem;
-  
+  padding: 2rem 0;
+
   h1 {
     font-family: var(--font-serif);
-    font-size: 3rem;
+    font-size: 2.5rem;
     font-weight: 700;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     color: var(--white);
   }
-  
+
   p {
-    font-size: 1.25rem;
-    opacity: 0.9;
+    font-size: 1.1rem;
+    opacity: 0.85;
   }
 }
 
 // Container
 .container {
-  max-width: 80rem;
+  max-width: 72rem;
   margin: 0 auto;
   padding: 0 1rem;
 }
 
 .page {
-  padding: 2rem 0;
+  padding: 1.5rem 0;
 }
 
-// Idea Submission Form
-.idea-submission-form {
+// ============================================================
+// Digg-Style Layout
+// ============================================================
+
+.digg-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.main-column {
+  min-width: 0;
+}
+
+// Sort Tabs
+.sort-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1rem;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 2rem;
-  margin-bottom: 3rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  
-  h2 {
-    font-family: var(--font-serif);
+  overflow: hidden;
+}
+
+.sort-tab {
+  flex: 1;
+  padding: 0.625rem 1.25rem;
+  border: none;
+  background: transparent;
+  color: var(--gray-500);
+  font-family: var(--font-sans);
+  font-size: var(--font-small);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: var(--evergreen-5);
     color: var(--uab-green);
-    font-size: 2rem;
-    margin-bottom: 1.5rem;
   }
+
+  &.active {
+    background: var(--uab-green);
+    color: var(--white);
+  }
+}
+
+// Digg Idea List
+.digg-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.digg-item {
+  display: flex;
+  align-items: stretch;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  transition: border-color 0.15s;
+
+  &:hover {
+    border-color: var(--campus-green-20);
+  }
+}
+
+// Rank Number
+.digg-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--gray-500);
+  border-right: 1px solid var(--border);
+}
+
+// Vote Box — the signature Digg element
+.digg-vote-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 0.75rem 0.5rem;
+  background: var(--evergreen-5);
+  border-right: 1px solid var(--border);
+  transition: all 0.2s;
+  gap: 0.125rem;
+
+  &.voted {
+    background: var(--campus-green);
+
+    .digg-arrow,
+    .digg-count {
+      color: var(--white);
+    }
+
+    .digg-btn {
+      background: rgba(255, 255, 255, 0.2);
+      color: var(--white);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+  }
+}
+
+.digg-arrow {
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--uab-green);
+}
+
+.digg-count {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--uab-green);
+}
+
+.digg-btn {
+  margin-top: 0.125rem;
+  padding: 0.125rem 0.625rem;
+  font-family: var(--font-sans);
+  font-size: var(--font-tiny);
+  font-weight: 700;
+  text-transform: lowercase;
+  background: var(--white);
+  color: var(--uab-green);
+  border: 1px solid var(--evergreen-20);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.02em;
+
+  &:hover:not(:disabled) {
+    background: var(--campus-green-10);
+    border-color: var(--campus-green);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+// Idea Content
+.digg-content {
+  flex: 1;
+  padding: 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.digg-text {
+  font-size: var(--font-base-size);
+  line-height: 1.5;
+  color: var(--foreground);
+  margin-bottom: 0.375rem;
+  word-wrap: break-word;
+}
+
+.digg-time {
+  display: inline-block;
+  font-size: var(--font-tiny);
+  color: var(--gray-500);
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--gray-200);
+  border-radius: 3px;
+  width: fit-content;
+}
+
+// ============================================================
+// Sidebar
+// ============================================================
+
+.sidebar {
+  position: sticky;
+  top: 1rem;
+}
+
+.sidebar-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.sidebar-card-header {
+  padding: 1rem 1.25rem 0.5rem;
+}
+
+.sidebar-card-title {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--uab-green);
+  margin: 0;
+}
+
+.sidebar-card-body {
+  padding: 0 1.25rem 1.25rem;
+}
+
+// Stats
+.stats-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.stat-box {
+  flex: 1;
+  text-align: center;
+  padding: 0.75rem;
+  background: var(--evergreen-5);
+  border-radius: var(--radius);
+}
+
+.stat-value {
+  display: block;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--uab-green);
+  line-height: 1.2;
+}
+
+.stat-label {
+  display: block;
+  font-size: var(--font-tiny);
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+// ============================================================
+// Submission Form (in sidebar)
+// ============================================================
+
+.form-group {
+  margin-bottom: 0.75rem;
+}
+
+.form-label {
+  display: block;
+  font-size: var(--font-small);
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 0.375rem;
 }
 
 .idea-textarea {
   width: 100%;
-  min-height: 120px;
-  padding: 1rem;
-  border: 2px solid var(--input);
+  min-height: 100px;
+  padding: 0.75rem;
+  border: 1px solid var(--input);
   border-radius: var(--radius);
   font-family: var(--font-sans);
-  font-size: var(--font-base-size);
+  font-size: var(--font-small);
   resize: vertical;
   transition: border-color 0.2s;
-  
+
   &:focus {
     outline: none;
     border-color: var(--ring);
-    box-shadow: 0 0 0 3px var(--campus-green-10);
+    box-shadow: 0 0 0 2px var(--campus-green-10);
   }
-  
+
   &.warning {
     border-color: var(--uab-gold);
   }
-  
+
   &.error {
     border-color: var(--destructive);
   }
@@ -153,150 +393,110 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 1rem;
 }
 
 .char-counter {
-  font-size: var(--font-small);
+  font-size: var(--font-tiny);
   color: var(--muted-foreground);
-  
+
   &.warning {
     color: var(--uab-gold);
   }
-  
+
   &.error {
     color: var(--destructive);
   }
 }
 
-// Ideas List
-.ideas-list {
-  h2 {
-    font-family: var(--font-serif);
-    color: var(--uab-green);
-    font-size: 2rem;
-    margin-bottom: 1.5rem;
+// Submit button (shadcn Button override)
+.submit-btn {
+  padding: 0.5rem 1.25rem;
+  background: var(--uab-green);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: var(--font-small);
+  transition: all 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--dragons-lair-green);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 }
+
+// ============================================================
+// Empty & Loading States
+// ============================================================
 
 .empty-state {
   text-align: center;
-  padding: 4rem 2rem;
+  padding: 3rem 2rem;
   color: var(--muted-foreground);
-  font-size: 1.125rem;
-}
-
-// Idea Card
-.idea-card {
-  display: flex;
-  gap: 1.5rem;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1.5rem;
-  margin-bottom: 1rem;
-  transition: all 0.2s;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  
-  &:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    border-color: var(--campus-green);
-  }
 }
 
-.vote-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 60px;
+.error-state {
+  text-align: center;
+  padding: 2rem;
+  color: var(--destructive);
 }
 
-.vote-button {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: 2px solid var(--uab-green);
-  background: var(--white);
-  color: var(--uab-green);
-  font-size: 1.5rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  
-  &:hover:not(:disabled) {
-    background: var(--campus-green-10);
-    border-color: var(--campus-green);
-  }
-  
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-  
-  &.voted {
-    background: var(--campus-green);
-    border-color: var(--campus-green);
-    color: var(--white);
-  }
-}
-
-.vote-count {
-  font-weight: 600;
-  color: var(--uab-green);
-  font-size: 1.125rem;
-}
-
-.idea-content {
-  flex: 1;
-}
-
-.idea-text {
-  font-size: var(--font-base-size);
-  line-height: 1.6;
-  margin-bottom: 0.75rem;
-  color: var(--foreground);
-}
-
-.idea-time {
-  font-size: var(--font-small);
+.loading {
+  text-align: center;
+  padding: 2rem;
   color: var(--muted-foreground);
 }
 
+// ============================================================
 // Navbar
+// ============================================================
+
 .navbar {
   background: var(--white);
-  border-bottom: 1px solid var(--border);
-  padding: 1rem 0;
-  margin-bottom: 0;
-  
+  border-bottom: 2px solid var(--uab-green);
+  padding: 0.75rem 0;
+
+  .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
   .navbar-brand {
     font-family: var(--font-serif);
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 700;
     color: var(--uab-green);
     text-decoration: none;
-    
+
     &:hover {
       color: var(--dragons-lair-green);
     }
   }
-  
+
   .nav {
     list-style: none;
     display: flex;
     gap: 1.5rem;
     align-items: center;
-    
+
     .nav-item {
       .nav-link {
         color: var(--foreground);
         text-decoration: none;
         font-weight: 500;
+        font-size: var(--font-small);
         transition: color 0.2s;
-        
+
         &:hover {
           color: var(--uab-green);
         }
@@ -305,84 +505,87 @@ body {
   }
 }
 
+// ============================================================
 // Footer
+// ============================================================
+
 .footer {
-  background: var(--muted);
+  background: var(--white);
   border-top: 1px solid var(--border);
-  padding: 2rem 0;
-  margin-top: 4rem;
+  padding: 1.5rem 0;
+  margin-top: 3rem;
   text-align: center;
-  
+
   .logo-font {
     font-family: var(--font-serif);
     color: var(--uab-green);
     font-weight: 700;
-  }
-  
-  .attribution {
-    display: block;
-    margin-top: 0.5rem;
-    color: var(--muted-foreground);
     font-size: var(--font-small);
   }
+
+  .attribution {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--muted-foreground);
+    font-size: var(--font-tiny);
+  }
 }
 
-// Ideas Grid
-.ideas-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
+// ============================================================
+// Responsive
+// ============================================================
 
-// Form Group
-.form-group {
-  margin-bottom: 1rem;
-}
-
-// Responsive Design
 @media (max-width: 768px) {
   .header-banner {
-    padding: 2rem 0;
-    
+    padding: 1.5rem 0;
+
     h1 {
-      font-size: 2rem;
+      font-size: 1.75rem;
     }
-    
+
     p {
-      font-size: 1rem;
+      font-size: 0.95rem;
     }
   }
-  
-  .idea-card {
-    flex-direction: column;
-    gap: 1rem;
+
+  .digg-layout {
+    grid-template-columns: 1fr;
   }
-  
-  .vote-section {
-    flex-direction: row;
-    justify-content: flex-start;
+
+  .sidebar {
+    position: static;
+    order: -1;
   }
-  
+
+  .digg-rank {
+    min-width: 32px;
+    font-size: 0.875rem;
+  }
+
+  .digg-vote-box {
+    min-width: 56px;
+    padding: 0.5rem 0.375rem;
+  }
+
+  .digg-count {
+    font-size: 1.25rem;
+  }
+
   .form-footer {
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
     align-items: stretch;
+
+    .submit-btn {
+      text-align: center;
+    }
   }
 }
 
-// Error states
-.error {
-  color: var(--destructive);
-}
-
-// Loading states
-.loading {
-  text-align: center;
-  padding: 2rem;
-  color: var(--muted-foreground);
-}
-
+// ============================================================
 // Admin Panel Styles
+// ============================================================
+
 .admin-page {
   .admin-banner {
     background: linear-gradient(135deg, var(--dragons-lair-green) 0%, var(--uab-green) 100%);
@@ -397,25 +600,25 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  
+
   h2 {
     margin-bottom: 1.5rem;
     color: var(--uab-green);
   }
-  
+
   .admin-input {
     width: 100%;
     padding: 0.75rem 1rem;
     border: 2px solid var(--input);
     border-radius: var(--radius);
     font-size: 1rem;
-    
+
     &:focus {
       outline: none;
       border-color: var(--ring);
     }
   }
-  
+
   .error-message {
     color: var(--destructive);
     margin: 1rem 0;
@@ -428,19 +631,19 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
-    
+
     h2 {
       color: var(--uab-green);
     }
   }
-  
+
   .btn-logout {
     padding: 0.5rem 1rem;
     background: var(--muted);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     cursor: pointer;
-    
+
     &:hover {
       background: var(--border);
     }
@@ -462,13 +665,13 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   text-align: center;
-  
+
   h3 {
     font-size: 0.875rem;
     color: var(--muted-foreground);
     margin-bottom: 0.5rem;
   }
-  
+
   .stat-number {
     font-size: 2.5rem;
     font-weight: 700;
@@ -482,12 +685,12 @@ body {
   border-radius: var(--radius);
   padding: 1.5rem;
   margin-bottom: 2rem;
-  
+
   h3 {
     margin-bottom: 1rem;
     color: var(--foreground);
   }
-  
+
   .action-buttons {
     display: flex;
     gap: 1rem;
@@ -503,11 +706,11 @@ body {
   border-radius: var(--radius);
   cursor: pointer;
   font-weight: 500;
-  
+
   &:hover {
     opacity: 0.9;
   }
-  
+
   &.confirm {
     background: #b91c1c;
     animation: pulse 1s infinite;
@@ -522,11 +725,11 @@ body {
   border-radius: var(--radius);
   cursor: pointer;
   font-weight: 500;
-  
+
   &:hover {
     opacity: 0.9;
   }
-  
+
   &.confirm {
     animation: pulse 1s infinite;
   }
@@ -540,7 +743,7 @@ body {
   border-radius: var(--radius);
   cursor: pointer;
   font-weight: 500;
-  
+
   &:hover {
     background: var(--border);
   }
@@ -573,22 +776,22 @@ body {
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  
+
   .idea-info {
     flex: 1;
   }
-  
+
   .idea-text {
     margin-bottom: 0.5rem;
   }
-  
+
   .idea-meta {
     display: flex;
     gap: 1rem;
     font-size: var(--font-small);
     color: var(--muted-foreground);
   }
-  
+
   .vote-count {
     color: var(--uab-green);
     font-weight: 500;
@@ -602,31 +805,9 @@ body {
   border: 1px solid var(--destructive);
   border-radius: var(--radius);
   cursor: pointer;
-  
+
   &:hover {
     background: var(--destructive);
     color: var(--white);
-  }
-}
-
-// Button submit styles
-.btn-submit {
-  padding: 0.75rem 1.5rem;
-  background: var(--uab-green);
-  color: var(--white);
-  border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 1rem;
-  transition: all 0.2s;
-  
-  &:hover:not(:disabled) {
-    background: var(--dragons-lair-green);
-  }
-  
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 }
