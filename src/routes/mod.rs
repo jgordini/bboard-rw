@@ -1,8 +1,10 @@
 pub use ideas::*;
 pub use admin::*;
+pub use idea_detail::*;
 
 mod ideas;
 mod admin;
+mod idea_detail;
 
 // Old routes commented out - using new Ideas schema
 // pub use article::*;

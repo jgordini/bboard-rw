@@ -22,6 +22,17 @@ pub struct VoteForm {
 
 impl Idea {
     #[cfg(feature = "ssr")]
+    pub async fn get_by_id(id: i32) -> Result<Self, sqlx::Error> {
+        sqlx::query_as!(
+            Idea,
+            "SELECT id, content, created_at, vote_count FROM ideas WHERE id = $1",
+            id
+        )
+        .fetch_one(crate::database::get_db())
+        .await
+    }
+
+    #[cfg(feature = "ssr")]
     pub async fn get_all() -> Result<Vec<Self>, sqlx::Error> {
         sqlx::query_as!(
             Idea,

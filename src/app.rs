@@ -3,7 +3,7 @@ use leptos_meta::{provide_meta_context, MetaTags, Stylesheet};
 use leptos_router::components::{Route, Router, Routes, A};
 use leptos_router::path;
 
-use crate::routes::{IdeasPage, AdminPage};
+use crate::routes::{IdeasPage, AdminPage, IdeaDetailPage};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -51,6 +51,7 @@ pub fn App() -> impl IntoView {
             <main>
                 <Routes fallback=|| view! { <div class="container"><p>"Page not found"</p></div> }>
                     <Route path=path!("/") view=|| view! { <IdeasPage/> }/>
+                    <Route path=path!("/ideas/:id") view=|| view! { <IdeaDetailPage/> }/>
                     <Route path=path!("/admin") view=|| view! { <AdminPage/> }/>
                 </Routes>
             </main>

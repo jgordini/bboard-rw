@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use leptos::prelude::*;
 use leptos::ev::SubmitEvent;
 use leptos_meta::Title;
@@ -78,6 +79,18 @@ pub async fn get_idea_statistics() -> Result<(i64, i64), ServerFnError> {
         })
 }
 
+#[server]
+pub async fn get_comment_counts() -> Result<HashMap<i32, i64>, ServerFnError> {
+    use crate::models::Comment;
+    Comment::count_all_grouped()
+        .await
+        .map(|counts| counts.into_iter().collect())
+        .map_err(|e| {
+            tracing::error!("Failed to fetch comment counts: {:?}", e);
+            ServerFnError::new("Failed to fetch comment counts")
+        })
+}
+
 #[derive(Clone, Copy, PartialEq)]
 enum SortMode {
     Popular,
@@ -89,6 +102,7 @@ enum SortMode {
 pub fn IdeasPage() -> impl IntoView {
     let ideas_resource = Resource::new(|| (), |_| async { get_ideas().await });
     let stats_resource = Resource::new(|| (), |_| async { get_idea_statistics().await });
+    let comment_counts_resource = Resource::new(|| (), |_| async { get_comment_counts().await });
     let sort_mode = RwSignal::new(SortMode::Popular);
     let voter_fingerprint = RwSignal::new("voter_placeholder".to_string());
     let voted_ideas = RwSignal::new(Vec::<i32>::new());
@@ -186,6 +200,7 @@ pub fn IdeasPage() -> impl IntoView {
                                                                         voter_fingerprint=voter_fingerprint
                                                                         voted_ideas=voted_ideas
                                                                         ideas_resource=ideas_resource
+                                                                        comment_counts_resource=comment_counts_resource
                                                                     />
                                                                 }
                                                             }
@@ -315,6 +330,7 @@ fn DiggCard(
     voter_fingerprint: RwSignal<String>,
     voted_ideas: RwSignal<Vec<i32>>,
     ideas_resource: Resource<Result<Vec<Idea>, ServerFnError>>,
+    comment_counts_resource: Resource<Result<HashMap<i32, i64>, ServerFnError>>,
 ) -> impl IntoView {
     let idea_id = idea.id;
     let vote_count = idea.vote_count;
@@ -322,6 +338,13 @@ fn DiggCard(
     let created_at = idea.created_at;
 
     let has_voted = move || voted_ideas.get().contains(&idea_id);
+
+    let comment_count = move || {
+        comment_counts_resource.get()
+            .and_then(|r| r.ok())
+            .and_then(|counts| counts.get(&idea_id).copied())
+            .unwrap_or(0)
+    };
 
     let handle_vote = move |_| {
         if has_voted() {
@@ -352,12 +375,24 @@ fn DiggCard(
                     {move || if has_voted() { "voted" } else { "vote" }}
                 </button>
             </div>
-            <div class="digg-content">
+            <a class="digg-content" href=format!("/ideas/{}", idea_id)>
                 <p class="digg-text">{content}</p>
-                <Badge variant=BadgeVariant::Outline class="digg-time">
-                    {format!("submitted {}", relative_time)}
-                </Badge>
-            </div>
+                <div class="digg-meta">
+                    <Badge variant=BadgeVariant::Outline class="digg-time">
+                        {format!("submitted {}", relative_time)}
+                    </Badge>
+                    <Badge class="digg-comments-badge">
+                        {move || {
+                            let count = comment_count();
+                            if count == 1 {
+                                "1 comment".to_string()
+                            } else {
+                                format!("{} comments", count)
+                            }
+                        }}
+                    </Badge>
+                </div>
+            </a>
         </div>
     }
 }

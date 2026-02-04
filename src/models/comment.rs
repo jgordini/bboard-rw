@@ -1,59 +1,55 @@
-#[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Comment {
     pub id: i32,
-    pub article: String,
-    pub username: String,
-    pub body: String,
-    pub created_at: String,
-    pub user_image: Option<String>,
+    pub idea_id: i32,
+    pub content: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl Comment {
     #[cfg(feature = "ssr")]
-    pub async fn insert(
-        article: String,
-        username: String,
-        body: String,
-    ) -> Result<sqlx::postgres::PgQueryResult, sqlx::Error> {
-        sqlx::query!(
-            "INSERT INTO Comments(article, username, body) VALUES ($1, $2, $3)",
-            article,
-            username,
-            body
+    pub async fn create(idea_id: i32, content: String) -> Result<Self, sqlx::Error> {
+        sqlx::query_as!(
+            Comment,
+            "INSERT INTO comments (idea_id, content) VALUES ($1, $2) RETURNING id, idea_id, content, created_at",
+            idea_id,
+            content
         )
-        .execute(crate::database::get_db())
+        .fetch_one(crate::database::get_db())
         .await
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn get_all(article: String) -> Result<Vec<Self>, sqlx::Error> {
-        sqlx::query!(
-            "
-        SELECT c.*, u.image FROM Comments as c
-            JOIN Users as u ON u.username=c.username
-        WHERE c.article=$1
-        ORDER BY c.created_at",
-            article
+    pub async fn get_by_idea_id(idea_id: i32) -> Result<Vec<Self>, sqlx::Error> {
+        sqlx::query_as!(
+            Comment,
+            "SELECT id, idea_id, content, created_at FROM comments WHERE idea_id = $1 ORDER BY created_at ASC",
+            idea_id
         )
-        .map(|x| Self {
-            id: x.id,
-            article: x.article,
-            username: x.username,
-            body: x.body,
-            created_at: x.created_at.format(super::DATE_FORMAT).to_string(),
-            user_image: x.image,
-        })
         .fetch_all(crate::database::get_db())
         .await
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn delete(
-        id: i32,
-        user: String,
-    ) -> Result<sqlx::postgres::PgQueryResult, sqlx::Error> {
-        sqlx::query!("DELETE FROM Comments WHERE id=$1 and username=$2", id, user)
-            .execute(crate::database::get_db())
-            .await
+    pub async fn count_by_idea_id(idea_id: i32) -> Result<i64, sqlx::Error> {
+        let result = sqlx::query!(
+            "SELECT COUNT(*) as count FROM comments WHERE idea_id = $1",
+            idea_id
+        )
+        .fetch_one(crate::database::get_db())
+        .await?;
+        Ok(result.count.unwrap_or(0))
+    }
+
+    #[cfg(feature = "ssr")]
+    pub async fn count_all_grouped() -> Result<Vec<(i32, i64)>, sqlx::Error> {
+        let rows = sqlx::query!(
+            "SELECT idea_id, COUNT(*) as count FROM comments GROUP BY idea_id"
+        )
+        .fetch_all(crate::database::get_db())
+        .await?;
+        Ok(rows.into_iter().map(|r| (r.idea_id, r.count.unwrap_or(0))).collect())
     }
 }
