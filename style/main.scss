@@ -1,7 +1,383 @@
-.navbar-light .navbar-nav .nav-link[aria-current="page"] {
-	color: rgba(0, 0, 0, 0.8);
+// UAB Theme Colors from theme.json
+:root {
+  // UAB Primary Colors
+  --uab-green: #1a5632;
+  --uab-gold: #fdb913;
+  --dragons-lair-green: #033319;
+  --campus-green: #90d408;
+  --evergreen: #306745;
+  --sky-blue: #42caf0;
+  
+  // UAB Color Variations
+  --campus-green-20: #d7efa6;
+  --campus-green-10: #eaf7d0;
+  --campus-green-5: #f4fbe7;
+  --uab-gold-20: #ffe6aa;
+  --uab-gold-10: #fff2d2;
+  --uab-gold-5: #fff8e8;
+  --evergreen-20: #ace2bc;
+  --evergreen-10: #d3f0db;
+  --evergreen-5: #e8f7ed;
+  --sky-blue-20: #bbecfa;
+  --sky-blue-10: #dbf5fc;
+  --sky-blue-5: #edf9fd;
+  
+  // Neutral Colors
+  --white: #ffffff;
+  --black: #000000;
+  --grey: #888888;
+  --light-grey: #dddddd;
+  --gray-500: #6b7280;
+  --gray-200: #e5e7eb;
+  
+  // shadcn-ui theme variables (mapped to UAB colors)
+  --background: var(--white);
+  --foreground: var(--dragons-lair-green);
+  --primary: var(--uab-green);
+  --primary-foreground: var(--white);
+  --secondary: var(--campus-green);
+  --secondary-foreground: var(--dragons-lair-green);
+  --muted: var(--gray-200);
+  --muted-foreground: var(--gray-500);
+  --accent: var(--campus-green);
+  --accent-foreground: var(--dragons-lair-green);
+  --destructive: #dc2626;
+  --destructive-foreground: var(--white);
+  --border: var(--light-grey);
+  --input: var(--light-grey);
+  --ring: var(--uab-green);
+  --radius: 0.5rem;
 }
 
-.inline {
-	display: inline-block;
+// Typography - UAB Fonts
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --font-sans: 'Inter', 'Aktiv Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Kulturista', ui-serif, Georgia, serif;
+  --font-base-size: 18px;
+  --font-small: 14px;
+  --font-tiny: 12px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--font-base-size);
+  color: var(--foreground);
+  background-color: var(--background);
+  line-height: 1.5;
+}
+
+// UAB Header Banner
+.header-banner {
+  background: linear-gradient(135deg, var(--uab-green) 0%, var(--dragons-lair-green) 100%);
+  color: var(--white);
+  padding: 3rem 0;
+  margin-bottom: 2rem;
+  
+  h1 {
+    font-family: var(--font-serif);
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--white);
+  }
+  
+  p {
+    font-size: 1.25rem;
+    opacity: 0.9;
+  }
+}
+
+// Container
+.container {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.page {
+  padding: 2rem 0;
+}
+
+// Idea Submission Form
+.idea-submission-form {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem;
+  margin-bottom: 3rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  
+  h2 {
+    font-family: var(--font-serif);
+    color: var(--uab-green);
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+.idea-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 1rem;
+  border: 2px solid var(--input);
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: var(--font-base-size);
+  resize: vertical;
+  transition: border-color 0.2s;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px var(--campus-green-10);
+  }
+  
+  &.warning {
+    border-color: var(--uab-gold);
+  }
+  
+  &.error {
+    border-color: var(--destructive);
+  }
+}
+
+.form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.char-counter {
+  font-size: var(--font-small);
+  color: var(--muted-foreground);
+  
+  &.warning {
+    color: var(--uab-gold);
+  }
+  
+  &.error {
+    color: var(--destructive);
+  }
+}
+
+// Ideas List
+.ideas-list {
+  h2 {
+    font-family: var(--font-serif);
+    color: var(--uab-green);
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--muted-foreground);
+  font-size: 1.125rem;
+}
+
+// Idea Card
+.idea-card {
+  display: flex;
+  gap: 1.5rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  
+  &:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-color: var(--campus-green);
+  }
+}
+
+.vote-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 60px;
+}
+
+.vote-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--uab-green);
+  background: var(--white);
+  color: var(--uab-green);
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  
+  &:hover:not(:disabled) {
+    background: var(--campus-green-10);
+    border-color: var(--campus-green);
+  }
+  
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  
+  &.voted {
+    background: var(--campus-green);
+    border-color: var(--campus-green);
+    color: var(--white);
+  }
+}
+
+.vote-count {
+  font-weight: 600;
+  color: var(--uab-green);
+  font-size: 1.125rem;
+}
+
+.idea-content {
+  flex: 1;
+}
+
+.idea-text {
+  font-size: var(--font-base-size);
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
+  color: var(--foreground);
+}
+
+.idea-time {
+  font-size: var(--font-small);
+  color: var(--muted-foreground);
+}
+
+// Navbar
+.navbar {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 0;
+  margin-bottom: 0;
+  
+  .navbar-brand {
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--uab-green);
+    text-decoration: none;
+    
+    &:hover {
+      color: var(--dragons-lair-green);
+    }
+  }
+  
+  .nav {
+    list-style: none;
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    
+    .nav-item {
+      .nav-link {
+        color: var(--foreground);
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s;
+        
+        &:hover {
+          color: var(--uab-green);
+        }
+      }
+    }
+  }
+}
+
+// Footer
+.footer {
+  background: var(--muted);
+  border-top: 1px solid var(--border);
+  padding: 2rem 0;
+  margin-top: 4rem;
+  text-align: center;
+  
+  .logo-font {
+    font-family: var(--font-serif);
+    color: var(--uab-green);
+    font-weight: 700;
+  }
+  
+  .attribution {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--muted-foreground);
+    font-size: var(--font-small);
+  }
+}
+
+// Ideas Grid
+.ideas-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+// Form Group
+.form-group {
+  margin-bottom: 1rem;
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .header-banner {
+    padding: 2rem 0;
+    
+    h1 {
+      font-size: 2rem;
+    }
+    
+    p {
+      font-size: 1rem;
+    }
+  }
+  
+  .idea-card {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .vote-section {
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+  
+  .form-footer {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+}
+
+// Error states
+.error {
+  color: var(--destructive);
+}
+
+// Loading states
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--muted-foreground);
 }

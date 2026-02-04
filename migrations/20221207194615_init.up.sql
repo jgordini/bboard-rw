@@ -1,47 +1,61 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE TABLE IF NOT EXISTS Users (
-    username text NOT NULL PRIMARY KEY,
-    email text NOT NULL UNIQUE,
-    password text NOT NULL,
-    bio text NULL,
-    image text NULL
+-- Ideas table for anonymous idea submissions
+CREATE TABLE IF NOT EXISTS ideas (
+    id SERIAL PRIMARY KEY,
+    content TEXT NOT NULL CHECK (char_length(content) <= 500),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    vote_count INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE TABLE IF NOT EXISTS Follows (
-    follower text NOT NULL REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
-    influencer text NOT NULL REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
-    PRIMARY KEY (follower, influencer)
+-- Votes table to track votes per idea
+CREATE TABLE IF NOT EXISTS votes (
+    id SERIAL PRIMARY KEY,
+    idea_id INTEGER NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+    voter_fingerprint TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(idea_id, voter_fingerprint)
 );
 
-CREATE TABLE IF NOT EXISTS Articles (
-    slug text NOT NULL PRIMARY KEY,
-    author text NOT NULL REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
-    title text NOT NULL,
-    description text NOT NULL,
-    body text NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL default NOW(),
-    updated_at TIMESTAMPTZ NOT NULL default NOW()
-);
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_ideas_vote_count ON ideas(vote_count DESC);
+CREATE INDEX IF NOT EXISTS idx_ideas_created_at ON ideas(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_votes_idea_id ON votes(idea_id);
 
-CREATE TABLE IF NOT EXISTS ArticleTags (
-    article text NOT NULL REFERENCES Articles(slug) ON DELETE CASCADE ON UPDATE CASCADE,
-    tag text NOT NULL,
-    PRIMARY KEY (article, tag)
-);
+-- Function to auto-increment vote_count when a vote is inserted
+CREATE OR REPLACE FUNCTION increment_vote_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE ideas SET vote_count = vote_count + 1 WHERE id = NEW.idea_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
-CREATE INDEX IF NOT EXISTS tags ON ArticleTags (tag);
+-- Trigger to automatically increment vote_count
+CREATE TRIGGER trigger_increment_vote_count
+    AFTER INSERT ON votes
+    FOR EACH ROW
+    EXECUTE FUNCTION increment_vote_count();
 
-CREATE TABLE IF NOT EXISTS FavArticles (
-    article text NOT NULL REFERENCES Articles(slug) ON DELETE CASCADE ON UPDATE CASCADE,
-    username text NOT NULL REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
-    PRIMARY KEY (article, username)
-);
+-- Function to auto-decrement vote_count when a vote is deleted
+CREATE OR REPLACE FUNCTION decrement_vote_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE ideas SET vote_count = vote_count - 1 WHERE id = OLD.idea_id;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
 
-CREATE TABLE IF NOT EXISTS Comments (
-    id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    article text NOT NULL REFERENCES Articles(slug) ON DELETE CASCADE ON UPDATE CASCADE,
-    username text NOT NULL REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
-    body text NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL default NOW()
+-- Trigger to automatically decrement vote_count
+CREATE TRIGGER trigger_decrement_vote_count
+    AFTER DELETE ON votes
+    FOR EACH ROW
+    EXECUTE FUNCTION decrement_vote_count();
+
+-- Admin users table (simple password-based auth)
+CREATE TABLE IF NOT EXISTS admin_users (
+    id SERIAL PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

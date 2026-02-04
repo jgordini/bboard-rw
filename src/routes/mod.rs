@@ -1,3 +1,8 @@
+pub use ideas::*;
+
+mod ideas;
+
+// Keep old routes for now
 pub use article::*;
 pub use editor::*;
 pub use home::*;

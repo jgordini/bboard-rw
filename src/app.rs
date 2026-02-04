@@ -1,10 +1,9 @@
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet};
 use leptos_router::components::{Route, Router, Routes, A};
-use leptos_router::{path};
+use leptos_router::path;
 
-use crate::components::NavItems;
-use crate::routes::{HomePage, Login, ResetPassword, Signup, Settings, Editor, Article, Profile};
+use crate::routes::IdeasPage;
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -31,99 +30,35 @@ pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
 
-    let username: crate::auth::UsernameSignal = RwSignal::new(None);
-
-    let logout: crate::auth::LogoutSignal = ServerAction::<crate::auth::LogoutAction>::new();
-    let login: crate::auth::LoginSignal = ServerAction::<crate::auth::LoginAction>::new();
-    let signup: crate::auth::SignupSignal = ServerAction::<crate::auth::SignupAction>::new();
-
-    let (logout_version, login_version, signup_version) =
-        (logout.version(), login.version(), signup.version());
-
-    let user = Resource::new(
-        move || {
-            (
-                logout_version.get(),
-                login_version.get(),
-                signup_version.get(),
-            )
-        },
-        move |_| {
-            tracing::debug!("fetch user");
-            crate::auth::current_user()
-        },
-    );
-
     view! {
-        // injects a stylesheet into the document <head>
-        // id=leptos means cargo-leptos will hot-reload this stylesheet
-        <Stylesheet href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css"/>
-        <Stylesheet href="https://fonts.googleapis.com/css?family=Titillium+Web:700|Source+Serif+Pro:400,700|Merriweather+Sans:400,700|Source+Sans+Pro:400,300,600,700,300italic,400italic,600italic,700italic"/>
-        <Stylesheet href="https://demo.productionready.io/main.css"/>
+        // UAB Fonts - Aktiv Grotesk and Kulturista
+        <Stylesheet href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"/>
         <Stylesheet href="/pkg/realworld-leptos.css"/>
 
         <Router>
-            <nav class="navbar navbar-light">
+            <nav class="navbar">
                 <div class="container">
-                    <A href="/" exact=true><span class="navbar-brand">"conduit"</span></A>
+                    <A href="/" exact=true class="navbar-brand">
+                        <span class="logo-font">"UAB IT Idea Board"</span>
+                    </A>
                     <ul class="nav navbar-nav pull-xs-right">
-                        <Transition fallback=|| view!{<p>"Loading Navigation bar"</p>}>
-                        {move || user.get().map(move |x| {
-                            username.set(x.map(|y| y.username()).ok());
-                            view! {
-                                <NavItems logout username />
-                            }
-                        })}
-                        </Transition>
+                        <li class="nav-item">
+                            <A href="/admin" class="nav-link">"Admin"</A>
+                        </li>
                     </ul>
                 </div>
             </nav>
             <main>
-                <Routes fallback=|| ()>
-                    <Route path=path!("/") view=move || view! {
-                        <Transition fallback=|| view!{<p>"Loading HomePage"</p>}>
-                        {move || user.get().map(move |x| {
-                            username.set(x.map(|y| y.username()).ok());
-                            view! {
-                                <HomePage username/>
-                            }
-                        })}
-                        </Transition>
-                    }/>
-                    <Route path=path!("/login") view=move || view! { <Login login/> }/>
-                    <Route path=path!("/reset_password") view=move || view! { <ResetPassword/> }/>
-                    <Route path=path!("/signup") view=move || view! { <Signup signup/> }/>
-                    <Route path=path!("/settings") view=move || view! { <Settings logout /> }/>
-                    <Route path=path!("/editor/:slug?") view=|| view! { <Editor/> }/>
-                    <Route path=path!("/article/:slug") view=move || view! {
-                        <Transition fallback=|| view!{<p>"Loading Article"</p>}>
-                        {move || user.get().map(move |x| {
-                            username.set(x.map(|y| y.username()).ok());
-                            view! {
-                                <Article username/>
-                            }
-                        })}
-                        </Transition>
-                    }/>
-                    <Route path=path!("/profile/:user") view=move || view! {
-                        <Transition fallback=|| view!{<p>"Loading Profile"</p>}>
-                        {move || user.get().map(move |x| {
-                            username.set(x.map(|y| y.username()).ok());
-                            view! {
-                                <Profile username/>
-                            }
-                        })}
-                        </Transition>
-                    }/>
+                <Routes fallback=|| view! { <div class="container"><p>"Page not found"</p></div> }>
+                    <Route path=path!("/") view=|| view! { <IdeasPage/> }/>
+                    // TODO: Add admin route
                 </Routes>
             </main>
-            <footer>
+            <footer class="footer">
                 <div class="container">
-                    <A href="/"><span class="logo-font">"conduit"</span></A>
+                    <A href="/"><span class="logo-font">"UAB IT Idea Board"</span></A>
                     <span class="attribution">
-                        "An interactive learning project from "
-                        <a href="https://thinkster.io">"Thinkster"</a>
-                        ". Code &amp; design licensed under MIT."
+                        "UAB Information Technology"
                     </span>
                 </div>
             </footer>

@@ -22,3 +22,22 @@ export function decodeJWT(token) {
 export function emailRegex(email) {
     return /^[\w\-\.]+@([\w-]+\.)+\w{2,4}$/.test(email)
 }
+
+/**
+ * Generate or retrieve voter fingerprint from localStorage
+ * @returns {string}
+ */
+export function getVoterFingerprint() {
+    const storage = window.localStorage;
+    if (storage) {
+        let voterId = storage.getItem("voter_id");
+        if (!voterId) {
+            // Generate a simple fingerprint
+            voterId = "voter_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+            storage.setItem("voter_id", voterId);
+        }
+        return voterId;
+    }
+    // Fallback if localStorage is not available
+    return "voter_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+}

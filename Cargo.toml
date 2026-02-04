@@ -28,6 +28,14 @@ leptos = "0.8.14"
 leptos_meta = "0.8.5"
 leptos_axum = { version = "0.8.7", optional = true }
 leptos_router = "0.8.6"
+leptos-shadcn-button = "0.2"
+leptos-shadcn-card = "0.2"
+leptos-shadcn-input = "0.2"
+leptos-shadcn-textarea = "0.2"
+leptos-shadcn-label = "0.2"
+leptos-shadcn-badge = "0.2"
+leptos-shadcn-alert = "0.2"
+leptos-shadcn-dialog = "0.2"
 
 tracing = "0.1.43"
 tracing-subscriber = { version = "0.3.22", features = ["fmt"] }

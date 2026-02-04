@@ -1,3 +1,9 @@
+mod idea;
+pub use idea::{Idea, IdeaForm};
+mod vote;
+pub use vote::Vote;
+
+// Keep old models for now in case they're referenced elsewhere
 mod user;
 pub use user::{User, UserPreview};
 mod pagination;
@@ -8,4 +14,4 @@ mod comment;
 pub use comment::Comment;
 
 #[cfg(feature = "ssr")]
-const DATE_FORMAT: &str = "%d/%m/%Y %H:%M";
+pub const DATE_FORMAT: &str = "%d/%m/%Y %H:%M";
