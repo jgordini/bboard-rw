@@ -1,57 +1,63 @@
-# Realworld app with Leptos + Axum + Postgres
+# UAB IT Idea Board
 
-You can check it online in https://realworld-leptos.onrender.com (it might take a couple of seconds to startup).
+An anonymous idea submission and voting platform for UAB IT, built with Leptos + Axum + PostgreSQL.
 
-# Requirements
+## Requirements
 
-## Rust with Webassembly support
+### Rust with WebAssembly support
 
-`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-
-Once finished, add webassembly target to rust:
-
-`rustup target add wasm32-unknown-unknown`
-
-## cargo-leptos
-
-This is a utility to easily compile either backend and frontend at the same time:
-
-`cargo install cargo-leptos`
-
-# sqlx
-
-We need to run migrations before compiling, otherwise the query! macros will fail and abort the compilation:
-
-`cargo install sqlx-cli`
-
-# How to run this project locally
-
-First, deploy a local postgres database, maybe docker is the fastest solution:
-
-`docker run --name postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres`
-
-Clone it into your machine and run it with cargo-leptos:
-
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup target add wasm32-unknown-unknown
 ```
-git clone https://github.com/Bechma/realworld-leptos.git
-cd realworld-leptos
+
+### cargo-leptos
+
+Compiles both backend and frontend:
+
+```bash
+cargo install cargo-leptos
+```
+
+### sqlx-cli
+
+Required to run migrations before compiling (sqlx macros verify queries at compile time):
+
+```bash
+cargo install sqlx-cli
+```
+
+## Local Development
+
+Start a local PostgreSQL database:
+
+```bash
+docker run --name postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres
+```
+
+Set up and run:
+
+```bash
 cp .env.example .env
 source .env
 cargo sqlx database setup
 cargo leptos watch
 ```
 
-Change the placeholder in .env for `JWT_SECRET` for security reasons.
+Navigate to http://localhost:3000
 
-Also, there's a password reset functionality that works with a sending email. If you want
-to use that feature you can set MAILER_EMAIL and MAILER_PASSWD with your email creds
-and MAILER_SMTP_SERVER with your SMTP service.
+## Environment Variables
 
-# How to test this project
+See `.env.example` for all options:
 
-You will need to have a local database, in order to execute end2end testing.
+- `DATABASE_URL` - PostgreSQL connection string
+- `ADMIN_PASSWORD` - Password for the admin panel (defaults to "admin")
 
-```
+## Testing
+
+End-to-end tests require a local database and Playwright:
+
+```bash
 cd end2end/
 npm i
 npx playwright install
@@ -59,23 +65,12 @@ cd ../
 cargo leptos end-to-end
 ```
 
-You will need to install the playright dependency in the end2end directory and
-install the playwright drivers. With cargo-leptos the tests will be executed.
+## Docker Compose
 
-# Run it with docker compose
+Run the full stack in release mode:
 
-You can also run the application in release mode using docker compose:
+```bash
+docker compose up
+```
 
-`docker compose up`
-
-And navigate to http://localhost:8080/
-
-# Details about deployment
-
-The deployment has been done thanks to the free tier of:
-
-- https://render.com/ for the fullstack application
-- https://neon.tech/ for the database (render has a 90 days expiration in the db)
-
-Previously, I deployed the db in https://www.elephantsql.com/ ,
-but [It will reach EOL soon](https://www.elephantsql.com/blog/end-of-life-announcement.html)
+Navigate to http://localhost:8080
