@@ -6,7 +6,7 @@ use crate::models::Idea;
 // Admin password check (in production, use proper hashing)
 #[server]
 pub async fn admin_login(password: String) -> Result<bool, ServerFnError> {
-    let admin_password = std::env::var("ADMIN_PASSWORD").unwrap_or_else(|_| "admin123".to_string());
+    let admin_password = std::env::var("ADMIN_PASSWORD").unwrap_or_else(|_| "admin".to_string());
     Ok(password == admin_password)
 }
 
