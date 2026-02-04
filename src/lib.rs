@@ -1,11 +1,13 @@
 #![recursion_limit = "256"]
 
 pub mod app;
-pub(crate) mod auth;
+// pub(crate) mod auth; // Disabled for anonymous idea board
 pub(crate) mod components;
 #[cfg(feature = "ssr")]
 pub(crate) mod database;
 pub(crate) mod models;
+#[cfg(feature = "ssr")]
+pub(crate) mod profanity;
 pub(crate) mod routes;
 #[cfg(feature = "ssr")]
 pub mod setup;

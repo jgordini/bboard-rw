@@ -21,6 +21,9 @@ mail-send = { version = "0.5.2", optional = true }
 regex = { version = "1.12.2", optional = true }
 
 serde = { version = "1.0.228", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["Window", "Storage"] }
 
 console_error_panic_hook = { version = "0.1.7", optional = true }
 

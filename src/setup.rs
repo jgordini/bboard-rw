@@ -44,7 +44,7 @@ pub async fn init_app(configuration_path: Option<&str>) {
                     tower_http::trace::DefaultOnFailure::new().level(tracing::Level::ERROR),
                 ),
         )
-        .layer(axum::middleware::from_fn(crate::auth::auth_middleware))
+        // .layer(axum::middleware::from_fn(crate::auth::auth_middleware)) // Disabled for anonymous idea board
         .with_state(leptos_options);
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();

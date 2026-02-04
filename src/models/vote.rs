@@ -8,6 +8,12 @@ pub struct Vote {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct VoteForm {
+    pub idea_id: i32,
+    pub voter_fingerprint: String,
+}
+
 impl Vote {
     #[cfg(feature = "ssr")]
     pub async fn create(idea_id: i32, voter_fingerprint: String) -> Result<Self, sqlx::Error> {

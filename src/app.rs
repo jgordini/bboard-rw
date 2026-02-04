@@ -3,7 +3,7 @@ use leptos_meta::{provide_meta_context, MetaTags, Stylesheet};
 use leptos_router::components::{Route, Router, Routes, A};
 use leptos_router::path;
 
-use crate::routes::IdeasPage;
+use crate::routes::{IdeasPage, AdminPage};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -38,12 +38,12 @@ pub fn App() -> impl IntoView {
         <Router>
             <nav class="navbar">
                 <div class="container">
-                    <A href="/" exact=true class="navbar-brand">
+                    <a href="/" class="navbar-brand">
                         <span class="logo-font">"UAB IT Idea Board"</span>
-                    </A>
+                    </a>
                     <ul class="nav navbar-nav pull-xs-right">
                         <li class="nav-item">
-                            <A href="/admin" class="nav-link">"Admin"</A>
+                            <a href="/admin" class="nav-link">"Admin"</a>
                         </li>
                     </ul>
                 </div>
@@ -51,12 +51,12 @@ pub fn App() -> impl IntoView {
             <main>
                 <Routes fallback=|| view! { <div class="container"><p>"Page not found"</p></div> }>
                     <Route path=path!("/") view=|| view! { <IdeasPage/> }/>
-                    // TODO: Add admin route
+                    <Route path=path!("/admin") view=|| view! { <AdminPage/> }/>
                 </Routes>
             </main>
             <footer class="footer">
                 <div class="container">
-                    <A href="/"><span class="logo-font">"UAB IT Idea Board"</span></A>
+                    <a href="/"><span class="logo-font">"UAB IT Idea Board"</span></a>
                     <span class="attribution">
                         "UAB Information Technology"
                     </span>

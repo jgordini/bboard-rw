@@ -1,22 +1,24 @@
 pub use ideas::*;
+pub use admin::*;
 
 mod ideas;
+mod admin;
 
-// Keep old routes for now
-pub use article::*;
-pub use editor::*;
-pub use home::*;
-pub use login::*;
-pub use profile::*;
-pub use reset_password::*;
-pub use settings::*;
-pub use signup::*;
+// Old routes commented out - using new Ideas schema
+// pub use article::*;
+// pub use editor::*;
+// pub use home::*;
+// pub use login::*;
+// pub use profile::*;
+// pub use reset_password::*;
+// pub use settings::*;
+// pub use signup::*;
 
-mod article;
-mod editor;
-mod home;
-mod login;
-mod profile;
-mod reset_password;
-mod settings;
-mod signup;
+// mod article;
+// mod editor;
+// mod home;
+// mod login;
+// mod profile;
+// mod reset_password;
+// mod settings;
+// mod signup;

@@ -32,6 +32,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to automatically increment vote_count
+DROP TRIGGER IF EXISTS trigger_increment_vote_count ON votes;
 CREATE TRIGGER trigger_increment_vote_count
     AFTER INSERT ON votes
     FOR EACH ROW
@@ -47,6 +48,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to automatically decrement vote_count
+DROP TRIGGER IF EXISTS trigger_decrement_vote_count ON votes;
 CREATE TRIGGER trigger_decrement_vote_count
     AFTER DELETE ON votes
     FOR EACH ROW
