@@ -3,23 +3,32 @@ use leptos::prelude::*;
 use leptos::ev::SubmitEvent;
 use leptos_meta::Title;
 use crate::models::Idea;
-use leptos_shadcn_button::Button;
+use leptos_shadcn_button::{Button, ButtonVariant};
 use leptos_shadcn_card::{Card, CardHeader, CardTitle, CardContent};
 use leptos_shadcn_badge::{Badge, BadgeVariant};
 use leptos_shadcn_label::Label;
+use leptos_shadcn_input::Input;
+use leptos_shadcn_alert::{Alert, AlertDescription};
+use leptos_shadcn_dialog::{Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose};
 
 #[server]
-pub async fn create_idea(content: String) -> Result<Idea, ServerFnError> {
+pub async fn create_idea(title: String, content: String) -> Result<Idea, ServerFnError> {
+    if title.trim().is_empty() {
+        return Err(ServerFnError::new("Idea title cannot be empty"));
+    }
+    if title.len() > 100 {
+        return Err(ServerFnError::new("Idea title cannot exceed 100 characters"));
+    }
     if content.trim().is_empty() {
-        return Err(ServerFnError::new("Idea content cannot be empty"));
+        return Err(ServerFnError::new("Idea description cannot be empty"));
     }
     if content.len() > 500 {
-        return Err(ServerFnError::new("Idea content cannot exceed 500 characters"));
+        return Err(ServerFnError::new("Idea description cannot exceed 500 characters"));
     }
-    if crate::profanity::contains_profanity(&content) {
+    if crate::profanity::contains_profanity(&title) || crate::profanity::contains_profanity(&content) {
         return Err(ServerFnError::new("Your submission contains inappropriate language. Please revise and try again."));
     }
-    Idea::create(content.trim().to_string())
+    Idea::create(title.trim().to_string(), content.trim().to_string())
         .await
         .map_err(|e| {
             tracing::error!("Failed to create idea: {:?}", e);
@@ -221,14 +230,7 @@ pub fn IdeasPage() -> impl IntoView {
                     </div>
 
                     <div class="sidebar">
-                        <Card class="sidebar-card">
-                            <CardHeader class="sidebar-card-header">
-                                <CardTitle class="sidebar-card-title">"Submit an Idea"</CardTitle>
-                            </CardHeader>
-                            <CardContent class="sidebar-card-body">
-                                <IdeaSubmissionForm ideas_resource stats_resource />
-                            </CardContent>
-                        </Card>
+                        <IdeaSubmissionDialog ideas_resource stats_resource />
 
                         <Suspense fallback=move || view! { <p class="loading">"Loading..."</p> }>
                             {move || {
@@ -266,60 +268,139 @@ pub fn IdeasPage() -> impl IntoView {
 }
 
 #[component]
-fn IdeaSubmissionForm(
+fn IdeaSubmissionDialog(
     ideas_resource: Resource<Result<Vec<Idea>, ServerFnError>>,
     stats_resource: Resource<Result<(i64, i64), ServerFnError>>,
 ) -> impl IntoView {
+    let is_open = RwSignal::new(false);
+    let title = RwSignal::new(String::new());
     let content = RwSignal::new(String::new());
-    let max_chars: usize = 500;
-    let char_count = move || content.get().len();
-    let is_warning = move || char_count() >= (max_chars as f64 * 0.9) as usize;
-    let is_error = move || char_count() >= max_chars;
+    let error_message = RwSignal::new(Option::<String>::None);
+    let is_submitting = RwSignal::new(false);
+
+    let max_title_chars: usize = 100;
+    let max_content_chars: usize = 500;
+    let title_count = move || title.get().len();
+    let content_count = move || content.get().len();
+
+    let title_warning = move || title_count() >= (max_title_chars as f64 * 0.9) as usize;
+    let title_error = move || title_count() >= max_title_chars;
+    let content_warning = move || content_count() >= (max_content_chars as f64 * 0.9) as usize;
+    let content_error = move || content_count() >= max_content_chars;
+
+    let can_submit = move || {
+        !title.get().trim().is_empty()
+            && !content.get().trim().is_empty()
+            && title.get().len() <= max_title_chars
+            && content.get().len() <= max_content_chars
+            && !is_submitting.get()
+    };
 
     let handle_submit = move |ev: SubmitEvent| {
         ev.prevent_default();
-        let content_value = content.get();
-        if content_value.trim().is_empty() || content_value.len() > max_chars {
+        if !can_submit() {
             return;
         }
-        let content_clone = content_value.clone();
+        is_submitting.set(true);
+        error_message.set(None);
+
+        let title_value = title.get();
+        let content_value = content.get();
         leptos::task::spawn_local(async move {
-            if create_idea(content_clone).await.is_ok() {
-                ideas_resource.refetch();
-                stats_resource.refetch();
+            match create_idea(title_value, content_value).await {
+                Ok(_) => {
+                    ideas_resource.refetch();
+                    stats_resource.refetch();
+                    title.set(String::new());
+                    content.set(String::new());
+                    is_open.set(false);
+                }
+                Err(e) => {
+                    error_message.set(Some(e.to_string()));
+                }
             }
+            is_submitting.set(false);
         });
-        content.set(String::new());
     };
 
+    let handle_open_change = Callback::new(move |open: bool| {
+        is_open.set(open);
+        if !open {
+            error_message.set(None);
+        }
+    });
+
     view! {
-        <form on:submit=handle_submit>
-            <div class="form-group">
-                <Label class="form-label">"Your Idea"</Label>
-                <textarea
-                    class="idea-textarea"
-                    class:warning=is_warning
-                    class:error=is_error
-                    placeholder="What could UAB IT do better? (max 500 characters)"
-                    maxlength=max_chars
-                    prop:value=move || content.get()
-                    on:input=move |ev| {
-                        content.set(event_target_value(&ev));
-                    }
-                />
-            </div>
-            <div class="form-footer">
-                <span class="char-counter" class:warning=is_warning class:error=is_error>
-                    {move || format!("{}/{}", char_count(), max_chars)}
-                </span>
-                <Button
-                    class="submit-btn"
-                    disabled=Signal::derive(move || content.get().trim().is_empty())
-                >
-                    "Post Idea"
-                </Button>
-            </div>
-        </form>
+        <Card class="sidebar-card">
+            <CardHeader class="sidebar-card-header">
+                <CardTitle class="sidebar-card-title">"Got an Idea?"</CardTitle>
+            </CardHeader>
+            <CardContent class="sidebar-card-body">
+                <p class="sidebar-intro">"Share your suggestions to improve UAB IT services."</p>
+                <Dialog open=is_open on_open_change=handle_open_change>
+                    <DialogTrigger>
+                        <Button class="submit-btn dialog-trigger-btn">"Post Idea"</Button>
+                    </DialogTrigger>
+                    <DialogContent class="idea-dialog-content">
+                        <DialogHeader>
+                            <DialogTitle class="dialog-title">"Submit Your Idea"</DialogTitle>
+                        </DialogHeader>
+                        <form on:submit=handle_submit>
+                            <Show when=move || error_message.get().is_some()>
+                                <Alert class="dialog-alert dialog-alert-error">
+                                    <AlertDescription>
+                                        {move || error_message.get().unwrap_or_default()}
+                                    </AlertDescription>
+                                </Alert>
+                            </Show>
+                            <div class="form-group">
+                                <Label class="form-label">"Title"</Label>
+                                <Input
+                                    class="dialog-input"
+                                    placeholder="Brief title for your idea"
+                                    value=title
+                                    on_change=Callback::new(move |val: String| {
+                                        if val.len() <= max_title_chars {
+                                            title.set(val);
+                                        }
+                                    })
+                                />
+                                <span class="char-counter" class:warning=title_warning class:error=title_error>
+                                    {move || format!("{}/{}", title_count(), max_title_chars)}
+                                </span>
+                            </div>
+                            <div class="form-group">
+                                <Label class="form-label">"Description"</Label>
+                                // Using native textarea since shadcn Textarea has a rendering bug
+                                <textarea
+                                    class="dialog-textarea"
+                                    placeholder="Describe your idea in more detail..."
+                                    maxlength=max_content_chars
+                                    prop:value=move || content.get()
+                                    on:input=move |ev| {
+                                        content.set(event_target_value(&ev));
+                                    }
+                                />
+                                <span class="char-counter" class:warning=content_warning class:error=content_error>
+                                    {move || format!("{}/{}", content_count(), max_content_chars)}
+                                </span>
+                            </div>
+                            <DialogFooter class="dialog-footer">
+                                <DialogClose>
+                                    <Button variant=ButtonVariant::Outline class="btn-cancel">"Cancel"</Button>
+                                </DialogClose>
+                                <Button
+                                    class="submit-btn"
+                                    disabled=Signal::derive(move || !can_submit())
+                                >
+                                    {move || if is_submitting.get() { "Submitting..." } else { "Submit Idea" }}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            </CardContent>
+        </Card>
     }
 }
 
@@ -334,6 +415,7 @@ fn DiggCard(
 ) -> impl IntoView {
     let idea_id = idea.id;
     let vote_count = idea.vote_count;
+    let title = idea.title.clone();
     let content = idea.content.clone();
     let created_at = idea.created_at;
 
@@ -376,6 +458,7 @@ fn DiggCard(
                 </button>
             </div>
             <a class="digg-content" href=format!("/ideas/{}", idea_id)>
+                <h3 class="digg-title">{title}</h3>
                 <p class="digg-text">{content}</p>
                 <div class="digg-meta">
                     <Badge variant=BadgeVariant::Outline class="digg-time">

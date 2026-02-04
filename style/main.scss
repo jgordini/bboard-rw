@@ -266,17 +266,32 @@ body {
   text-decoration: none;
   color: inherit;
 
-  &:hover .digg-text {
-    color: var(--uab-green);
+  &:hover .digg-title {
+    color: var(--campus-green);
   }
 }
 
+.digg-title {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--uab-green);
+  margin-bottom: 0.25rem;
+  word-wrap: break-word;
+  transition: color 0.15s;
+}
+
 .digg-text {
-  font-size: var(--font-base-size);
+  font-size: var(--font-small);
   line-height: 1.5;
-  color: var(--foreground);
+  color: var(--gray-500);
   margin-bottom: 0.375rem;
   word-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .digg-meta {
@@ -337,6 +352,18 @@ body {
 
 .sidebar-card-body {
   padding: 0 1.25rem 1.25rem;
+}
+
+.sidebar-intro {
+  font-size: var(--font-small);
+  color: var(--gray-500);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.dialog-trigger-btn {
+  width: 100%;
+  justify-content: center;
 }
 
 // Stats
@@ -451,6 +478,99 @@ body {
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+  }
+}
+
+// ============================================================
+// Dialog / Modal Styles
+// ============================================================
+
+.idea-dialog-content {
+  background: var(--white);
+  border-radius: var(--radius);
+  max-width: 500px;
+  width: 90vw;
+  padding: 1.5rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.dialog-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--uab-green);
+  margin-bottom: 1rem;
+}
+
+// shadcn Input component override
+.dialog-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: var(--font-small);
+  transition: border-color 0.2s;
+  background: var(--white);
+
+  &:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 2px var(--campus-green-10);
+  }
+}
+
+// shadcn Textarea component override
+.dialog-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 0.75rem;
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: var(--font-small);
+  resize: vertical;
+  transition: border-color 0.2s;
+  background: var(--white);
+
+  &:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 2px var(--campus-green-10);
+  }
+}
+
+// shadcn Alert component override for errors
+.dialog-alert {
+  margin-bottom: 1rem;
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  font-size: var(--font-small);
+}
+
+.dialog-alert-error {
+  background: #fef2f2;
+  border: 1px solid var(--destructive);
+  color: var(--destructive);
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+// Cancel button style
+.btn-cancel {
+  background: var(--white);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+
+  &:hover {
+    background: var(--gray-200);
   }
 }
 
@@ -680,6 +800,15 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+.detail-idea-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--uab-green);
+  margin-bottom: 0.75rem;
 }
 
 .detail-idea-text {

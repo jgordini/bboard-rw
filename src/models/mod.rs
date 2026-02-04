@@ -1,9 +1,6 @@
 mod idea;
-pub use idea::{Idea, IdeaForm};
+pub use idea::Idea;
 mod vote;
-pub use vote::{Vote, VoteForm};
+pub use vote::Vote;
 mod comment;
 pub use comment::Comment;
-
-#[cfg(feature = "ssr")]
-pub const DATE_FORMAT: &str = "%d/%m/%Y %H:%M";

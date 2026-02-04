@@ -71,10 +71,14 @@ pub fn IdeaDetailPage() -> impl IntoView {
                             match result {
                                 Ok(idea) => {
                                     let idea_id_val = idea.id;
-                                    let title = format!("Idea #{} — UAB IT Idea Board", idea.id);
+                                    let page_title = if idea.title.is_empty() {
+                                        format!("Idea #{} — UAB IT Idea Board", idea.id)
+                                    } else {
+                                        format!("{} — UAB IT Idea Board", idea.title)
+                                    };
                                     let relative_time = format_relative_time(&idea.created_at);
                                     view! {
-                                        <Title text=title/>
+                                        <Title text=page_title/>
                                         <Card class="detail-card">
                                             <CardContent class="detail-card-body">
                                                 <div class="detail-vote-box">
@@ -83,6 +87,12 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                     <span class="detail-vote-label">"votes"</span>
                                                 </div>
                                                 <div class="detail-idea-content">
+                                                    <Show when={
+                                                        let t = idea.title.clone();
+                                                        move || !t.is_empty()
+                                                    }>
+                                                        <h1 class="detail-idea-title">{idea.title.clone()}</h1>
+                                                    </Show>
                                                     <p class="detail-idea-text">{idea.content}</p>
                                                     <Badge variant=BadgeVariant::Outline class="detail-time">
                                                         {format!("submitted {}", relative_time)}
@@ -189,9 +199,7 @@ fn CommentForm(
             <div class="form-group">
                 <Label class="form-label">"Your Comment"</Label>
                 <textarea
-                    class="idea-textarea"
-                    class:warning=is_warning
-                    class:error=is_error
+                    class="dialog-textarea"
                     placeholder="Add a comment (max 500 characters)"
                     maxlength=max_chars
                     prop:value=move || content.get()

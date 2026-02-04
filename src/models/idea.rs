@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Idea {
     pub id: i32,
+    pub title: String,
     pub content: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub vote_count: i32,
@@ -25,7 +26,7 @@ impl Idea {
     pub async fn get_by_id(id: i32) -> Result<Self, sqlx::Error> {
         sqlx::query_as!(
             Idea,
-            "SELECT id, content, created_at, vote_count FROM ideas WHERE id = $1",
+            "SELECT id, title, content, created_at, vote_count FROM ideas WHERE id = $1",
             id
         )
         .fetch_one(crate::database::get_db())
@@ -36,17 +37,18 @@ impl Idea {
     pub async fn get_all() -> Result<Vec<Self>, sqlx::Error> {
         sqlx::query_as!(
             Idea,
-            "SELECT id, content, created_at, vote_count FROM ideas ORDER BY vote_count DESC, created_at DESC"
+            "SELECT id, title, content, created_at, vote_count FROM ideas ORDER BY vote_count DESC, created_at DESC"
         )
         .fetch_all(crate::database::get_db())
         .await
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn create(content: String) -> Result<Self, sqlx::Error> {
+    pub async fn create(title: String, content: String) -> Result<Self, sqlx::Error> {
         let idea = sqlx::query_as!(
             Idea,
-            "INSERT INTO ideas (content) VALUES ($1) RETURNING id, content, created_at, vote_count",
+            "INSERT INTO ideas (title, content) VALUES ($1, $2) RETURNING id, title, content, created_at, vote_count",
+            title,
             content
         )
         .fetch_one(crate::database::get_db())
@@ -81,7 +83,7 @@ impl Idea {
     #[cfg(feature = "ssr")]
     pub async fn get_statistics() -> Result<(i64, i64), sqlx::Error> {
         let stats = sqlx::query!(
-            "SELECT 
+            "SELECT
                 COUNT(*) as total_ideas,
                 COALESCE(SUM(vote_count), 0) as total_votes
             FROM ideas"
