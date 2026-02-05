@@ -178,7 +178,7 @@ fn AdminLogin(
                 {move || login_error.get().map(|err| view! {
                     <p class="error-message">{err}</p>
                 })}
-                <button type="submit" class="btn-submit">"Login"</button>
+                <button type="submit" class="submit-btn">"Login"</button>
             </form>
         </div>
     }
