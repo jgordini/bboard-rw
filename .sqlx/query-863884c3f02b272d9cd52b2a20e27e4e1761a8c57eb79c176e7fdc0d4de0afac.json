@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM ideas WHERE created_at < NOW() - INTERVAL '1 day' * $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "863884c3f02b272d9cd52b2a20e27e4e1761a8c57eb79c176e7fdc0d4de0afac"
+}

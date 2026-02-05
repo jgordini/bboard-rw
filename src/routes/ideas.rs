@@ -3,13 +3,14 @@ use leptos::prelude::*;
 use leptos::ev::SubmitEvent;
 use leptos_meta::Title;
 use crate::models::Idea;
-use leptos_shadcn_button::{Button, ButtonVariant};
-use leptos_shadcn_card::{Card, CardHeader, CardTitle, CardContent};
-use leptos_shadcn_badge::{Badge, BadgeVariant};
-use leptos_shadcn_label::Label;
-use leptos_shadcn_input::Input;
-use leptos_shadcn_alert::{Alert, AlertDescription};
-use leptos_shadcn_dialog::{Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose};
+use leptos_shadcn_ui::{
+    Button, ButtonVariant,
+    Card, CardHeader, CardTitle, CardContent,
+    Badge, BadgeVariant,
+    Label, Input,
+    Alert, AlertDescription,
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+};
 
 #[server]
 pub async fn create_idea(title: String, content: String) -> Result<Idea, ServerFnError> {
@@ -344,8 +345,9 @@ fn IdeaSubmissionDialog(
                     "Post Idea"
                 </button>
                 <Dialog open=is_open on_open_change=handle_open_change>
-                    <DialogContent class="idea-dialog-content">
-                        <DialogHeader>
+                    <Show when=move || is_open.get() fallback=|| ()>
+                        <DialogContent class="idea-dialog-content">
+                            <DialogHeader>
                             <DialogTitle class="dialog-title">"Submit Your Idea"</DialogTitle>
                         </DialogHeader>
                         <form on:submit=handle_submit>
@@ -389,8 +391,8 @@ fn IdeaSubmissionDialog(
                                 </span>
                             </div>
                             <DialogFooter class="dialog-footer">
-                                <DialogClose>
-                                    <Button variant=ButtonVariant::Outline class="btn-cancel">"Cancel"</Button>
+                                <DialogClose class="btn-cancel">
+                                    "Cancel"
                                 </DialogClose>
                                 <Button
                                     class="submit-btn"
@@ -400,7 +402,8 @@ fn IdeaSubmissionDialog(
                                 </Button>
                             </DialogFooter>
                         </form>
-                    </DialogContent>
+                        </DialogContent>
+                    </Show>
                 </Dialog>
                 
             </CardContent>

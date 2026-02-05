@@ -485,11 +485,12 @@ body {
 // Dialog / Modal Styles
 // ============================================================
 
-// The shadcn Dialog component uses Tailwind classes which don't work in our SCSS setup
-// We need to provide our own overlay and content positioning styles
-
-// Dialog overlay (the outer div with fixed positioning)
-.fixed.inset-0.z-50 {
+// The shadcn Dialog component uses Tailwind classes which don't work in our SCSS setup.
+// We provide overlay and content positioning. The dialog renders:
+// - An overlay div with class "fixed inset-0 z-50" (backdrop, click to close)
+// - An inner wrapper with class "fixed inset-0 z-50 flex ..." (centers the content)
+// Scope only to the overlay so we don't double-apply background/flex to the inner wrapper.
+.fixed.inset-0.z-50:not(.flex) {
   position: fixed !important;
   top: 0 !important;
   right: 0 !important;
@@ -511,35 +512,76 @@ body {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
   position: relative;
   z-index: 51;
-}
 
-.dialog-title {
-  font-family: var(--font-serif);
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--uab-green);
-  margin-bottom: 1rem;
-}
+  // Scoped so these overrides only apply inside the dialog (avoids conflicts with
+  // other uses of .form-label, generic h2, etc. elsewhere on the page)
+  .dialog-title {
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--uab-green);
+    margin-bottom: 1rem;
+  }
 
-// shadcn Input component override
-.dialog-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--input);
-  border-radius: var(--radius);
-  font-family: var(--font-sans);
-  font-size: var(--font-small);
-  transition: border-color 0.2s;
-  background: var(--white);
+  .dialog-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--input);
+    border-radius: var(--radius);
+    font-family: var(--font-sans);
+    font-size: var(--font-small);
+    transition: border-color 0.2s;
+    background: var(--white);
 
-  &:focus {
-    outline: none;
-    border-color: var(--ring);
-    box-shadow: 0 0 0 2px var(--campus-green-10);
+    &:focus {
+      outline: none;
+      border-color: var(--ring);
+      box-shadow: 0 0 0 2px var(--campus-green-10);
+    }
+  }
+
+  .dialog-alert {
+    margin-bottom: 1rem;
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-size: var(--font-small);
+  }
+
+  .dialog-alert-error {
+    background: #fef2f2;
+    border: 1px solid var(--destructive);
+    color: var(--destructive);
+  }
+
+  .dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
   }
 }
 
-// shadcn Textarea component override
+// Cancel button (global so it applies regardless of dialog DOM structure)
+.btn-cancel {
+  background: var(--white);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  padding: 0.5rem 1.25rem;
+  font-size: var(--font-small);
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--gray-200);
+  }
+}
+
+// Shared by dialog and comment form — keep global
 .dialog-textarea {
   width: 100%;
   min-height: 120px;
@@ -556,40 +598,6 @@ body {
     outline: none;
     border-color: var(--ring);
     box-shadow: 0 0 0 2px var(--campus-green-10);
-  }
-}
-
-// shadcn Alert component override for errors
-.dialog-alert {
-  margin-bottom: 1rem;
-  border-radius: var(--radius);
-  padding: 0.75rem 1rem;
-  font-size: var(--font-small);
-}
-
-.dialog-alert-error {
-  background: #fef2f2;
-  border: 1px solid var(--destructive);
-  color: var(--destructive);
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
-}
-
-// Cancel button style
-.btn-cancel {
-  background: var(--white);
-  color: var(--foreground);
-  border: 1px solid var(--border);
-
-  &:hover {
-    background: var(--gray-200);
   }
 }
 

@@ -3,10 +3,12 @@ use leptos::ev::SubmitEvent;
 use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
 use crate::models::{Idea, Comment};
-use leptos_shadcn_button::Button;
-use leptos_shadcn_card::{Card, CardHeader, CardTitle, CardContent};
-use leptos_shadcn_badge::{Badge, BadgeVariant};
-use leptos_shadcn_label::Label;
+use leptos_shadcn_ui::{
+    Button,
+    Card, CardHeader, CardTitle, CardContent,
+    Badge, BadgeVariant,
+    Label,
+};
 
 #[server]
 pub async fn get_idea(id: i32) -> Result<Idea, ServerFnError> {
