@@ -158,14 +158,6 @@ pub fn IdeasPage() -> impl IntoView {
                                         Ok(Some(user)) => view! {
                                             <div class="user-menu">
                                                 <span class="user-name">"Hello, " {user.name.clone()}</span>
-                                                {move || {
-                                                    if user.is_moderator() {
-                                                        view! { <A href="/admin" attr:class="admin-link">"Admin"</A> }.into_any()
-                                                    } else {
-                                                        view! {}.into_any()
-                                                    }
-                                                }}
-                                                <A href="/profile">"Profile"</A>
                                             </div>
                                         }.into_any(),
                                         Ok(None) => view! {
@@ -203,7 +195,7 @@ pub fn IdeasPage() -> impl IntoView {
                             </button>
                         </div>
 
-                        <Suspense fallback=move || view! { <p class="loading">"Loading ideas..."</p> }>
+                        <Suspense fallback=move || view! { <p class="loading">"Loading ideas…"</p> }>
                             {move || {
                                 ideas_resource.get().map(|ideas| {
                                     match ideas {
@@ -262,7 +254,7 @@ pub fn IdeasPage() -> impl IntoView {
                             stats_resource=stats_resource
                         />
 
-                        <Suspense fallback=move || view! { <p class="loading">"Loading..."</p> }>
+                        <Suspense fallback=move || view! { <p class="loading">"Loading…"</p> }>
                             {move || {
                                 stats_resource.get().map(|stats| {
                                     match stats {
@@ -369,9 +361,10 @@ fn IdeaSubmissionDialog(
             </header>
             <div class="sidebar-card-body">
                 <p class="sidebar-intro">"Share your suggestions to improve UAB IT services."</p>
-                {move || {
-                    if is_logged_in() {
-                        view! {
+                <Suspense fallback=move || view! { <p class="loading">"…"</p> }>
+                    {move || match user_resource.get() {
+                        None => view! { <p class="loading">"…"</p> }.into_any(),
+                        Some(Ok(Some(_))) => view! {
                             <button
                                 class="submit-btn dialog-trigger-btn"
                                 on:click=move |_| is_open.set(true)
@@ -386,7 +379,7 @@ fn IdeaSubmissionDialog(
                                         </header>
                                         <form on:submit=handle_submit>
                                             <Show when=move || error_message.get().is_some()>
-                                                <div class="dialog-alert dialog-alert-error" role="alert">
+                                                <div class="dialog-alert dialog-alert-error" role="alert" aria-live="polite" aria-atomic="true">
                                                     {move || error_message.get().unwrap_or_default()}
                                                 </div>
                                             </Show>
@@ -396,7 +389,7 @@ fn IdeaSubmissionDialog(
                                                     id="idea-title"
                                                     type="text"
                                                     class="dialog-input"
-                                                    placeholder="Brief title for your idea"
+                                                    placeholder="Brief title for your idea…"
                                                     maxlength=max_title_chars
                                                     prop:value=move || title.get()
                                                     on:input=move |ev| {
@@ -415,7 +408,7 @@ fn IdeaSubmissionDialog(
                                                 <textarea
                                                     id="idea-description"
                                                     class="dialog-textarea"
-                                                    placeholder="Describe your idea in more detail..."
+                                                    placeholder="Describe your idea in more detail…"
                                                     maxlength=max_content_chars
                                                     prop:value=move || content.get()
                                                     on:input=move |ev| {
@@ -442,23 +435,19 @@ fn IdeaSubmissionDialog(
                                                     class="submit-btn"
                                                     disabled=move || !can_submit()
                                                 >
-                                                    {move || if is_submitting.get() { "Submitting..." } else { "Submit Idea" }}
+                                                    {move || if is_submitting.get() { "Submitting…" } else { "Submit Idea" }}
                                                 </button>
                                             </div>
                                         </form>
                                     </div>
                                 </div>
                             </Show>
-                        }.into_any()
-                    } else {
-                        view! {
-                            <div class="login-prompt">
-                                <p>"Please log in to submit ideas"</p>
-                                <A href="/login" attr:class="btn-login">"Log In"</A>
-                            </div>
-                        }.into_any()
-                    }
-                }}
+                        }.into_any(),
+                        Some(_) => view! {
+                            <A href="/login" attr:class="submit-btn dialog-trigger-btn">"Log in"</A>
+                        }.into_any(),
+                    }}
+                </Suspense>
             </div>
         </article>
     }
@@ -523,7 +512,7 @@ fn IdeaCard(
             }}
             <div class="digg-rank">{rank}</div>
             <div class="digg-vote-box" class:voted=has_voted>
-                <span class="digg-arrow">"▲"</span>
+                <span class="digg-arrow" aria-hidden="true">"▲"</span>
                 <span class="digg-count">{vote_count}</span>
                 <button
                     class="digg-btn"

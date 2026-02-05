@@ -66,12 +66,72 @@
   box-sizing: border-box;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 body {
   font-family: var(--font-sans);
   font-size: var(--font-base-size);
   color: var(--foreground);
   background-color: var(--background);
   line-height: 1.5;
+}
+
+// Base link styling
+a {
+  color: var(--uab-green);
+  text-decoration: none;
+  transition: color 0.2s;
+
+  &:hover {
+    color: var(--dragons-lair-green);
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+// Skip link (accessibility)
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0.5rem;
+  z-index: 10000;
+  padding: 0.5rem 1rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+  border-radius: var(--radius);
+  transition: top 0.2s;
+
+  &:focus-visible {
+    top: 0.5rem;
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+// Screen-reader only (visually hidden, available to AT)
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 // UAB Header Banner
@@ -91,6 +151,55 @@ body {
   p {
     font-size: 1.1rem;
     opacity: 0.85;
+  }
+
+  // Links on dark background: white by default, gold/light on hover
+  a {
+    color: var(--white);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--uab-gold);
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--uab-gold);
+      outline-offset: 2px;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .auth-links {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .auth-link {
+      font-weight: 500;
+      padding: 0.25rem 0;
+
+      &.auth-link-primary {
+        padding: 0.375rem 0.75rem;
+        background: var(--uab-gold);
+        color: var(--dragons-lair-green);
+        border-radius: var(--radius);
+
+        &:hover {
+          background: var(--white);
+          color: var(--dragons-lair-green);
+        }
+      }
+    }
+  }
+
+  .user-menu .user-name {
+    font-weight: 500;
   }
 }
 
@@ -143,7 +252,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color 0.15s, color 0.15s;
 
   &:hover {
     background: var(--evergreen-5);
@@ -198,7 +307,7 @@ body {
   padding: 0.75rem 0.5rem;
   background: var(--evergreen-5);
   border-right: 1px solid var(--border);
-  transition: all 0.2s;
+  transition: background-color 0.2s;
   gap: 0.125rem;
 
   &.voted {
@@ -255,6 +364,47 @@ body {
   }
 }
 
+// Stage badges (Ideate, Review, In Progress, Completed)
+.stage-badge {
+  display: inline-block;
+  font-size: var(--font-tiny);
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 0.125rem 0.5rem;
+  border-radius: 3px;
+  line-height: 1.3;
+
+  &.stage-ideate {
+    background: var(--evergreen-10);
+    color: var(--evergreen);
+    border: 1px solid var(--evergreen-20);
+  }
+
+  &.stage-review {
+    background: var(--sky-blue-10);
+    color: var(--sky-blue);
+    border: 1px solid var(--sky-blue-20);
+  }
+
+  &.stage-progress {
+    background: var(--uab-gold-10);
+    color: var(--dragons-lair-green);
+    border: 1px solid var(--uab-gold-20);
+  }
+
+  &.stage-completed {
+    background: var(--evergreen-5);
+    color: var(--uab-green);
+    border: 1px solid var(--evergreen-20);
+  }
+
+  &.stage-default {
+    background: var(--gray-200);
+    color: var(--gray-500);
+    border: 1px solid var(--border);
+  }
+}
+
 // Idea Content (clickable link)
 .digg-content {
   flex: 1;
@@ -266,9 +416,17 @@ body {
   text-decoration: none;
   color: inherit;
 
+  &:hover {
+    text-decoration: none;
+  }
+
   &:hover .digg-title {
     color: var(--campus-green);
   }
+}
+
+.digg-content .digg-meta {
+  margin-top: auto;
 }
 
 .digg-title {
@@ -299,6 +457,12 @@ body {
   gap: 0.5rem;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.digg-meta .author-name {
+  margin-left: auto;
+  font-size: var(--font-tiny);
+  color: var(--gray-500);
 }
 
 .digg-time {
@@ -366,6 +530,17 @@ body {
   justify-content: center;
 }
 
+// Login link as button in sidebar: keep text white on hover
+.sidebar-card-body a.submit-btn {
+  color: var(--white);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--white);
+    text-decoration: none;
+  }
+}
+
 // Stats
 .stats-row {
   display: flex;
@@ -424,7 +599,7 @@ body {
   resize: vertical;
   transition: border-color 0.2s;
 
-  &:focus {
+  &:focus-visible {
     outline: none;
     border-color: var(--ring);
     box-shadow: 0 0 0 2px var(--campus-green-10);
@@ -469,7 +644,7 @@ body {
   font-family: var(--font-sans);
   font-weight: 600;
   font-size: var(--font-small);
-  transition: all 0.15s;
+  transition: background-color 0.15s, opacity 0.15s;
 
   &:hover:not(:disabled) {
     background: var(--dragons-lair-green);
@@ -495,6 +670,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  overscroll-behavior: contain;
 }
 
 .idea-dialog-content {
@@ -527,7 +703,7 @@ body {
     transition: border-color 0.2s;
     background: var(--white);
 
-    &:focus {
+    &:focus-visible {
       outline: none;
       border-color: var(--ring);
       box-shadow: 0 0 0 2px var(--campus-green-10);
@@ -573,6 +749,11 @@ body {
   &:hover {
     background: var(--gray-200);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
 
 // Shared by dialog and comment form — keep global
@@ -588,7 +769,7 @@ body {
   transition: border-color 0.2s;
   background: var(--white);
 
-  &:focus {
+  &:focus-visible {
     outline: none;
     border-color: var(--ring);
     box-shadow: 0 0 0 2px var(--campus-green-10);
@@ -647,6 +828,11 @@ body {
     }
   }
 
+  .nav.navbar-nav {
+    margin: 0;
+    padding: 0;
+  }
+
   .nav {
     list-style: none;
     display: flex;
@@ -663,6 +849,26 @@ body {
 
         &:hover {
           color: var(--uab-green);
+        }
+      }
+
+      .nav-logout-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        font: inherit;
+        cursor: pointer;
+        color: var(--foreground);
+        font-weight: 500;
+        font-size: var(--font-small);
+
+        &:hover {
+          color: var(--uab-green);
+        }
+
+        &:focus-visible {
+          outline: 2px solid var(--ring);
+          outline-offset: 2px;
         }
       }
     }
@@ -692,6 +898,160 @@ body {
     margin-top: 0.25rem;
     color: var(--muted-foreground);
     font-size: var(--font-tiny);
+  }
+}
+
+// ============================================================
+// Auth pages (Login, Signup)
+// ============================================================
+
+.auth-page {
+  min-height: 60vh;
+  padding: 2rem 0 3rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+
+  .container.page {
+    width: 100%;
+    max-width: 24rem;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .row {
+    margin: 0;
+    padding: 0;
+    display: block;
+  }
+
+  .col-md-6.offset-md-3,
+  .col-xs-12 {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .text-xs-center {
+    text-align: center;
+  }
+
+  h1 {
+    font-family: var(--font-serif);
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--uab-green);
+    margin: 0 0 1.5rem 0;
+    text-align: center;
+  }
+
+  .error-messages {
+    min-height: 1.5em;
+    margin-bottom: 1rem;
+    font-size: var(--font-small);
+    color: var(--destructive);
+    text-align: center;
+  }
+
+  form {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+    border: none;
+    padding: 0;
+
+    &:last-of-type {
+      margin-bottom: 1rem;
+    }
+  }
+
+  .form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    color: var(--foreground);
+    background: var(--white);
+    border: 1px solid var(--input);
+    border-radius: var(--radius);
+    transition: border-color 0.2s, box-shadow 0.2s;
+
+    &::placeholder {
+      color: var(--muted-foreground);
+    }
+
+    &:focus {
+      outline: none;
+      border-color: var(--ring);
+      box-shadow: 0 0 0 2px var(--campus-green-10);
+    }
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--ring);
+      box-shadow: 0 0 0 2px var(--campus-green-10);
+    }
+  }
+
+  .form-control-lg {
+    padding: 0.875rem 1rem;
+    font-size: 1rem;
+  }
+
+  a {
+    display: inline-block;
+    margin-bottom: 1rem;
+    font-size: var(--font-small);
+    color: var(--uab-green);
+
+    &:hover {
+      color: var(--dragons-lair-green);
+      text-decoration: underline;
+    }
+  }
+
+  .btn {
+    display: inline-block;
+    width: 100%;
+    padding: 0.75rem 1.25rem;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background-color 0.2s, opacity 0.2s;
+  }
+
+  .btn-lg {
+    padding: 0.875rem 1.25rem;
+  }
+
+  .btn-primary {
+    background: var(--uab-green);
+    color: var(--white);
+
+    &:hover {
+      background: var(--dragons-lair-green);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
+  }
+
+  .pull-xs-right {
+    float: none;
+    display: block;
   }
 }
 
@@ -849,6 +1209,41 @@ body {
   width: fit-content;
 }
 
+.detail-card-actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-flag {
+  padding: 0.375rem 0.75rem;
+  font-size: var(--font-small);
+  font-weight: 500;
+  color: var(--gray-500);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+
+  &:hover:not(:disabled) {
+    color: var(--uab-green);
+    border-color: var(--evergreen-20);
+    background: var(--evergreen-5);
+  }
+
+  &:disabled {
+    cursor: default;
+    color: var(--gray-500);
+    opacity: 0.8;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
 // Comments
 .comments-section {
   margin-top: 0.5rem;
@@ -919,11 +1314,405 @@ body {
 // ============================================================
 
 .admin-page {
+  min-height: 100vh;
+  background: var(--background);
+
   .admin-banner {
     background: linear-gradient(135deg, var(--dragons-lair-green) 0%, var(--uab-green) 100%);
   }
 }
 
+// Page header (title + logged-in user)
+.admin-page .admin-header {
+  padding: 1.5rem 1rem;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+
+  h1 {
+    font-family: var(--font-serif);
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--uab-green);
+    margin: 0 0 0.25rem 0;
+  }
+
+  p {
+    font-size: var(--font-small);
+    color: var(--muted-foreground);
+    margin: 0;
+  }
+}
+
+// Tab bar
+.admin-page .admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--border);
+  background: var(--white);
+
+  button {
+    padding: 0.5rem 1rem;
+    font-family: var(--font-sans);
+    font-size: var(--font-small);
+    font-weight: 600;
+    color: var(--muted-foreground);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: color 0.2s, background-color 0.2s;
+
+    &:hover {
+      color: var(--uab-green);
+      background: var(--evergreen-5);
+    }
+
+    &.active {
+      color: var(--uab-green);
+      background: var(--evergreen-5);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
+  }
+}
+
+// Main content area
+.admin-page .admin-content {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+}
+
+// Shared tab layout
+.admin-page .overview-tab,
+.admin-page .flags-tab,
+.admin-page .moderation-tab,
+.admin-page .users-tab {
+  h2 {
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--uab-green);
+    margin: 0 0 1rem 0;
+  }
+
+  .empty-state {
+    padding: 2rem;
+    text-align: center;
+    color: var(--muted-foreground);
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .error {
+    color: var(--destructive);
+    padding: 1rem;
+    background: #fef2f2;
+    border: 1px solid var(--destructive);
+    border-radius: var(--radius);
+  }
+}
+
+// Overview: stats grid
+.admin-page .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.admin-page .stat-card {
+  padding: 1.25rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+  h3 {
+    font-size: var(--font-small);
+    font-weight: 600;
+    color: var(--muted-foreground);
+    margin: 0 0 0.5rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .stat-number {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--uab-green);
+    line-height: 1.2;
+  }
+}
+
+// Flagged content tab
+.admin-page .flagged-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-page .flagged-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.admin-page .flagged-info {
+  flex: 1;
+  min-width: 0;
+
+  .flag-badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    font-size: var(--font-tiny);
+    font-weight: 700;
+    color: var(--white);
+    background: var(--uab-gold);
+    border-radius: 3px;
+    margin-right: 0.5rem;
+  }
+
+  .content-type {
+    font-size: var(--font-tiny);
+    color: var(--muted-foreground);
+    text-transform: capitalize;
+  }
+
+  .content-preview {
+    font-size: var(--font-small);
+    color: var(--foreground);
+    margin: 0.5rem 0 0;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+}
+
+.admin-page .flagged-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+// Moderation (off-topic) tab
+.admin-page .off-topic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-page .off-topic-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.admin-page .off-topic-item .idea-content {
+  flex: 1;
+  min-width: 0;
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--uab-green);
+    margin: 0 0 0.25rem 0;
+  }
+
+  p {
+    font-size: var(--font-small);
+    color: var(--foreground);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.4;
+  }
+
+  .author {
+    font-size: var(--font-tiny);
+    color: var(--muted-foreground);
+  }
+}
+
+.admin-page .moderation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+// Users tab table
+.admin-page .users-tab .users-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+  thead {
+    background: var(--evergreen-5);
+
+    th {
+      padding: 0.75rem 1rem;
+      font-size: var(--font-small);
+      font-weight: 700;
+      color: var(--uab-green);
+      text-align: left;
+      border-bottom: 2px solid var(--evergreen-20);
+    }
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background: var(--evergreen-5);
+    }
+  }
+
+  td {
+    padding: 0.75rem 1rem;
+    font-size: var(--font-small);
+    color: var(--foreground);
+  }
+
+  select {
+    padding: 0.375rem 0.5rem;
+    font-size: var(--font-small);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--white);
+    color: var(--foreground);
+
+    &:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 1px;
+    }
+  }
+}
+
+// Admin buttons
+.btn-primary {
+  padding: 0.5rem 1rem;
+  background: var(--uab-green);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius);
+  font-size: var(--font-small);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: var(--dragons-lair-green);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+.btn-danger {
+  padding: 0.5rem 1rem;
+  background: var(--destructive);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius);
+  font-size: var(--font-small);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &.confirm {
+    background: #b91c1c;
+    animation: pulse 1s infinite;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+.btn-warning {
+  padding: 0.5rem 1rem;
+  background: var(--uab-gold);
+  color: var(--dragons-lair-green);
+  border: none;
+  border-radius: var(--radius);
+  font-size: var(--font-small);
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &.confirm {
+    animation: pulse 1s infinite;
+  }
+}
+
+.btn-secondary {
+  padding: 0.5rem 1rem;
+  background: var(--white);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: var(--font-small);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+
+  &:hover {
+    background: var(--gray-200);
+    border-color: var(--gray-200);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+// Admin login form (password gate)
 .admin-login {
   max-width: 400px;
   margin: 2rem auto;
@@ -945,7 +1734,7 @@ body {
     border-radius: var(--radius);
     font-size: 1rem;
 
-    &:focus {
+    &:focus-visible {
       outline: none;
       border-color: var(--ring);
     }
@@ -957,140 +1746,10 @@ body {
   }
 }
 
-.admin-dashboard {
-  .admin-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-
-    h2 {
-      color: var(--uab-green);
-    }
-  }
-
-  .btn-logout {
-    padding: 0.5rem 1rem;
-    background: var(--muted);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    cursor: pointer;
-
-    &:hover {
-      background: var(--border);
-    }
-  }
-}
-
-.stats-cards {
-  display: flex;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-}
-
-.stat-card {
-  flex: 1;
-  min-width: 150px;
-  padding: 1.5rem;
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  text-align: center;
-
-  h3 {
-    font-size: 0.875rem;
-    color: var(--muted-foreground);
-    margin-bottom: 0.5rem;
-  }
-
-  .stat-number {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: var(--uab-green);
-  }
-}
-
-.bulk-actions {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-
-  h3 {
-    margin-bottom: 1rem;
-    color: var(--foreground);
-  }
-
-  .action-buttons {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-}
-
-.btn-danger {
-  padding: 0.75rem 1.5rem;
-  background: var(--destructive);
-  color: var(--white);
-  border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-weight: 500;
-
-  &:hover {
-    opacity: 0.9;
-  }
-
-  &.confirm {
-    background: #b91c1c;
-    animation: pulse 1s infinite;
-  }
-}
-
-.btn-warning {
-  padding: 0.75rem 1.5rem;
-  background: var(--uab-gold);
-  color: var(--dragons-lair-green);
-  border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-weight: 500;
-
-  &:hover {
-    opacity: 0.9;
-  }
-
-  &.confirm {
-    animation: pulse 1s infinite;
-  }
-}
-
-.btn-secondary {
-  padding: 0.75rem 1.5rem;
-  background: var(--muted);
+// Idea cards in admin (e.g. moderation grid)
+.admin-ideas-list h3 {
+  margin-bottom: 1rem;
   color: var(--foreground);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-weight: 500;
-
-  &:hover {
-    background: var(--border);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.admin-ideas-list {
-  h3 {
-    margin-bottom: 1rem;
-    color: var(--foreground);
-  }
 }
 
 .admin-ideas-grid {
@@ -1104,10 +1763,11 @@ body {
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
-  padding: 1rem;
+  padding: 1.25rem;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
   .idea-info {
     flex: 1;
@@ -1136,10 +1796,38 @@ body {
   color: var(--destructive);
   border: 1px solid var(--destructive);
   border-radius: var(--radius);
+  font-size: var(--font-small);
+  font-weight: 500;
   cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
 
   &:hover {
     background: var(--destructive);
     color: var(--white);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+.bulk-actions {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+  h3 {
+    margin-bottom: 1rem;
+    color: var(--foreground);
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
 }

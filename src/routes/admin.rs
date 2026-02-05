@@ -1,6 +1,7 @@
 use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
+use web_sys::window;
 use crate::auth::{get_user, UserSession};
 use crate::models::{IdeaWithAuthor, User};
 #[cfg(feature = "ssr")]
@@ -196,7 +197,7 @@ pub fn AdminPage() -> impl IntoView {
 
     view! {
         <Title text="Admin Dashboard - UAB IT Idea Board"/>
-        <Suspense fallback=|| view! { <p>"Loading..."</p> }>
+        <Suspense fallback=|| view! { <p>"Loading…"</p> }>
             {move || user_resource.get().map(|user_result: Result<Option<UserSession>, ServerFnError>| {
                 match user_result {
                     Ok(Some(user)) if user.is_moderator() => {
@@ -291,7 +292,7 @@ fn OverviewTab(stats: Resource<Result<AdminStats, ServerFnError>>) -> impl IntoV
     view! {
         <div class="overview-tab">
             <h2>"Statistics"</h2>
-            <Suspense fallback=|| view! { <p>"Loading stats..."</p> }>
+            <Suspense fallback=|| view! { <p>"Loading stats…"</p> }>
                 {move || stats.get().map(|s| match s {
                     Ok(stats) => view! {
                         <div class="stats-grid">
@@ -353,7 +354,7 @@ fn FlagsTab() -> impl IntoView {
     view! {
         <div class="flags-tab">
             <h2>"Flagged Content"</h2>
-            <Suspense fallback=|| view! { <p>"Loading flagged content..."</p> }>
+            <Suspense fallback=|| view! { <p>"Loading flagged content…"</p> }>
                 {move || flagged_items.get().map(|items| match items {
                     Ok(flagged) if flagged.is_empty() => {
                         view! { <p class="empty-state">"No flagged content"</p> }.into_any()
@@ -394,7 +395,13 @@ fn FlagsTab() -> impl IntoView {
                                                                     >"Mark Off-Topic"</button>
                                                                     <button
                                                                         class="btn-danger"
-                                                                        on:click=move |_| handle_delete(target_type_for_delete.clone(), target_id)
+                                                                        on:click=move |_| {
+                                                                            if let Some(w) = window() {
+                                                                                if w.confirm_with_message("Delete this idea? This cannot be undone.").unwrap_or(false) {
+                                                                                    handle_delete(target_type_for_delete.clone(), target_id);
+                                                                                }
+                                                                            }
+                                                                        }
                                                                     >"Delete"</button>
                                                                 </>
                                                             }.into_any()
@@ -440,7 +447,7 @@ fn ModerationTab() -> impl IntoView {
     view! {
         <div class="moderation-tab">
             <h2>"Off-Topic Ideas"</h2>
-            <Suspense fallback=|| view! { <p>"Loading off-topic ideas..."</p> }>
+            <Suspense fallback=|| view! { <p>"Loading off-topic ideas…"</p> }>
                 {move || off_topic_ideas.get().map(|ideas| match ideas {
                     Ok(ideas_list) if ideas_list.is_empty() => {
                         view! { <p class="empty-state">"No off-topic ideas"</p> }.into_any()
@@ -467,7 +474,13 @@ fn ModerationTab() -> impl IntoView {
                                                     >"Restore"</button>
                                                     <button
                                                         class="btn-danger"
-                                                        on:click=move |_| handle_delete(idea_id)
+                                                        on:click=move |_| {
+                                                            if let Some(w) = window() {
+                                                                if w.confirm_with_message("Permanently delete this idea? This cannot be undone.").unwrap_or(false) {
+                                                                    handle_delete(idea_id);
+                                                                }
+                                                            }
+                                                        }
                                                     >"Delete Permanently"</button>
                                                 </div>
                                             </div>
@@ -499,7 +512,7 @@ fn UsersTab() -> impl IntoView {
     view! {
         <div class="users-tab">
             <h2>"User Management"</h2>
-            <Suspense fallback=|| view! { <p>"Loading users..."</p> }>
+            <Suspense fallback=|| view! { <p>"Loading users…"</p> }>
                 {move || users.get().map(|users_result| match users_result {
                     Ok(users_list) => {
                         view! {

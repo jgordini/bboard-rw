@@ -17,7 +17,7 @@ pub fn AccountPage() -> impl IntoView {
         <Title text="Profile — UAB IT Idea Board"/>
         <div class="container page">
             <h1 class="text-xs-center">"Profile"</h1>
-            <Suspense fallback=move || view! { <p class="text-xs-center">"Loading..."</p> }>
+            <Suspense fallback=move || view! { <p class="text-xs-center">"Loading…"</p> }>
                 {move || user_resource.get().map(|result| {
                     match result {
                         Ok(Some(user)) => view! {

@@ -53,13 +53,16 @@ pub fn Signup(signup: SignupSignal) -> impl IntoView {
                             }
                         }>
                             <fieldset class="form-group">
-                                <input name="name" class="form-control form-control-lg" type="text" placeholder="Your Name" required=true/>
+                                <label for="signup-name" class="sr-only">"Your Name"</label>
+                                <input id="signup-name" name="name" class="form-control form-control-lg" type="text" placeholder="Your name…" required=true autocomplete="name"/>
                             </fieldset>
                             <fieldset class="form-group">
-                                <input name="email" class="form-control form-control-lg" type="email" placeholder="Email" required=true/>
+                                <label for="signup-email" class="sr-only">"Email"</label>
+                                <input id="signup-email" name="email" class="form-control form-control-lg" type="email" placeholder="e.g. you@uab.edu…" required=true autocomplete="email"/>
                             </fieldset>
                             <fieldset class="form-group">
-                                <input name="password" class="form-control form-control-lg" type="password" placeholder="Password" required=true/>
+                                <label for="signup-password" class="sr-only">"Password"</label>
+                                <input id="signup-password" name="password" class="form-control form-control-lg" type="password" placeholder="At least 8 characters…" required=true autocomplete="new-password"/>
                             </fieldset>
                             <button class="btn btn-lg btn-primary pull-xs-right">"Sign up"</button>
                         </ActionForm>

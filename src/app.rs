@@ -3,7 +3,7 @@ use leptos_meta::{provide_meta_context, MetaTags, Stylesheet};
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
 
-use crate::auth::{LoginSignal, SignupSignal};
+use crate::auth::{get_user, Logout, LoginSignal, SignupSignal};
 use crate::routes::{IdeasPage, AdminPage, IdeaDetailPage, Login, Signup, AccountPage};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
@@ -22,6 +22,52 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <App/>
             </body>
         </html>
+    }
+}
+
+#[component]
+fn NavBar() -> impl IntoView {
+    let user_resource =
+        Resource::new(|| (), |_| async move { get_user().await });
+    let logout = ServerAction::<Logout>::new();
+
+    // Refetch user when logout succeeds so nav updates without full reload
+    Effect::new(move |_| {
+        if let Some(Ok(())) = logout.value().get() {
+            user_resource.refetch();
+        }
+    });
+
+    view! {
+        <nav class="navbar">
+            <div class="container">
+                <a href="/" class="navbar-brand">
+                    <span class="logo-font">"UAB IT Idea Board"</span>
+                </a>
+                <ul class="nav navbar-nav pull-xs-right">
+                    <li class="nav-item">
+                        <a href="/admin" class="nav-link">"Admin"</a>
+                    </li>
+                    <li class="nav-item nav-item-auth">
+                        <Suspense fallback=move || view! { <span class="nav-link">"…"</span> }>
+                            {move || match user_resource.get() {
+                                None => view! {
+                                    <span class="nav-link">"…"</span>
+                                }.into_any(),
+                                Some(Ok(Some(_))) => view! {
+                                    <ActionForm action=logout>
+                                        <button type="submit" class="nav-link nav-logout-btn" aria-label="Log out">"Logout"</button>
+                                    </ActionForm>
+                                }.into_any(),
+                                Some(Ok(None)) | Some(Err(_)) => view! {
+                                    <a href="/login" class="nav-link">"Login"</a>
+                                }.into_any(),
+                            }}
+                        </Suspense>
+                    </li>
+                </ul>
+            </div>
+        </nav>
     }
 }
 
@@ -49,19 +95,9 @@ pub fn App() -> impl IntoView {
         <Stylesheet href="/pkg/realworld-leptos.css"/>
 
         <Router>
-            <nav class="navbar">
-                <div class="container">
-                    <a href="/" class="navbar-brand">
-                        <span class="logo-font">"UAB IT Idea Board"</span>
-                    </a>
-                    <ul class="nav navbar-nav pull-xs-right">
-                        <li class="nav-item">
-                            <a href="/admin" class="nav-link">"Admin"</a>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
-            <main>
+            <a href="#main" class="skip-link">"Skip to main content"</a>
+            <NavBar/>
+            <main id="main">
                 <Routes fallback=|| view! { <div class="container"><p>"Page not found"</p></div> }>
                     <Route path=path!("/") view=|| view! { <IdeasPage/> }/>
                     <Route path=path!("/ideas/:id") view=|| view! { <IdeaDetailPage/> }/>

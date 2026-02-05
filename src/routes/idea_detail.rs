@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use leptos::ev::SubmitEvent;
 use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
+use crate::auth::get_user;
 use crate::models::{Idea, CommentWithAuthor, Comment};
 
 #[server]
@@ -59,13 +60,15 @@ pub fn IdeaDetailPage() -> impl IntoView {
 
     let idea_resource = Resource::new(idea_id, |id| async move { get_idea(id).await });
     let comments_resource = Resource::new(idea_id, |id| async move { get_comments(id).await });
+    let user_resource = Resource::new(|| (), |_| async move { get_user().await });
+    let flagged = RwSignal::new(false);
 
     view! {
         <div class="detail-page">
             <div class="container page">
                 <a href="/" class="back-link">"← Back to all ideas"</a>
 
-                <Suspense fallback=move || view! { <p class="loading">"Loading..."</p> }>
+                <Suspense fallback=move || view! { <p class="loading">"Loading…"</p> }>
                     {move || {
                         idea_resource.get().map(|result| {
                             match result {
@@ -97,6 +100,29 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                     <span class="detail-time">
                                                         {format!("submitted {}", relative_time)}
                                                     </span>
+                                                    <Suspense fallback=|| ()>
+                                                        {move || user_resource.get().map(|ur| match ur {
+                                                            Ok(Some(_)) => view! {
+                                                                <div class="detail-card-actions">
+                                                                    <button
+                                                                        type="button"
+                                                                        class="btn-flag"
+                                                                        disabled=move || flagged.get()
+                                                                        on:click=move |_| {
+                                                                            let id = idea_id_val;
+                                                                            flagged.set(true);
+                                                                            leptos::task::spawn_local(async move {
+                                                                                let _ = crate::routes::ideas::flag_idea_server(id).await;
+                                                                            });
+                                                                        }
+                                                                    >
+                                                                        {move || if flagged.get() { "Flagged" } else { "Flag" }}
+                                                                    </button>
+                                                                </div>
+                                                            }.into_any(),
+                                                            _ => view! {}.into_any(),
+                                                        })}
+                                                    </Suspense>
                                                 </div>
                                             </div>
                                         </article>
@@ -113,7 +139,7 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                 </div>
                                             </article>
 
-                                            <Suspense fallback=move || view! { <p class="loading">"Loading comments..."</p> }>
+                                            <Suspense fallback=move || view! { <p class="loading">"Loading comments…"</p> }>
                                                 {move || {
                                                     comments_resource.get().map(|result| {
                                                         match result {
@@ -205,7 +231,7 @@ fn CommentForm(
                 <textarea
                     id="comment-content"
                     class="dialog-textarea"
-                    placeholder="Add a comment (max 500 characters)"
+                    placeholder="Add a comment (max 500 characters)…"
                     maxlength=max_chars
                     prop:value=move || content.get()
                     on:input=move |ev| {

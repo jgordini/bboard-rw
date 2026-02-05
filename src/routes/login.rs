@@ -34,18 +34,20 @@ pub fn Login(login: LoginSignal) -> impl IntoView {
                     <div class="col-md-6 offset-md-3 col-xs-12">
                         <h1 class="text-xs-center">"Login"</h1>
 
-                        <p class="error-messages text-xs-center">
+                        <div class="error-messages text-xs-center" aria-live="polite" aria-atomic="true">
                             {error}
-                        </p>
+                        </div>
 
                         <ActionForm action=login>
                             <fieldset class="form-group">
-                                <input name="email" class="form-control form-control-lg" type="email"
-                                    placeholder="Your Email" />
+                                <label for="login-email" class="sr-only">"Email"</label>
+                                <input id="login-email" name="email" class="form-control form-control-lg" type="email"
+                                    placeholder="e.g. you@uab.edu…" autocomplete="email" />
                             </fieldset>
                             <fieldset class="form-group">
-                                <input name="password" class="form-control form-control-lg" type="password"
-                                    placeholder="Password" />
+                                <label for="login-password" class="sr-only">"Password"</label>
+                                <input id="login-password" name="password" class="form-control form-control-lg" type="password"
+                                    placeholder="Password…" autocomplete="current-password" />
                             </fieldset>
                             <A href="/reset_password">Reset password</A>
                             <button class="btn btn-lg btn-primary pull-xs-right">"Sign in"</button>
