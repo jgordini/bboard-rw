@@ -40,8 +40,8 @@ pub fn Login(login: LoginSignal) -> impl IntoView {
 
                         <ActionForm action=login>
                             <fieldset class="form-group">
-                                <input name="username" class="form-control form-control-lg" type="text"
-                                    placeholder="Your Username" />
+                                <input name="email" class="form-control form-control-lg" type="email"
+                                    placeholder="Your Email" />
                             </fieldset>
                             <fieldset class="form-group">
                                 <input name="password" class="form-control form-control-lg" type="password"

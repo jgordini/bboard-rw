@@ -1,7 +1,7 @@
 #![recursion_limit = "256"]
 
 pub mod app;
-// pub(crate) mod auth; // Disabled for anonymous idea board
+pub(crate) mod auth;
 pub(crate) mod components;
 #[cfg(feature = "ssr")]
 pub(crate) mod database;

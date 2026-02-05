@@ -16,6 +16,11 @@ pub async fn init_app(configuration_path: Option<&str>) {
         .await
         .expect("problem during initialization of the database");
 
+    // Bootstrap admin user if needed
+    crate::models::User::bootstrap_admin()
+        .await
+        .expect("Failed to bootstrap admin user");
+
     // Get leptos configuration
     let conf = get_configuration(configuration_path).unwrap();
     let addr = conf.leptos_options.site_addr;
