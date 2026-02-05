@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE comments\n            SET is_pinned = NOT is_pinned\n            WHERE id = $1\n            RETURNING is_pinned as \"is_pinned!\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "is_pinned!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2987e8d0c7d6c0fadebbc23cd74c4ed77de142776477fb5c131d29bd5de7abb0"
+}

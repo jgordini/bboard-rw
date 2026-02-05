@@ -11,7 +11,7 @@ use crate::models::{Idea, IdeaWithAuthor};
 // ============================================================================
 
 #[server]
-pub async fn create_idea_auth(title: String, content: String) -> Result<Idea, ServerFnError> {
+pub async fn create_idea_auth(title: String, content: String, tags: String) -> Result<Idea, ServerFnError> {
     use crate::auth::require_auth;
     let user = require_auth().await?;
 
@@ -31,7 +31,7 @@ pub async fn create_idea_auth(title: String, content: String) -> Result<Idea, Se
         return Err(ServerFnError::new("Your submission contains inappropriate language. Please revise and try again."));
     }
 
-    Idea::create(user.id, title.trim().to_string(), content.trim().to_string())
+    Idea::create(user.id, title.trim().to_string(), content.trim().to_string(), tags.trim().to_string())
         .await
         .map_err(|e| {
             tracing::error!("Failed to create idea: {:?}", e);
@@ -302,6 +302,7 @@ fn IdeaSubmissionDialog(
     let is_open = RwSignal::new(false);
     let title = RwSignal::new(String::new());
     let content = RwSignal::new(String::new());
+    let tags = RwSignal::new(String::new());
     let error_message = RwSignal::new(Option::<String>::None);
     let is_submitting = RwSignal::new(false);
 
@@ -341,13 +342,15 @@ fn IdeaSubmissionDialog(
 
         let title_value = title.get();
         let content_value = content.get();
+        let tags_value = tags.get();
         leptos::task::spawn_local(async move {
-            match create_idea_auth(title_value, content_value).await {
+            match create_idea_auth(title_value, content_value, tags_value).await {
                 Ok(_) => {
                     ideas_resource.refetch();
                     stats_resource.refetch();
                     title.set(String::new());
                     content.set(String::new());
+                    tags.set(String::new());
                     is_open.set(false);
                 }
                 Err(e) => {
@@ -423,6 +426,17 @@ fn IdeaSubmissionDialog(
                                                     {move || format!("{}/{}", content_count(), max_content_chars)}
                                                 </span>
                                             </div>
+                                            <div class="form-group">
+                                                <label class="form-label" for="idea-tags">"Tags"</label>
+                                                <input
+                                                    id="idea-tags"
+                                                    type="text"
+                                                    class="dialog-input"
+                                                    placeholder="e.g. accessibility, software, hardware"
+                                                    prop:value=move || tags.get()
+                                                    on:input=move |ev| tags.set(event_target_value(&ev))
+                                                />
+                                            </div>
                                             <div class="dialog-footer">
                                                 <button
                                                     type="button"
@@ -430,6 +444,7 @@ fn IdeaSubmissionDialog(
                                                     on:click=move |_| {
                                                         is_open.set(false);
                                                         error_message.set(None);
+                                                        tags.set(String::new());
                                                     }
                                                 >
                                                     "Cancel"
@@ -507,13 +522,6 @@ fn IdeaCard(
 
     view! {
         <div class="digg-item" class:pinned=is_pinned>
-            {move || {
-                if is_pinned {
-                    view! { <span class="pin-icon">"📌"</span> }.into_any()
-                } else {
-                    view! {}.into_any()
-                }
-            }}
             <div class="digg-rank">{rank}</div>
             <div class="digg-vote-box" class:voted=has_voted>
                 <span class="digg-arrow" aria-hidden="true">"▲"</span>
@@ -528,6 +536,13 @@ fn IdeaCard(
                 </button>
             </div>
             <a class="digg-content" href=format!("/ideas/{}", idea_id)>
+                {move || {
+                    if is_pinned {
+                        view! { <span class="pinned-badge">"Pinned"</span> }.into_any()
+                    } else {
+                        view! {}.into_any()
+                    }
+                }}
                 <h3 class="digg-title">{title}</h3>
                 <p class="digg-text">{content}</p>
                 <div class="digg-meta">

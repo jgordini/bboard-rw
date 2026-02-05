@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                COUNT(*) as total_ideas,\n                COALESCE(SUM(vote_count), 0) as total_votes\n            FROM ideas",
+  "query": "\n            SELECT\n                COUNT(*) as total_ideas,\n                COALESCE(SUM(vote_count), 0) as total_votes\n            FROM ideas\n            WHERE is_public = true AND is_off_topic = false\n            ",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       null
     ]
   },
-  "hash": "7ff2e7f6b9a162c585d7e26ff4005fc35d63a0a2e8f738652dfdd4a93bcd0016"
+  "hash": "05bf06208b82aceeef465ced89594a68d8b93798b7ef5f740096b6006e069b1e"
 }

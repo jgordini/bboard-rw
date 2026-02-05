@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                i.id, i.user_id, i.title, i.content, i.tags, i.stage, i.is_public, i.is_off_topic,\n                i.pinned_at, i.created_at, i.vote_count,\n                u.name as author_name, u.email as author_email\n            FROM ideas i\n            INNER JOIN users u ON i.user_id = u.id\n            WHERE i.id = $1 AND i.is_public = true AND i.is_off_topic = false\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "tags",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "stage",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "is_off_topic",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "pinned_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "vote_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "author_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "author_email",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "195420ca1c3da6d95f5a9cb8c1247e87ae738985d13ad628b055caee86abe8df"
+}

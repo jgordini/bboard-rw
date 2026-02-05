@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM votes WHERE user_id = $1 AND idea_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "beda7d644066f4f527b55aabd1940c92ccd218bce18bc3522e24fe7dc3252b69"
+}

@@ -74,12 +74,14 @@ pub fn IdeaDetailPage() -> impl IntoView {
                             match result {
                                 Ok(idea) => {
                                     let idea_id_val = idea.id;
+                                    let idea_pinned = idea.is_pinned();
                                     let page_title = if idea.title.is_empty() {
                                         format!("Idea #{} — UAB IT Idea Board", idea.id)
                                     } else {
                                         format!("{} — UAB IT Idea Board", idea.title)
                                     };
                                     let relative_time = format_relative_time(&idea.created_at);
+                                    let tags_str = idea.tags.clone();
                                     view! {
                                         <Title text=page_title/>
                                         <article class="detail-card">
@@ -96,33 +98,77 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                     }>
                                                         <h1 class="detail-idea-title">{idea.title.clone()}</h1>
                                                     </Show>
-                                                    <p class="detail-idea-text">{idea.content}</p>
-                                                    <span class="detail-time">
-                                                        {format!("submitted {}", relative_time)}
-                                                    </span>
-                                                    <Suspense fallback=|| ()>
-                                                        {move || user_resource.get().map(|ur| match ur {
-                                                            Ok(Some(_)) => view! {
-                                                                <div class="detail-card-actions">
-                                                                    <button
-                                                                        type="button"
-                                                                        class="btn-flag"
-                                                                        disabled=move || flagged.get()
-                                                                        on:click=move |_| {
-                                                                            let id = idea_id_val;
-                                                                            flagged.set(true);
-                                                                            leptos::task::spawn_local(async move {
-                                                                                let _ = crate::routes::ideas::flag_idea_server(id).await;
-                                                                            });
+                                                    <p class="detail-idea-text">{idea.content.clone()}</p>
+                                                    {move || {
+                                                        let tag_list: Vec<String> = tags_str
+                                                            .split(',')
+                                                            .map(|s| s.trim())
+                                                            .filter(|s| !s.is_empty())
+                                                            .map(String::from)
+                                                            .collect();
+                                                        if tag_list.is_empty() {
+                                                            view! {}.into_any()
+                                                        } else {
+                                                            view! {
+                                                                <div class="detail-tags">
+                                                                    <For
+                                                                        each=move || tag_list.clone()
+                                                                        key=|t| t.clone()
+                                                                        children=move |tag: String| {
+                                                                            view! { <span class="detail-tag">{tag}</span> }
                                                                         }
-                                                                    >
-                                                                        {move || if flagged.get() { "Flagged" } else { "Flag" }}
-                                                                    </button>
+                                                                    />
                                                                 </div>
-                                                            }.into_any(),
-                                                            _ => view! {}.into_any(),
-                                                        })}
-                                                    </Suspense>
+                                                            }.into_any()
+                                                        }
+                                                    }}
+                                                    <div class="detail-meta-row">
+                                                        <span class="detail-time">
+                                                            {format!("submitted {}", relative_time)}
+                                                        </span>
+                                                        <Suspense fallback=|| ()>
+                                                            {move || user_resource.get().map(|ur| match ur {
+                                                                Ok(Some(user)) => {
+                                                                    let is_mod = user.is_moderator();
+                                                                    view! {
+                                                                        <div class="detail-card-actions">
+                                                                            <button
+                                                                                type="button"
+                                                                                class="btn-flag"
+                                                                                disabled=move || flagged.get()
+                                                                                on:click=move |_| {
+                                                                                    let id = idea_id_val;
+                                                                                    flagged.set(true);
+                                                                                    leptos::task::spawn_local(async move {
+                                                                                        let _ = crate::routes::ideas::flag_idea_server(id).await;
+                                                                                    });
+                                                                                }
+                                                                            >
+                                                                                {move || if flagged.get() { "Flagged" } else { "Flag" }}
+                                                                            </button>
+                                                                            <Show when=move || is_mod>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    class="btn-pin"
+                                                                                    on:click=move |_| {
+                                                                                        let id = idea_id_val;
+                                                                                        leptos::task::spawn_local(async move {
+                                                                                            if crate::routes::admin::toggle_idea_pin_action(id).await.is_ok() {
+                                                                                                idea_resource.refetch();
+                                                                                            }
+                                                                                        });
+                                                                                    }
+                                                                                >
+                                                                                    {move || if idea_pinned { "Unpin" } else { "Pin" }}
+                                                                                </button>
+                                                                            </Show>
+                                                                        </div>
+                                                                    }.into_any()
+                                                                }
+                                                                _ => view! {}.into_any(),
+                                                            })}
+                                                        </Suspense>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </article>

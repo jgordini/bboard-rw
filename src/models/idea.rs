@@ -7,6 +7,7 @@ pub struct Idea {
     pub user_id: i32,
     pub title: String,
     pub content: String,
+    pub tags: String,
     pub stage: String,
     pub is_public: bool,
     pub is_off_topic: bool,
@@ -48,7 +49,7 @@ impl Idea {
         sqlx::query_as!(
             Idea,
             r#"
-            SELECT id, user_id, title, content, stage, is_public, is_off_topic,
+            SELECT id, user_id, title, content, tags, stage, is_public, is_off_topic,
                    pinned_at, created_at, vote_count
             FROM ideas
             WHERE id = $1 AND is_public = true AND is_off_topic = false
@@ -64,7 +65,7 @@ impl Idea {
         sqlx::query_as!(
             Idea,
             r#"
-            SELECT id, user_id, title, content, stage, is_public, is_off_topic,
+            SELECT id, user_id, title, content, tags, stage, is_public, is_off_topic,
                    pinned_at, created_at, vote_count
             FROM ideas
             WHERE id = $1
@@ -80,7 +81,7 @@ impl Idea {
         let result = sqlx::query!(
             r#"
             SELECT
-                i.id, i.user_id, i.title, i.content, i.stage, i.is_public, i.is_off_topic,
+                i.id, i.user_id, i.title, i.content, i.tags, i.stage, i.is_public, i.is_off_topic,
                 i.pinned_at, i.created_at, i.vote_count,
                 u.name as author_name, u.email as author_email
             FROM ideas i
@@ -98,6 +99,7 @@ impl Idea {
                 user_id: r.user_id,
                 title: r.title,
                 content: r.content,
+                tags: r.tags.clone(),
                 stage: r.stage,
                 is_public: r.is_public,
                 is_off_topic: r.is_off_topic,
@@ -115,7 +117,7 @@ impl Idea {
         let results = sqlx::query!(
             r#"
             SELECT
-                i.id, i.user_id, i.title, i.content, i.stage, i.is_public, i.is_off_topic,
+                i.id, i.user_id, i.title, i.content, i.tags, i.stage, i.is_public, i.is_off_topic,
                 i.pinned_at, i.created_at, i.vote_count,
                 u.name as author_name, u.email as author_email
             FROM ideas i
@@ -139,6 +141,7 @@ impl Idea {
                     user_id: r.user_id,
                     title: r.title,
                     content: r.content,
+                    tags: r.tags.clone(),
                     stage: r.stage,
                     is_public: r.is_public,
                     is_off_topic: r.is_off_topic,
@@ -157,7 +160,7 @@ impl Idea {
         sqlx::query_as!(
             Idea,
             r#"
-            SELECT id, user_id, title, content, stage, is_public, is_off_topic,
+            SELECT id, user_id, title, content, tags, stage, is_public, is_off_topic,
                    pinned_at, created_at, vote_count
             FROM ideas
             WHERE user_id = $1
@@ -174,7 +177,7 @@ impl Idea {
         let results = sqlx::query!(
             r#"
             SELECT
-                i.id, i.user_id, i.title, i.content, i.stage, i.is_public, i.is_off_topic,
+                i.id, i.user_id, i.title, i.content, i.tags, i.stage, i.is_public, i.is_off_topic,
                 i.pinned_at, i.created_at, i.vote_count,
                 u.name as author_name, u.email as author_email
             FROM ideas i
@@ -194,6 +197,7 @@ impl Idea {
                     user_id: r.user_id,
                     title: r.title,
                     content: r.content,
+                    tags: r.tags.clone(),
                     stage: r.stage,
                     is_public: r.is_public,
                     is_off_topic: r.is_off_topic,
@@ -208,18 +212,20 @@ impl Idea {
     }
 
     /// Create a new idea
-    pub async fn create(user_id: i32, title: String, content: String) -> Result<Self, sqlx::Error> {
+    pub async fn create(user_id: i32, title: String, content: String, tags: String) -> Result<Self, sqlx::Error> {
+        let tags_trimmed = tags.trim().to_string();
         sqlx::query_as!(
             Idea,
             r#"
-            INSERT INTO ideas (user_id, title, content, stage, is_public, is_off_topic)
-            VALUES ($1, $2, $3, 'Ideate', true, false)
-            RETURNING id, user_id, title, content, stage, is_public, is_off_topic,
+            INSERT INTO ideas (user_id, title, content, tags, stage, is_public, is_off_topic)
+            VALUES ($1, $2, $3, $4, 'Ideate', true, false)
+            RETURNING id, user_id, title, content, tags, stage, is_public, is_off_topic,
                       pinned_at, created_at, vote_count
             "#,
             user_id,
             title,
-            content
+            content,
+            tags_trimmed
         )
         .fetch_one(crate::database::get_db())
         .await

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE ideas\n            SET pinned_at = CASE\n                WHEN pinned_at IS NULL THEN NOW()\n                ELSE NULL\n            END\n            WHERE id = $1\n            RETURNING pinned_at IS NOT NULL as \"is_pinned!\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "is_pinned!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "81106bad9111450d0db8393da5e9d26503b34805860298358c4dad8d20fd1cfc"
+}

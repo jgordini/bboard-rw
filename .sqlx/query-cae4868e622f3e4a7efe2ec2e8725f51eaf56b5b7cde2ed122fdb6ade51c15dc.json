@@ -1,22 +1,22 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT idea_id FROM votes WHERE voter_fingerprint = $1",
+  "query": "SELECT COUNT(*)::int as count FROM votes WHERE idea_id = $1",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "idea_id",
+        "name": "count",
         "type_info": "Int4"
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Int4"
       ]
     },
     "nullable": [
-      false
+      null
     ]
   },
-  "hash": "109a55722585e91432bf89e8a30228f4672a35f6e775dcc326ca897fb1523af8"
+  "hash": "cae4868e622f3e4a7efe2ec2e8725f51eaf56b5b7cde2ed122fdb6ade51c15dc"
 }

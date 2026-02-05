@@ -167,6 +167,16 @@ pub async fn update_user_role_action(user_id: i32, role: i16) -> Result<(), Serv
         .map_err(|e| ServerFnError::new(format!("Failed to update role: {}", e)))
 }
 
+#[server]
+pub async fn delete_user_action(user_id: i32) -> Result<(), ServerFnError> {
+    use crate::auth::require_admin;
+    require_admin().await?;
+
+    User::delete(user_id)
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to delete user: {}", e)))
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -503,8 +513,26 @@ fn UsersTab() -> impl IntoView {
 
     let handle_role_change = move |user_id: i32, new_role: i16| {
         leptos::task::spawn_local(async move {
-            if update_user_role_action(user_id, new_role).await.is_ok() {
-                users.refetch();
+            match update_user_role_action(user_id, new_role).await {
+                Ok(()) => users.refetch(),
+                Err(e) => {
+                    if let Some(w) = window() {
+                        let _ = w.alert_with_message(&e.to_string());
+                    }
+                }
+            }
+        });
+    };
+
+    let handle_delete = move |user_id: i32| {
+        leptos::task::spawn_local(async move {
+            match delete_user_action(user_id).await {
+                Ok(()) => users.refetch(),
+                Err(e) => {
+                    if let Some(w) = window() {
+                        let _ = w.alert_with_message(&e.to_string());
+                    }
+                }
             }
         });
     };
@@ -533,24 +561,54 @@ fn UsersTab() -> impl IntoView {
                                         children=move |user: User| {
                                             let user_id = user.id;
                                             let current_role = user.role;
+                                            let is_admin = user.role >= 2;
                                             view! {
                                                 <tr>
                                                     <td>{user.id}</td>
                                                     <td>{user.name}</td>
                                                     <td>{user.email}</td>
-                                                    <td>{role_name(user.role)}</td>
                                                     <td>
-                                                        <select
-                                                            on:change=move |ev| {
-                                                                let new_role = event_target_value(&ev).parse::<i16>().unwrap_or(0);
-                                                                handle_role_change(user_id, new_role);
+                                                        {move || {
+                                                            if is_admin {
+                                                                view! { <span>{role_name(current_role)}</span> }.into_any()
+                                                            } else {
+                                                                view! {
+                                                                    <select
+                                                                        on:change=move |ev| {
+                                                                            let val = event_target_value(&ev);
+                                                                            if let Ok(role) = val.parse::<i16>() {
+                                                                                handle_role_change(user_id, role);
+                                                                            }
+                                                                        }
+                                                                        prop:value=move || current_role.to_string()
+                                                                    >
+                                                                        <option value="0">"User"</option>
+                                                                        <option value="1">"Moderator"</option>
+                                                                    </select>
+                                                                }.into_any()
                                                             }
-                                                            prop:value=move || current_role.to_string()
-                                                        >
-                                                            <option value="0">"User"</option>
-                                                            <option value="1">"Moderator"</option>
-                                                            <option value="2">"Admin"</option>
-                                                        </select>
+                                                        }}
+                                                    </td>
+                                                    <td>
+                                                        {move || {
+                                                            if is_admin {
+                                                                view! { <span aria-hidden="true">"—"</span> }.into_any()
+                                                            } else {
+                                                                view! {
+                                                                    <button
+                                                                        type="button"
+                                                                        class="btn-danger"
+                                                                        on:click=move |_| {
+                                                                            if let Some(w) = window() {
+                                                                                if w.confirm_with_message("Permanently delete this user? This cannot be undone.").unwrap_or(false) {
+                                                                                    handle_delete(user_id);
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    >"Delete"</button>
+                                                                }.into_any()
+                                                            }
+                                                        }}
                                                     </td>
                                                 </tr>
                                             }

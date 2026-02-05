@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM flags WHERE target_type = $1 AND target_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "dada7181fdaf2f5367e0b58a95283c307686780297fe77ec9343f1c018686d2e"
+}

@@ -1,0 +1,85 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO ideas (user_id, title, content, tags, stage, is_public, is_off_topic)\n            VALUES ($1, $2, $3, $4, 'Ideate', true, false)\n            RETURNING id, user_id, title, content, tags, stage, is_public, is_off_topic,\n                      pinned_at, created_at, vote_count\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "tags",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "stage",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "is_off_topic",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "pinned_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "vote_count",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Varchar",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "cd9f6bb9092b84f9f94beb4a3fc2c3cbd6f8658f80717eec5c0ba43ca44cebbf"
+}

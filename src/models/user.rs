@@ -130,8 +130,15 @@ impl User {
         .await
     }
 
-    /// Update user role (admin only)
+    /// Update user role (admin only). Cannot change an admin's role.
     pub async fn update_role(id: i32, role: i16) -> Result<(), sqlx::Error> {
+        let target = Self::get_by_id(id).await?;
+        let Some(u) = target else {
+            return Err(sqlx::Error::RowNotFound);
+        };
+        if u.role >= 2 {
+            return Err(sqlx::Error::Protocol("Cannot change an admin's role".into()));
+        }
         sqlx::query!(
             "UPDATE users SET role = $1 WHERE id = $2",
             role,
@@ -139,6 +146,21 @@ impl User {
         )
         .execute(crate::database::get_db())
         .await?;
+        Ok(())
+    }
+
+    /// Delete a user (admin only). Cannot delete any admin.
+    pub async fn delete(id: i32) -> Result<(), sqlx::Error> {
+        let target = Self::get_by_id(id).await?;
+        let Some(u) = target else {
+            return Err(sqlx::Error::RowNotFound);
+        };
+        if u.role >= 2 {
+            return Err(sqlx::Error::Protocol("Cannot delete an admin".into()));
+        }
+        sqlx::query!("DELETE FROM users WHERE id = $1", id)
+            .execute(crate::database::get_db())
+            .await?;
         Ok(())
     }
 
