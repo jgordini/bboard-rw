@@ -168,7 +168,7 @@ pub fn IdeasPage() -> impl IntoView {
                                                 <span class="user-name">"Hello, " {user.name.clone()}</span>
                                                 {move || {
                                                     if user.is_moderator() {
-                                                        view! { <A href="/admin" class="admin-link">"Admin"</A> }.into_any()
+                                                        view! { <A href="/admin" attr:class="admin-link">"Admin"</A> }.into_any()
                                                     } else {
                                                         view! {}.into_any()
                                                     }
@@ -178,8 +178,8 @@ pub fn IdeasPage() -> impl IntoView {
                                         }.into_any(),
                                         Ok(None) => view! {
                                             <div class="auth-links">
-                                                <A href="/login" class="auth-link">"Login"</A>
-                                                <A href="/signup" class="auth-link auth-link-primary">"Sign Up"</A>
+                                                <A href="/login" attr:class="auth-link">"Login"</A>
+                                                <A href="/signup" attr:class="auth-link auth-link-primary">"Sign Up"</A>
                                             </div>
                                         }.into_any(),
                                         Err(_) => view! {}.into_any()
@@ -329,7 +329,7 @@ fn IdeaSubmissionDialog(
 
     let is_logged_in = move || {
         user_resource.get()
-            .and_then(|r| r.ok())
+            .and_then(|r: Result<Option<UserSession>, ServerFnError>| r.ok())
             .and_then(|u| u)
             .is_some()
     };
@@ -458,7 +458,7 @@ fn IdeaSubmissionDialog(
                         view! {
                             <div class="login-prompt">
                                 <p>"Please log in to submit ideas"</p>
-                                <A href="/login" class="btn-login">"Log In"</A>
+                                <A href="/login" attr:class="btn-login">"Log In"</A>
                             </div>
                         }.into_any()
                     }
@@ -489,7 +489,7 @@ fn IdeaCard(
     let has_voted = move || voted_ideas.get().contains(&idea_id);
     let is_logged_in = move || {
         user_resource.get()
-            .and_then(|r| r.ok())
+            .and_then(|r: Result<Option<UserSession>, ServerFnError>| r.ok())
             .and_then(|u| u)
             .is_some()
     };

@@ -195,7 +195,7 @@ pub fn AdminPage() -> impl IntoView {
     view! {
         <Title text="Admin Dashboard - UAB IT Idea Board"/>
         <Suspense fallback=|| view! { <p>"Loading..."</p> }>
-            {move || user_resource.get().map(|user_result| {
+            {move || user_resource.get().map(|user_result: Result<Option<UserSession>, ServerFnError>| {
                 match user_result {
                     Ok(Some(user)) if user.is_moderator() => {
                         view! { <AdminDashboard user=user /> }.into_any()
