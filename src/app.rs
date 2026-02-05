@@ -48,9 +48,6 @@ fn NavBar() -> impl IntoView {
                     <span class="logo-font">"UAB IT Idea Board"</span>
                 </a>
                 <ul class="nav navbar-nav pull-xs-right">
-                    <li class="nav-item">
-                        <a href="/admin" class="nav-link">"Admin"</a>
-                    </li>
                     <li class="nav-item nav-item-auth">
                         <Suspense fallback=move || view! { <span class="nav-link">"…"</span> }>
                             {move || match user_resource.get() {
@@ -117,6 +114,7 @@ pub fn App() -> impl IntoView {
                     <span class="attribution">
                         "UAB Information Technology"
                     </span>
+                    <a href="/admin" class="footer-link">"Admin"</a>
                 </div>
             </footer>
         </Router>

@@ -928,6 +928,24 @@ a {
     color: var(--muted-foreground);
     font-size: var(--font-tiny);
   }
+
+  .footer-link {
+    display: inline-block;
+    margin-top: 0.5rem;
+    color: var(--muted-foreground);
+    font-size: var(--font-tiny);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--uab-green);
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
+  }
 }
 
 // ============================================================
