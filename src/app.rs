@@ -3,7 +3,8 @@ use leptos_meta::{provide_meta_context, MetaTags, Stylesheet};
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
 
-use crate::routes::{IdeasPage, AdminPage, IdeaDetailPage};
+use crate::auth::{LoginSignal, SignupSignal};
+use crate::routes::{IdeasPage, AdminPage, IdeaDetailPage, Login, Signup, AccountPage};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -22,6 +23,18 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
             </body>
         </html>
     }
+}
+
+#[component]
+fn LoginRoute() -> impl IntoView {
+    let login = LoginSignal::new();
+    view! { <Login login=login/> }
+}
+
+#[component]
+fn SignupRoute() -> impl IntoView {
+    let signup = SignupSignal::new();
+    view! { <Signup signup=signup/> }
 }
 
 #[tracing::instrument]
@@ -52,6 +65,9 @@ pub fn App() -> impl IntoView {
                 <Routes fallback=|| view! { <div class="container"><p>"Page not found"</p></div> }>
                     <Route path=path!("/") view=|| view! { <IdeasPage/> }/>
                     <Route path=path!("/ideas/:id") view=|| view! { <IdeaDetailPage/> }/>
+                    <Route path=path!("/login") view=|| view! { <LoginRoute/> }/>
+                    <Route path=path!("/signup") view=|| view! { <SignupRoute/> }/>
+                    <Route path=path!("/profile") view=|| view! { <AccountPage/> }/>
                     <Route path=path!("/admin") view=|| view! { <AdminPage/> }/>
                 </Routes>
             </main>

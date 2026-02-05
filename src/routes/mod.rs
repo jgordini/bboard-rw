@@ -1,26 +1,13 @@
 pub use ideas::*;
 pub use admin::*;
 pub use idea_detail::*;
+pub use login::Login;
+pub use signup::Signup;
+pub use account::AccountPage;
 
 mod ideas;
 mod admin;
 mod idea_detail;
-
-// Old routes commented out - using new Ideas schema
-// pub use article::*;
-// pub use editor::*;
-// pub use home::*;
-// pub use login::*;
-// pub use profile::*;
-// pub use reset_password::*;
-// pub use settings::*;
-// pub use signup::*;
-
-// mod article;
-// mod editor;
-// mod home;
-// mod login;
-// mod profile;
-// mod reset_password;
-// mod settings;
-// mod signup;
+mod login;
+mod signup;
+mod account;
