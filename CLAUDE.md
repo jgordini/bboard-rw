@@ -39,7 +39,7 @@ docker compose up
 - Frontend/Backend: Leptos 0.8 with SSR + WASM hydration
 - HTTP Server: Axum
 - Database: PostgreSQL with sqlx (compile-time checked queries)
-- UI: leptos-shadcn-ui components
+- UI: semantic HTML with custom styles (no component library)
 - Styling: SCSS with UAB theme colors
 
 **Key Directories:**

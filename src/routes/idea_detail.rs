@@ -3,12 +3,6 @@ use leptos::ev::SubmitEvent;
 use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
 use crate::models::{Idea, CommentWithAuthor, Comment};
-use leptos_shadcn_ui::{
-    Button,
-    Card, CardHeader, CardTitle, CardContent,
-    Badge, BadgeVariant,
-    Label,
-};
 
 #[server]
 pub async fn get_idea(id: i32) -> Result<Idea, ServerFnError> {
@@ -85,8 +79,8 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                     let relative_time = format_relative_time(&idea.created_at);
                                     view! {
                                         <Title text=page_title/>
-                                        <Card class="detail-card">
-                                            <CardContent class="detail-card-body">
+                                        <article class="detail-card">
+                                            <div class="detail-card-body">
                                                 <div class="detail-vote-box">
                                                     <span class="detail-vote-arrow">"▲"</span>
                                                     <span class="detail-vote-count">{idea.vote_count}</span>
@@ -100,24 +94,24 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                         <h1 class="detail-idea-title">{idea.title.clone()}</h1>
                                                     </Show>
                                                     <p class="detail-idea-text">{idea.content}</p>
-                                                    <Badge variant=BadgeVariant::Outline class="detail-time">
+                                                    <span class="detail-time">
                                                         {format!("submitted {}", relative_time)}
-                                                    </Badge>
+                                                    </span>
                                                 </div>
-                                            </CardContent>
-                                        </Card>
+                                            </div>
+                                        </article>
 
                                         <div class="comments-section">
                                             <h2 class="comments-heading">"Comments"</h2>
 
-                                            <Card class="sidebar-card comment-form-card">
-                                                <CardHeader class="sidebar-card-header">
-                                                    <CardTitle class="sidebar-card-title">"Add a Comment"</CardTitle>
-                                                </CardHeader>
-                                                <CardContent class="sidebar-card-body">
+                                            <article class="sidebar-card comment-form-card">
+                                                <header class="sidebar-card-header">
+                                                    <h3 class="sidebar-card-title">"Add a Comment"</h3>
+                                                </header>
+                                                <div class="sidebar-card-body">
                                                     <CommentForm idea_id=idea_id_val comments_resource />
-                                                </CardContent>
-                                            </Card>
+                                                </div>
+                                            </article>
 
                                             <Suspense fallback=move || view! { <p class="loading">"Loading comments..."</p> }>
                                                 {move || {
@@ -207,8 +201,9 @@ fn CommentForm(
     view! {
         <form on:submit=handle_submit>
             <div class="form-group">
-                <Label class="form-label">"Your Comment"</Label>
+                <label class="form-label" for="comment-content">"Your Comment"</label>
                 <textarea
+                    id="comment-content"
                     class="dialog-textarea"
                     placeholder="Add a comment (max 500 characters)"
                     maxlength=max_chars
@@ -222,12 +217,13 @@ fn CommentForm(
                 <span class="char-counter" class:warning=is_warning class:error=is_error>
                     {move || format!("{}/{}", char_count(), max_chars)}
                 </span>
-                <Button
+                <button
+                    type="submit"
                     class="submit-btn"
-                    disabled=Signal::derive(move || content.get().trim().is_empty())
+                    disabled=move || content.get().trim().is_empty()
                 >
                     "Post Comment"
-                </Button>
+                </button>
             </div>
         </form>
     }

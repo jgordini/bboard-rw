@@ -33,7 +33,6 @@ leptos = "0.8.14"
 leptos_meta = "0.8.5"
 leptos_axum = { version = "0.8.7", optional = true }
 leptos_router = "0.8.6"
-leptos-shadcn-ui = { version = "0.9", default-features = false, features = ["button", "card", "input", "textarea", "label", "badge", "alert", "dialog"] }
 
 tracing = "0.1.43"
 tracing-subscriber = { version = "0.3.22", features = ["fmt"] }

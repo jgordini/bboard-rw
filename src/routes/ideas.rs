@@ -5,14 +5,6 @@ use leptos_meta::Title;
 use leptos_router::components::A;
 use crate::auth::{get_user, UserSession};
 use crate::models::{Idea, IdeaWithAuthor};
-use leptos_shadcn_ui::{
-    Button,
-    Card, CardHeader, CardTitle, CardContent,
-    Badge, BadgeVariant,
-    Label, Input,
-    Alert, AlertDescription,
-    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
-};
 
 // ============================================================================
 // SERVER FUNCTIONS
@@ -275,11 +267,11 @@ pub fn IdeasPage() -> impl IntoView {
                                 stats_resource.get().map(|stats| {
                                     match stats {
                                         Ok((ideas_count, votes_count)) => view! {
-                                            <Card class="sidebar-card">
-                                                <CardHeader class="sidebar-card-header">
-                                                    <CardTitle class="sidebar-card-title">"Community"</CardTitle>
-                                                </CardHeader>
-                                                <CardContent class="sidebar-card-body">
+                                            <article class="sidebar-card">
+                                                <header class="sidebar-card-header">
+                                                    <h3 class="sidebar-card-title">"Community"</h3>
+                                                </header>
+                                                <div class="sidebar-card-body">
                                                     <div class="stats-row">
                                                         <div class="stat-box">
                                                             <span class="stat-value">{ideas_count}</span>
@@ -290,8 +282,8 @@ pub fn IdeasPage() -> impl IntoView {
                                                             <span class="stat-label">"votes"</span>
                                                         </div>
                                                     </div>
-                                                </CardContent>
-                                            </Card>
+                                                </div>
+                                            </article>
                                         }.into_any(),
                                         Err(_) => view! { <span></span> }.into_any()
                                     }
@@ -370,19 +362,12 @@ fn IdeaSubmissionDialog(
         });
     };
 
-    let handle_open_change = Callback::new(move |open: bool| {
-        is_open.set(open);
-        if !open {
-            error_message.set(None);
-        }
-    });
-
     view! {
-        <Card class="sidebar-card">
-            <CardHeader class="sidebar-card-header">
-                <CardTitle class="sidebar-card-title">"Got an Idea?"</CardTitle>
-            </CardHeader>
-            <CardContent class="sidebar-card-body">
+        <article class="sidebar-card">
+            <header class="sidebar-card-header">
+                <h3 class="sidebar-card-title">"Got an Idea?"</h3>
+            </header>
+            <div class="sidebar-card-body">
                 <p class="sidebar-intro">"Share your suggestions to improve UAB IT services."</p>
                 {move || {
                     if is_logged_in() {
@@ -393,39 +378,42 @@ fn IdeaSubmissionDialog(
                             >
                                 "Post Idea"
                             </button>
-                            <Dialog open=is_open on_open_change=handle_open_change>
-                                <Show when=move || is_open.get() fallback=|| ()>
-                                    <DialogContent class="idea-dialog-content">
-                                        <DialogHeader>
-                                            <DialogTitle class="dialog-title">"Submit Your Idea"</DialogTitle>
-                                        </DialogHeader>
+                            <Show when=move || is_open.get() fallback=|| ()>
+                                <div role="dialog" class="dialog-overlay" aria-modal="true" aria-labelledby="dialog-title">
+                                    <div class="idea-dialog-content">
+                                        <header class="dialog-header">
+                                            <h2 id="dialog-title" class="dialog-title">"Submit Your Idea"</h2>
+                                        </header>
                                         <form on:submit=handle_submit>
                                             <Show when=move || error_message.get().is_some()>
-                                                <Alert class="dialog-alert dialog-alert-error">
-                                                    <AlertDescription>
-                                                        {move || error_message.get().unwrap_or_default()}
-                                                    </AlertDescription>
-                                                </Alert>
+                                                <div class="dialog-alert dialog-alert-error" role="alert">
+                                                    {move || error_message.get().unwrap_or_default()}
+                                                </div>
                                             </Show>
                                             <div class="form-group">
-                                                <Label class="form-label">"Title"</Label>
-                                                <Input
+                                                <label class="form-label" for="idea-title">"Title"</label>
+                                                <input
+                                                    id="idea-title"
+                                                    type="text"
                                                     class="dialog-input"
                                                     placeholder="Brief title for your idea"
-                                                    value=title
-                                                    on_change=Callback::new(move |val: String| {
+                                                    maxlength=max_title_chars
+                                                    prop:value=move || title.get()
+                                                    on:input=move |ev| {
+                                                        let val = event_target_value(&ev);
                                                         if val.len() <= max_title_chars {
                                                             title.set(val);
                                                         }
-                                                    })
+                                                    }
                                                 />
                                                 <span class="char-counter" class:warning=title_warning class:error=title_error>
                                                     {move || format!("{}/{}", title_count(), max_title_chars)}
                                                 </span>
                                             </div>
                                             <div class="form-group">
-                                                <Label class="form-label">"Description"</Label>
+                                                <label class="form-label" for="idea-description">"Description"</label>
                                                 <textarea
+                                                    id="idea-description"
                                                     class="dialog-textarea"
                                                     placeholder="Describe your idea in more detail..."
                                                     maxlength=max_content_chars
@@ -438,21 +426,29 @@ fn IdeaSubmissionDialog(
                                                     {move || format!("{}/{}", content_count(), max_content_chars)}
                                                 </span>
                                             </div>
-                                            <DialogFooter class="dialog-footer">
-                                                <DialogClose class="btn-cancel">
+                                            <div class="dialog-footer">
+                                                <button
+                                                    type="button"
+                                                    class="btn-cancel"
+                                                    on:click=move |_| {
+                                                        is_open.set(false);
+                                                        error_message.set(None);
+                                                    }
+                                                >
                                                     "Cancel"
-                                                </DialogClose>
-                                                <Button
+                                                </button>
+                                                <button
+                                                    type="submit"
                                                     class="submit-btn"
-                                                    disabled=Signal::derive(move || !can_submit())
+                                                    disabled=move || !can_submit()
                                                 >
                                                     {move || if is_submitting.get() { "Submitting..." } else { "Submit Idea" }}
-                                                </Button>
-                                            </DialogFooter>
+                                                </button>
+                                            </div>
                                         </form>
-                                    </DialogContent>
-                                </Show>
-                            </Dialog>
+                                    </div>
+                                </div>
+                            </Show>
                         }.into_any()
                     } else {
                         view! {
@@ -463,8 +459,8 @@ fn IdeaSubmissionDialog(
                         }.into_any()
                     }
                 }}
-            </CardContent>
-        </Card>
+            </div>
+        </article>
     }
 }
 
@@ -542,14 +538,10 @@ fn IdeaCard(
                 <h3 class="digg-title">{title}</h3>
                 <p class="digg-text">{content}</p>
                 <div class="digg-meta">
-                    <Badge variant=BadgeVariant::Secondary class=format!("stage-badge stage-{}", stage_color)>
-                        {stage.clone()}
-                    </Badge>
+                    <span class=format!("stage-badge stage-{}", stage_color)>{stage.clone()}</span>
                     <span class="author-name">"by " {author_name}</span>
-                    <Badge variant=BadgeVariant::Outline class="digg-time">
-                        {format!("submitted {}", relative_time)}
-                    </Badge>
-                    <Badge class="digg-comments-badge">
+                    <span class="digg-time">{format!("submitted {}", relative_time)}</span>
+                    <span class="digg-comments-badge">
                         {move || {
                             let count = comment_count();
                             if count == 1 {
@@ -558,7 +550,7 @@ fn IdeaCard(
                                 format!("{} comments", count)
                             }
                         }}
-                    </Badge>
+                    </span>
                 </div>
             </a>
         </div>

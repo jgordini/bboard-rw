@@ -30,7 +30,7 @@
   --gray-500: #6b7280;
   --gray-200: #e5e7eb;
 
-  // shadcn-ui theme variables (mapped to UAB colors)
+  // Theme variables (UAB design tokens)
   --background: #f5f5f0;
   --foreground: var(--dragons-lair-green);
   --primary: var(--uab-green);
@@ -458,7 +458,7 @@ body {
   }
 }
 
-// Submit button (shadcn Button override)
+// Primary submit button
 .submit-btn {
   padding: 0.5rem 1.25rem;
   background: var(--uab-green);
@@ -485,22 +485,16 @@ body {
 // Dialog / Modal Styles
 // ============================================================
 
-// The shadcn Dialog component uses Tailwind classes which don't work in our SCSS setup.
-// We provide overlay and content positioning. The dialog renders:
-// - An overlay div with class "fixed inset-0 z-50" (backdrop, click to close)
-// - An inner wrapper with class "fixed inset-0 z-50 flex ..." (centers the content)
-// Scope only to the overlay so we don't double-apply background/flex to the inner wrapper.
-.fixed.inset-0.z-50:not(.flex) {
-  position: fixed !important;
-  top: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  z-index: 50 !important;
-  background-color: rgba(0, 0, 0, 0.5) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+// Native dialog overlay (modal backdrop + centered content)
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
 }
 
 .idea-dialog-content {
