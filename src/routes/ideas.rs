@@ -4,9 +4,9 @@ use leptos::ev::SubmitEvent;
 use leptos_meta::Title;
 use leptos_router::components::A;
 use crate::auth::{get_user, UserSession};
-use crate::models::{Idea, IdeaWithAuthor, STAGES};
+use crate::models::{Idea, IdeaWithAuthor};
 use leptos_shadcn_ui::{
-    Button, ButtonVariant,
+    Button,
     Card, CardHeader, CardTitle, CardContent,
     Badge, BadgeVariant,
     Label, Input,

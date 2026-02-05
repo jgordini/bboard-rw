@@ -2,7 +2,9 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
 use crate::auth::{get_user, UserSession};
-use crate::models::{Idea, IdeaWithAuthor, Flag, FlaggedItem, User, STAGES};
+use crate::models::{IdeaWithAuthor, User};
+#[cfg(feature = "ssr")]
+use crate::models::{Idea, Flag};
 
 // ============================================================================
 // SERVER FUNCTIONS
@@ -234,6 +236,9 @@ fn AdminDashboard(user: UserSession) -> impl IntoView {
     let stats = Resource::new(|| (), |_| async { get_admin_stats().await });
     let active_tab = RwSignal::new("overview");
 
+    let user_for_tab_button = user.clone();
+    let user_for_content = user.clone();
+
     view! {
         <div class="admin-page">
             <div class="admin-header">
@@ -255,7 +260,7 @@ fn AdminDashboard(user: UserSession) -> impl IntoView {
                     on:click=move |_| active_tab.set("moderation")
                 >"Off-Topic Items"</button>
                 {move || {
-                    if user.is_admin() {
+                    if user_for_tab_button.is_admin() {
                         view! {
                             <button
                                 class:active=move || active_tab.get() == "users"
@@ -273,7 +278,7 @@ fn AdminDashboard(user: UserSession) -> impl IntoView {
                     "overview" => view! { <OverviewTab stats=stats /> }.into_any(),
                     "flags" => view! { <FlagsTab /> }.into_any(),
                     "moderation" => view! { <ModerationTab /> }.into_any(),
-                    "users" if user.is_admin() => view! { <UsersTab /> }.into_any(),
+                    "users" if user_for_content.is_admin() => view! { <UsersTab /> }.into_any(),
                     _ => view! { <p>"Unknown tab"</p> }.into_any(),
                 }}
             </div>
@@ -379,6 +384,7 @@ fn FlagsTab() -> impl IntoView {
                                                         on:click=move |_| handle_clear_flags(target_type.clone(), target_id)
                                                     >"Dismiss Flags"</button>
                                                     {move || {
+                                                        let target_type_for_delete = target_type_for_check.clone();
                                                         if target_type_for_check == "idea" {
                                                             view! {
                                                                 <>
@@ -388,7 +394,7 @@ fn FlagsTab() -> impl IntoView {
                                                                     >"Mark Off-Topic"</button>
                                                                     <button
                                                                         class="btn-danger"
-                                                                        on:click=move |_| handle_delete(target_type_for_check.clone(), target_id)
+                                                                        on:click=move |_| handle_delete(target_type_for_delete.clone(), target_id)
                                                                     >"Delete"</button>
                                                                 </>
                                                             }.into_any()

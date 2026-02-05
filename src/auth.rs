@@ -199,15 +199,9 @@ pub async fn logout() -> Result<(), ServerFnError> {
 // Get current user from session
 #[server]
 pub async fn get_user() -> Result<Option<UserSession>, ServerFnError> {
-    use axum::extract::FromRequestParts;
     use axum_extra::extract::CookieJar;
 
-    let req_parts = use_context::<leptos_axum::RequestParts>()
-        .ok_or_else(|| ServerFnError::new("Missing request parts"))?;
-
-    let jar = CookieJar::from_request_parts(&mut req_parts.into(), &())
-        .await
-        .map_err(|e| ServerFnError::new(format!("Cookie extraction error: {}", e)))?;
+    let jar: CookieJar = leptos_axum::extract().await?;
 
     if let Some(cookie) = jar.get("user_session") {
         let session: UserSession = serde_json::from_str(cookie.value())

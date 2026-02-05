@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos::ev::SubmitEvent;
 use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
-use crate::models::{Idea, Comment};
+use crate::models::{Idea, CommentWithAuthor, Comment};
 use leptos_shadcn_ui::{
     Button,
     Card, CardHeader, CardTitle, CardContent,
@@ -17,12 +17,13 @@ pub async fn get_idea(id: i32) -> Result<Idea, ServerFnError> {
         .map_err(|e| {
             tracing::error!("Failed to fetch idea {}: {:?}", id, e);
             ServerFnError::new("Idea not found")
-        })
+        })?
+        .ok_or_else(|| ServerFnError::new("Idea not found"))
 }
 
 #[server]
-pub async fn get_comments(idea_id: i32) -> Result<Vec<Comment>, ServerFnError> {
-    Comment::get_by_idea_id(idea_id)
+pub async fn get_comments(idea_id: i32) -> Result<Vec<CommentWithAuthor>, ServerFnError> {
+    Comment::get_by_idea_id(idea_id, false)
         .await
         .map_err(|e| {
             tracing::error!("Failed to fetch comments: {:?}", e);
@@ -32,6 +33,9 @@ pub async fn get_comments(idea_id: i32) -> Result<Vec<Comment>, ServerFnError> {
 
 #[server]
 pub async fn create_comment(idea_id: i32, content: String) -> Result<Comment, ServerFnError> {
+    use crate::auth::require_auth;
+    let user = require_auth().await?;
+
     if content.trim().is_empty() {
         return Err(ServerFnError::new("Comment cannot be empty"));
     }
@@ -41,7 +45,7 @@ pub async fn create_comment(idea_id: i32, content: String) -> Result<Comment, Se
     if crate::profanity::contains_profanity(&content) {
         return Err(ServerFnError::new("Your comment contains inappropriate language. Please revise and try again."));
     }
-    Comment::create(idea_id, content.trim().to_string())
+    Comment::create(user.id, idea_id, content.trim().to_string())
         .await
         .map_err(|e| {
             tracing::error!("Failed to create comment: {:?}", e);
@@ -129,13 +133,17 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                                         <div class="comment-list">
                                                                             <For
                                                                                 each=move || comments.clone()
-                                                                                key=|comment| comment.id
-                                                                                children=move |comment: Comment| {
-                                                                                    let time = format_relative_time(&comment.created_at);
+                                                                                key=|cwa| cwa.comment.id
+                                                                                children=move |cwa: CommentWithAuthor| {
+                                                                                    let time = format_relative_time(&cwa.comment.created_at);
                                                                                     view! {
                                                                                         <div class="comment-item">
-                                                                                            <p class="comment-text">{comment.content}</p>
-                                                                                            <span class="comment-time">{time}</span>
+                                                                                            <p class="comment-text">{cwa.comment.content}</p>
+                                                                                            <span class="comment-meta">
+                                                                                                <span class="comment-author">{cwa.author_name}</span>
+                                                                                                " - "
+                                                                                                <span class="comment-time">{time}</span>
+                                                                                            </span>
                                                                                         </div>
                                                                                     }
                                                                                 }
@@ -173,7 +181,7 @@ pub fn IdeaDetailPage() -> impl IntoView {
 #[component]
 fn CommentForm(
     idea_id: i32,
-    comments_resource: Resource<Result<Vec<Comment>, ServerFnError>>,
+    comments_resource: Resource<Result<Vec<CommentWithAuthor>, ServerFnError>>,
 ) -> impl IntoView {
     let content = RwSignal::new(String::new());
     let max_chars: usize = 500;
