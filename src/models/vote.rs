@@ -1,54 +1,90 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 pub struct Vote {
     pub id: i32,
     pub idea_id: i32,
-    pub voter_fingerprint: String,
+    pub user_id: i32,
     pub created_at: chrono::DateTime<chrono::Utc>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct VoteForm {
-    pub idea_id: i32,
-    pub voter_fingerprint: String,
 }
 
 impl Vote {
     #[cfg(feature = "ssr")]
-    pub async fn create(idea_id: i32, voter_fingerprint: String) -> Result<Self, sqlx::Error> {
-        let vote = sqlx::query_as!(
+    pub async fn create(user_id: i32, idea_id: i32) -> Result<Self, sqlx::Error> {
+        sqlx::query_as!(
             Vote,
-            "INSERT INTO votes (idea_id, voter_fingerprint) VALUES ($1, $2) 
-             RETURNING id, idea_id, voter_fingerprint, created_at",
-            idea_id,
-            voter_fingerprint
+            "INSERT INTO votes (user_id, idea_id) VALUES ($1, $2) RETURNING id, idea_id, user_id, created_at",
+            user_id,
+            idea_id
         )
         .fetch_one(crate::database::get_db())
-        .await?;
-        Ok(vote)
+        .await
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn has_voted(idea_id: i32, voter_fingerprint: &str) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query!(
-            "SELECT EXISTS(SELECT 1 FROM votes WHERE idea_id = $1 AND voter_fingerprint = $2) as exists",
-            idea_id,
-            voter_fingerprint
+    pub async fn delete(user_id: i32, idea_id: i32) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            "DELETE FROM votes WHERE user_id = $1 AND idea_id = $2",
+            user_id,
+            idea_id
         )
-        .fetch_one(crate::database::get_db())
+        .execute(crate::database::get_db())
         .await?;
-        Ok(result.exists.unwrap_or(false))
+        Ok(())
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn get_voted_ideas(voter_fingerprint: &str) -> Result<Vec<i32>, sqlx::Error> {
+    pub async fn toggle(user_id: i32, idea_id: i32) -> Result<bool, sqlx::Error> {
+        // Check if vote exists
+        let has_voted = Self::has_voted(user_id, idea_id).await?;
+
+        if has_voted {
+            // Remove vote
+            Self::delete(user_id, idea_id).await?;
+            Ok(false)
+        } else {
+            // Add vote
+            Self::create(user_id, idea_id).await?;
+            Ok(true)
+        }
+    }
+
+    #[cfg(feature = "ssr")]
+    pub async fn has_voted(user_id: i32, idea_id: i32) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query_scalar!(
+            r#"
+            SELECT EXISTS(
+                SELECT 1 FROM votes WHERE user_id = $1 AND idea_id = $2
+            ) as "exists!"
+            "#,
+            user_id,
+            idea_id
+        )
+        .fetch_one(crate::database::get_db())
+        .await?;
+        Ok(result)
+    }
+
+    #[cfg(feature = "ssr")]
+    pub async fn get_voted_ideas(user_id: i32) -> Result<Vec<i32>, sqlx::Error> {
         let votes = sqlx::query!(
-            "SELECT idea_id FROM votes WHERE voter_fingerprint = $1",
-            voter_fingerprint
+            "SELECT idea_id FROM votes WHERE user_id = $1",
+            user_id
         )
         .fetch_all(crate::database::get_db())
         .await?;
         Ok(votes.into_iter().map(|v| v.idea_id).collect())
+    }
+
+    #[cfg(feature = "ssr")]
+    pub async fn get_vote_count(idea_id: i32) -> Result<i32, sqlx::Error> {
+        let count = sqlx::query_scalar!(
+            "SELECT COUNT(*)::int as count FROM votes WHERE idea_id = $1",
+            idea_id
+        )
+        .fetch_one(crate::database::get_db())
+        .await?;
+        Ok(count.unwrap_or(0))
     }
 }

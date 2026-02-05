@@ -1,6 +1,10 @@
 mod idea;
-pub use idea::Idea;
+pub use idea::{Idea, IdeaWithAuthor, IdeaForm, STAGES};
 mod vote;
 pub use vote::Vote;
 mod comment;
-pub use comment::Comment;
+pub use comment::{Comment, CommentWithAuthor};
+mod user;
+pub use user::{User, Role};
+mod flag;
+pub use flag::{Flag, FlaggedItem};
