@@ -2,11 +2,19 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
 
-use crate::auth::{LoginMessages, LoginSignal};
+use crate::auth::{AuthRefresh, LoginMessages, LoginSignal};
 
 #[component]
 pub fn Login(login: LoginSignal) -> impl IntoView {
     let result_of_call = login.value();
+    let auth_refresh = expect_context::<AuthRefresh>().0;
+
+    // When login succeeds, bump auth refresh so nav refetches user and shows Logout
+    Effect::new(move |_| {
+        if let Some(Ok(LoginMessages::Successful)) = result_of_call.get() {
+            auth_refresh.update(|v| *v += 1);
+        }
+    });
 
     let error = move || {
         result_of_call.with(|msg| {

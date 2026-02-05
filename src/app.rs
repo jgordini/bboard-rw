@@ -27,14 +27,17 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 
 #[component]
 fn NavBar() -> impl IntoView {
-    let user_resource =
-        Resource::new(|| (), |_| async move { get_user().await });
+    let auth_refresh = expect_context::<crate::auth::AuthRefresh>().0;
+    let user_resource = Resource::new(
+        move || auth_refresh.get(),
+        move |_| async move { get_user().await },
+    );
     let logout = ServerAction::<Logout>::new();
 
-    // Refetch user when logout succeeds so nav updates without full reload
+    // On logout, bump auth refresh so nav and ideas page (sidebar) both refetch user
     Effect::new(move |_| {
         if let Some(Ok(())) = logout.value().get() {
-            user_resource.refetch();
+            auth_refresh.update(|v| *v += 1);
         }
     });
 
@@ -88,6 +91,7 @@ fn SignupRoute() -> impl IntoView {
 pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
+    provide_context(crate::auth::AuthRefresh(RwSignal::new(0)));
 
     view! {
         // UAB Fonts - Aktiv Grotesk and Kulturista

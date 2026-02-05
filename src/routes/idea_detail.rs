@@ -130,14 +130,16 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                         <div class="comments-section">
                                             <h2 class="comments-heading">"Comments"</h2>
 
-                                            <article class="sidebar-card comment-form-card">
-                                                <header class="sidebar-card-header">
-                                                    <h3 class="sidebar-card-title">"Add a Comment"</h3>
-                                                </header>
-                                                <div class="sidebar-card-body">
-                                                    <CommentForm idea_id=idea_id_val comments_resource />
-                                                </div>
-                                            </article>
+                                            <Show when=move || matches!(user_resource.get(), Some(Ok(Some(_))))>
+                                                <article class="sidebar-card comment-form-card">
+                                                    <header class="sidebar-card-header">
+                                                        <h3 class="sidebar-card-title">"Add a Comment"</h3>
+                                                    </header>
+                                                    <div class="sidebar-card-body">
+                                                        <CommentForm idea_id=idea_id_val comments_resource />
+                                                    </div>
+                                                </article>
+                                            </Show>
 
                                             <Suspense fallback=move || view! { <p class="loading">"Loading comments…"</p> }>
                                                 {move || {

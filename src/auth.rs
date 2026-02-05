@@ -4,6 +4,10 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "ssr")]
 use axum_extra::extract::cookie::{Cookie, SameSite};
 
+/// When this signal is updated, the nav's user resource refetches (e.g. after login).
+#[derive(Clone, Copy)]
+pub struct AuthRefresh(pub RwSignal<u32>);
+
 // Session user info
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct UserSession {
@@ -74,6 +78,7 @@ pub async fn login(email: String, password: String) -> Result<LoginMessages, Ser
                     .map_err(|e| ServerFnError::new(format!("Cookie error: {}", e)))?,
             );
 
+            leptos_axum::redirect("/");
             Ok(LoginMessages::Successful)
         }
         None => Ok(LoginMessages::Unsuccessful),

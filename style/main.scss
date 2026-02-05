@@ -214,6 +214,16 @@ a {
   padding: 1.5rem 0;
 }
 
+// Container + page: main content area on standard pages
+.container.page {
+  padding: 2rem 1rem;
+  min-height: 2rem;
+
+  > * + * {
+    margin-top: 1.5rem;
+  }
+}
+
 // ============================================================
 // Digg-Style Layout
 // ============================================================

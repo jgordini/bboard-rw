@@ -123,7 +123,11 @@ enum SortMode {
 /// Main Idea Board page
 #[component]
 pub fn IdeasPage() -> impl IntoView {
-    let user_resource = Resource::new(|| (), |_| async { get_user().await });
+    let auth_refresh = expect_context::<crate::auth::AuthRefresh>().0;
+    let user_resource = Resource::new(
+        move || auth_refresh.get(),
+        move |_| async move { get_user().await },
+    );
     let ideas_resource = Resource::new(|| (), |_| async { get_ideas_with_authors().await });
     let stats_resource = Resource::new(|| (), |_| async { get_idea_statistics().await });
     let comment_counts_resource = Resource::new(|| (), |_| async { get_comment_counts().await });
