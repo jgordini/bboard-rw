@@ -242,6 +242,7 @@ dependencies = [
  "axum",
  "axum-core",
  "bytes",
+ "cookie",
  "futures-core",
  "futures-util",
  "http",
@@ -534,6 +535,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baaaa0ecca5b51987b9423ccdc971514dd8b0bb7b4060b983d3664dad3f1f89f"
 dependencies = [
  "unicode-segmentation",
+]
+
+[[package]]
+name = "cookie"
+version = "0.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ddef33a339a91ea89fb53151bd0a4689cfce27055c291dfa69945475d22c747"
+dependencies = [
+ "percent-encoding",
+ "time",
+ "version_check",
 ]
 
 [[package]]
@@ -3108,6 +3120,7 @@ dependencies = [
  "mail-send",
  "regex",
  "serde",
+ "serde_json",
  "sqlx",
  "time",
  "tokio",
