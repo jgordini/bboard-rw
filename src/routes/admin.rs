@@ -1,153 +1,280 @@
 use leptos::prelude::*;
-use leptos::ev::SubmitEvent;
 use leptos_meta::Title;
-use crate::models::Idea;
+use leptos_router::components::A;
+use crate::auth::{get_user, UserSession};
+use crate::models::{Idea, IdeaWithAuthor, Flag, FlaggedItem, User, STAGES};
 
-// Admin password check (in production, use proper hashing)
-#[server]
-pub async fn admin_login(password: String) -> Result<bool, ServerFnError> {
-    let admin_password = std::env::var("ADMIN_PASSWORD").unwrap_or_else(|_| "admin".to_string());
-    Ok(password == admin_password)
-}
+// ============================================================================
+// SERVER FUNCTIONS
+// ============================================================================
 
 #[server]
-pub async fn get_all_ideas_admin() -> Result<Vec<Idea>, ServerFnError> {
-    Idea::get_all()
+pub async fn get_admin_stats() -> Result<AdminStats, ServerFnError> {
+    use crate::auth::require_moderator;
+    require_moderator().await?;
+
+    let (total_ideas, total_votes) = Idea::get_statistics()
         .await
-        .map_err(|e| {
-            tracing::error!("Failed to fetch ideas: {:?}", e);
-            ServerFnError::new("Failed to fetch ideas")
-        })
+        .map_err(|e| ServerFnError::new(format!("Failed to fetch statistics: {}", e)))?;
+
+    let total_users = User::get_all()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to count users: {}", e)))?
+        .len() as i64;
+
+    let flagged_items = Flag::get_flagged_items()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to get flagged items: {}", e)))?
+        .len() as i64;
+
+    Ok(AdminStats {
+        total_ideas,
+        total_votes,
+        total_users,
+        flagged_items,
+    })
 }
 
 #[server]
-pub async fn get_statistics() -> Result<(i64, i64), ServerFnError> {
-    Idea::get_statistics()
+pub async fn get_flagged_content() -> Result<Vec<FlaggedItemDetail>, ServerFnError> {
+    use crate::auth::require_moderator;
+    require_moderator().await?;
+
+    let flagged_items = Flag::get_flagged_items()
         .await
-        .map_err(|e| {
-            tracing::error!("Failed to fetch statistics: {:?}", e);
-            ServerFnError::new("Failed to fetch statistics")
-        })
-}
+        .map_err(|e| ServerFnError::new(format!("Failed to get flagged items: {}", e)))?;
 
-#[server]
-pub async fn delete_idea(idea_id: i32) -> Result<(), ServerFnError> {
-    Idea::delete(idea_id)
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to delete idea: {:?}", e);
-            ServerFnError::new("Failed to delete idea")
-        })
-}
+    let mut details = Vec::new();
+    for item in flagged_items {
+        let content = if item.target_type == "idea" {
+            Idea::get_with_author(item.target_id)
+                .await
+                .map_err(|e| ServerFnError::new(format!("Failed to get idea: {}", e)))?
+                .map(|iwa| format!("{}: {}", iwa.idea.title, iwa.idea.content))
+        } else {
+            // For comments, just get the content
+            Some(format!("Comment ID: {}", item.target_id))
+        };
 
-#[server]
-pub async fn delete_all_ideas() -> Result<(), ServerFnError> {
-    Idea::delete_all()
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to delete all ideas: {:?}", e);
-            ServerFnError::new("Failed to delete all ideas")
-        })
-}
-
-#[server]
-pub async fn delete_old_ideas(days: i32) -> Result<(), ServerFnError> {
-    Idea::delete_older_than_days(days)
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to delete old ideas: {:?}", e);
-            ServerFnError::new("Failed to delete old ideas")
-        })
-}
-
-/// Admin Panel page
-#[component]
-pub fn AdminPage() -> impl IntoView {
-    let is_authenticated = RwSignal::new(false);
-    let password = RwSignal::new(String::new());
-    let login_error = RwSignal::new(Option::<String>::None);
-
-    // Check localStorage for existing session
-    #[cfg(target_arch = "wasm32")]
-    {
-        Effect::new(move |_| {
-            if let Some(win) = web_sys::window() {
-                if let Ok(Some(storage)) = win.local_storage() {
-                    if let Ok(Some(session)) = storage.get_item("admin_session") {
-                        if session == "authenticated" {
-                            is_authenticated.set(true);
-                        }
-                    }
-                }
-            }
-        });
+        if let Some(content_text) = content {
+            details.push(FlaggedItemDetail {
+                target_type: item.target_type,
+                target_id: item.target_id,
+                flag_count: item.flag_count,
+                content_preview: content_text.chars().take(200).collect(),
+            });
+        }
     }
 
-    let handle_login = move |ev: SubmitEvent| {
-        ev.prevent_default();
-        let pwd = password.get();
-        leptos::task::spawn_local(async move {
-            match admin_login(pwd).await {
-                Ok(true) => {
-                    is_authenticated.set(true);
-                    login_error.set(None);
-                    // Save session to localStorage
-                    #[cfg(target_arch = "wasm32")]
-                    {
-                        if let Some(win) = web_sys::window() {
-                            if let Ok(Some(storage)) = win.local_storage() {
-                                let _ = storage.set_item("admin_session", "authenticated");
-                            }
-                        }
-                    }
-                }
-                Ok(false) => {
-                    login_error.set(Some("Invalid password".to_string()));
-                }
-                Err(e) => {
-                    login_error.set(Some(format!("Login failed: {}", e)));
-                }
-            }
-        });
-    };
+    Ok(details)
+}
 
-    let handle_logout = move |_| {
-        is_authenticated.set(false);
-        #[cfg(target_arch = "wasm32")]
-        {
-            if let Some(win) = web_sys::window() {
-                if let Ok(Some(storage)) = win.local_storage() {
-                    let _ = storage.remove_item("admin_session");
-                }
-            }
-        }
-    };
+#[server]
+pub async fn clear_flags_action(target_type: String, target_id: i32) -> Result<(), ServerFnError> {
+    use crate::auth::require_moderator;
+    require_moderator().await?;
+
+    Flag::clear_flags(&target_type, target_id)
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to clear flags: {}", e)))?;
+
+    Ok(())
+}
+
+#[server]
+pub async fn mark_idea_off_topic_action(idea_id: i32, is_off_topic: bool) -> Result<(), ServerFnError> {
+    use crate::auth::require_moderator;
+    require_moderator().await?;
+
+    Idea::mark_off_topic(idea_id, is_off_topic)
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to mark as off-topic: {}", e)))?;
+
+    // Clear flags when marking off-topic
+    if is_off_topic {
+        Flag::clear_flags("idea", idea_id)
+            .await
+            .map_err(|e| ServerFnError::new(format!("Failed to clear flags: {}", e)))?;
+    }
+
+    Ok(())
+}
+
+#[server]
+pub async fn delete_idea_action(idea_id: i32) -> Result<(), ServerFnError> {
+    use crate::auth::require_moderator;
+    require_moderator().await?;
+
+    Idea::delete(idea_id)
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to delete idea: {}", e)))?;
+
+    Ok(())
+}
+
+#[server]
+pub async fn update_idea_stage_action(idea_id: i32, stage: String) -> Result<(), ServerFnError> {
+    use crate::auth::require_moderator;
+    require_moderator().await?;
+
+    Idea::update_stage(idea_id, stage)
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to update stage: {}", e)))?;
+
+    Ok(())
+}
+
+#[server]
+pub async fn toggle_idea_pin_action(idea_id: i32) -> Result<bool, ServerFnError> {
+    use crate::auth::require_moderator;
+    require_moderator().await?;
+
+    Idea::toggle_pin(idea_id)
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to toggle pin: {}", e)))
+}
+
+#[server]
+pub async fn get_off_topic_ideas() -> Result<Vec<IdeaWithAuthor>, ServerFnError> {
+    use crate::auth::require_moderator;
+    require_moderator().await?;
+
+    Idea::get_off_topic()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to get off-topic ideas: {}", e)))
+}
+
+#[server]
+pub async fn get_all_users_admin() -> Result<Vec<User>, ServerFnError> {
+    use crate::auth::require_admin;
+    require_admin().await?;
+
+    User::get_all()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to get users: {}", e)))
+}
+
+#[server]
+pub async fn update_user_role_action(user_id: i32, role: i16) -> Result<(), ServerFnError> {
+    use crate::auth::require_admin;
+    require_admin().await?;
+
+    User::update_role(user_id, role)
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to update role: {}", e)))
+}
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct AdminStats {
+    pub total_ideas: i64,
+    pub total_votes: i64,
+    pub total_users: i64,
+    pub flagged_items: i64,
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct FlaggedItemDetail {
+    pub target_type: String,
+    pub target_id: i32,
+    pub flag_count: i64,
+    pub content_preview: String,
+}
+
+// ============================================================================
+// COMPONENTS
+// ============================================================================
+
+#[component]
+pub fn AdminPage() -> impl IntoView {
+    let user_resource = Resource::new(|| (), |_| async { get_user().await });
 
     view! {
-        <Title text="Admin Panel - UAB IT Idea Board"/>
-        <div class="admin-page">
-            <div class="header-banner admin-banner">
-                <div class="container">
-                    <h1>"Admin Panel"</h1>
-                    <p>"UAB IT Idea Board Administration"</p>
-                </div>
-            </div>
-
-            <div class="container page">
-                {move || {
-                    if is_authenticated.get() {
+        <Title text="Admin Dashboard - UAB IT Idea Board"/>
+        <Suspense fallback=|| view! { <p>"Loading..."</p> }>
+            {move || user_resource.get().map(|user_result| {
+                match user_result {
+                    Ok(Some(user)) if user.is_moderator() => {
+                        view! { <AdminDashboard user=user /> }.into_any()
+                    }
+                    Ok(Some(_)) => {
                         view! {
-                            <AdminDashboard on_logout=handle_logout />
-                        }.into_any()
-                    } else {
-                        view! {
-                            <AdminLogin 
-                                password=password
-                                login_error=login_error
-                                on_submit=handle_login
-                            />
+                            <div class="container page">
+                                <p class="error">"Access denied. Moderator privileges required."</p>
+                                <A href="/">"Back to Home"</A>
+                            </div>
                         }.into_any()
                     }
+                    Ok(None) => {
+                        view! {
+                            <div class="container page">
+                                <p class="error">"Please log in to access the admin dashboard."</p>
+                                <A href="/login">"Go to Login"</A>
+                            </div>
+                        }.into_any()
+                    }
+                    Err(_) => {
+                        view! {
+                            <div class="container page">
+                                <p class="error">"Failed to load user session."</p>
+                            </div>
+                        }.into_any()
+                    }
+                }
+            })}
+        </Suspense>
+    }
+}
+
+#[component]
+fn AdminDashboard(user: UserSession) -> impl IntoView {
+    let stats = Resource::new(|| (), |_| async { get_admin_stats().await });
+    let active_tab = RwSignal::new("overview");
+
+    view! {
+        <div class="admin-page">
+            <div class="admin-header">
+                <h1>"Admin Dashboard"</h1>
+                <p>"Logged in as: " {user.name.clone()} " (" {role_name(user.role)} ")"</p>
+            </div>
+
+            <div class="admin-tabs">
+                <button
+                    class:active=move || active_tab.get() == "overview"
+                    on:click=move |_| active_tab.set("overview")
+                >"Overview"</button>
+                <button
+                    class:active=move || active_tab.get() == "flags"
+                    on:click=move |_| active_tab.set("flags")
+                >"Flagged Content"</button>
+                <button
+                    class:active=move || active_tab.get() == "moderation"
+                    on:click=move |_| active_tab.set("moderation")
+                >"Off-Topic Items"</button>
+                {move || {
+                    if user.is_admin() {
+                        view! {
+                            <button
+                                class:active=move || active_tab.get() == "users"
+                                on:click=move |_| active_tab.set("users")
+                            >"User Management"</button>
+                        }.into_any()
+                    } else {
+                        view! {}.into_any()
+                    }
+                }}
+            </div>
+
+            <div class="admin-content">
+                {move || match active_tab.get() {
+                    "overview" => view! { <OverviewTab stats=stats /> }.into_any(),
+                    "flags" => view! { <FlagsTab /> }.into_any(),
+                    "moderation" => view! { <ModerationTab /> }.into_any(),
+                    "users" if user.is_admin() => view! { <UsersTab /> }.into_any(),
+                    _ => view! { <p>"Unknown tab"</p> }.into_any(),
                 }}
             </div>
         </div>
@@ -155,178 +282,276 @@ pub fn AdminPage() -> impl IntoView {
 }
 
 #[component]
-fn AdminLogin(
-    password: RwSignal<String>,
-    login_error: RwSignal<Option<String>>,
-    on_submit: impl Fn(SubmitEvent) + 'static,
-) -> impl IntoView {
+fn OverviewTab(stats: Resource<Result<AdminStats, ServerFnError>>) -> impl IntoView {
     view! {
-        <div class="admin-login">
-            <h2>"Admin Login"</h2>
-            <form on:submit=on_submit>
-                <div class="form-group">
-                    <label for="admin-password">"Password"</label>
-                    <input
-                        type="password"
-                        id="admin-password"
-                        class="admin-input"
-                        placeholder="Enter admin password..."
-                        prop:value=move || password.get()
-                        on:input=move |ev| password.set(event_target_value(&ev))
-                    />
-                </div>
-                {move || login_error.get().map(|err| view! {
-                    <p class="error-message">{err}</p>
+        <div class="overview-tab">
+            <h2>"Statistics"</h2>
+            <Suspense fallback=|| view! { <p>"Loading stats..."</p> }>
+                {move || stats.get().map(|s| match s {
+                    Ok(stats) => view! {
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h3>"Total Ideas"</h3>
+                                <span class="stat-number">{stats.total_ideas}</span>
+                            </div>
+                            <div class="stat-card">
+                                <h3>"Total Votes"</h3>
+                                <span class="stat-number">{stats.total_votes}</span>
+                            </div>
+                            <div class="stat-card">
+                                <h3>"Total Users"</h3>
+                                <span class="stat-number">{stats.total_users}</span>
+                            </div>
+                            <div class="stat-card">
+                                <h3>"Flagged Items"</h3>
+                                <span class="stat-number">{stats.flagged_items}</span>
+                            </div>
+                        </div>
+                    }.into_any(),
+                    Err(_) => view! { <p class="error">"Failed to load statistics"</p> }.into_any()
                 })}
-                <button type="submit" class="submit-btn">"Login"</button>
-            </form>
+            </Suspense>
         </div>
     }
 }
 
 #[component]
-fn AdminDashboard(on_logout: impl Fn(()) + 'static + Copy) -> impl IntoView {
-    let stats = Resource::new(|| (), |_| async { get_statistics().await });
-    let ideas = Resource::new(|| (), |_| async { get_all_ideas_admin().await });
-    
-    let confirm_delete_all = RwSignal::new(false);
-    let confirm_delete_old = RwSignal::new(false);
+fn FlagsTab() -> impl IntoView {
+    let flagged_items = Resource::new(|| (), |_| async { get_flagged_content().await });
 
-    let handle_delete_idea = move |idea_id: i32| {
+    let handle_clear_flags = move |target_type: String, target_id: i32| {
         leptos::task::spawn_local(async move {
-            if delete_idea(idea_id).await.is_ok() {
-                ideas.refetch();
+            if clear_flags_action(target_type, target_id).await.is_ok() {
+                flagged_items.refetch();
             }
         });
     };
 
-    let handle_delete_all = move |_| {
-        if confirm_delete_all.get() {
-            leptos::task::spawn_local(async move {
-                if delete_all_ideas().await.is_ok() {
-                    ideas.refetch();
-                    confirm_delete_all.set(false);
-                }
-            });
-        } else {
-            confirm_delete_all.set(true);
-        }
+    let handle_mark_off_topic = move |idea_id: i32| {
+        leptos::task::spawn_local(async move {
+            if mark_idea_off_topic_action(idea_id, true).await.is_ok() {
+                flagged_items.refetch();
+            }
+        });
     };
 
-    let handle_delete_old = move |_| {
-        if confirm_delete_old.get() {
-            leptos::task::spawn_local(async move {
-                if delete_old_ideas(30).await.is_ok() {
-                    ideas.refetch();
-                    confirm_delete_old.set(false);
+    let handle_delete = move |target_type: String, target_id: i32| {
+        leptos::task::spawn_local(async move {
+            if target_type == "idea" {
+                if delete_idea_action(target_id).await.is_ok() {
+                    flagged_items.refetch();
                 }
-            });
-        } else {
-            confirm_delete_old.set(true);
-        }
+            }
+        });
     };
 
     view! {
-        <div class="admin-dashboard">
-            <div class="admin-header">
-                <h2>"Dashboard"</h2>
-                <button class="btn-logout" on:click=move |_| on_logout(())>"Logout"</button>
-            </div>
-
-            // Statistics Cards
-            <div class="stats-cards">
-                <Suspense fallback=|| view! { <p>"Loading stats..."</p> }>
-                    {move || stats.get().map(|s| match s {
-                        Ok((total_ideas, total_votes)) => view! {
-                            <div class="stat-card">
-                                <h3>"Total Ideas"</h3>
-                                <span class="stat-number">{total_ideas}</span>
+        <div class="flags-tab">
+            <h2>"Flagged Content"</h2>
+            <Suspense fallback=|| view! { <p>"Loading flagged content..."</p> }>
+                {move || flagged_items.get().map(|items| match items {
+                    Ok(flagged) if flagged.is_empty() => {
+                        view! { <p class="empty-state">"No flagged content"</p> }.into_any()
+                    }
+                    Ok(flagged) => {
+                        view! {
+                            <div class="flagged-items-list">
+                                <For
+                                    each=move || flagged.clone()
+                                    key=|item| (item.target_type.clone(), item.target_id)
+                                    children=move |item: FlaggedItemDetail| {
+                                        let target_type = item.target_type.clone();
+                                        let target_id = item.target_id;
+                                        view! {
+                                            <div class="flagged-item">
+                                                <div class="flagged-info">
+                                                    <span class="flag-badge">{item.flag_count}" flags"</span>
+                                                    <span class="content-type">{item.target_type.clone()}</span>
+                                                    <p class="content-preview">{item.content_preview}</p>
+                                                </div>
+                                                <div class="flagged-actions">
+                                                    <button
+                                                        class="btn-secondary"
+                                                        on:click=move |_| handle_clear_flags(target_type.clone(), target_id)
+                                                    >"Dismiss Flags"</button>
+                                                    {move || {
+                                                        if item.target_type == "idea" {
+                                                            view! {
+                                                                <>
+                                                                    <button
+                                                                        class="btn-warning"
+                                                                        on:click=move |_| handle_mark_off_topic(target_id)
+                                                                    >"Mark Off-Topic"</button>
+                                                                    <button
+                                                                        class="btn-danger"
+                                                                        on:click=move |_| handle_delete(target_type.clone(), target_id)
+                                                                    >"Delete"</button>
+                                                                </>
+                                                            }.into_any()
+                                                        } else {
+                                                            view! {}.into_any()
+                                                        }
+                                                    }}
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                />
                             </div>
-                            <div class="stat-card">
-                                <h3>"Total Votes"</h3>
-                                <span class="stat-number">{total_votes}</span>
-                            </div>
-                        }.into_any(),
-                        Err(_) => view! { <p>"Failed to load stats"</p> }.into_any()
-                    })}
-                </Suspense>
-            </div>
-
-            // Bulk Actions
-            <div class="bulk-actions">
-                <h3>"Bulk Actions"</h3>
-                <div class="action-buttons">
-                    <button 
-                        class="btn-danger"
-                        class:confirm=move || confirm_delete_all.get()
-                        on:click=handle_delete_all
-                    >
-                        {move || if confirm_delete_all.get() { "Click again to confirm DELETE ALL" } else { "Delete All Ideas" }}
-                    </button>
-                    <button 
-                        class="btn-warning"
-                        class:confirm=move || confirm_delete_old.get()
-                        on:click=handle_delete_old
-                    >
-                        {move || if confirm_delete_old.get() { "Click again to confirm" } else { "Delete Ideas > 30 Days" }}
-                    </button>
-                    <button class="btn-secondary" on:click=move |_| ideas.refetch()>"Refresh"</button>
-                </div>
-            </div>
-
-            // Ideas List
-            <div class="admin-ideas-list">
-                <h3>"All Submissions"</h3>
-                <Suspense fallback=|| view! { <p>"Loading ideas..."</p> }>
-                    {move || ideas.get().map(|i| match i {
-                        Ok(ideas_list) => {
-                            if ideas_list.is_empty() {
-                                view! { <p class="empty-state">"No ideas submitted yet"</p> }.into_any()
-                            } else {
-                                view! {
-                                    <div class="admin-ideas-grid">
-                                        <For
-                                            each=move || ideas_list.clone()
-                                            key=|idea| idea.id
-                                            children=move |idea: Idea| {
-                                                let idea_id = idea.id;
-                                                view! {
-                                                    <AdminIdeaCard 
-                                                        idea=idea
-                                                        on_delete=move || handle_delete_idea(idea_id)
-                                                    />
-                                                }
-                                            }
-                                        />
-                                    </div>
-                                }.into_any()
-                            }
-                        }
-                        Err(_) => view! { <p class="error">"Failed to load ideas"</p> }.into_any()
-                    })}
-                </Suspense>
-            </div>
+                        }.into_any()
+                    }
+                    Err(_) => view! { <p class="error">"Failed to load flagged content"</p> }.into_any()
+                })}
+            </Suspense>
         </div>
     }
 }
 
 #[component]
-fn AdminIdeaCard(
-    idea: Idea,
-    on_delete: impl Fn() + 'static,
-) -> impl IntoView {
-    let formatted_date = idea.created_at.format("%Y-%m-%d %H:%M").to_string();
+fn ModerationTab() -> impl IntoView {
+    let off_topic_ideas = Resource::new(|| (), |_| async { get_off_topic_ideas().await });
+
+    let handle_restore = move |idea_id: i32| {
+        leptos::task::spawn_local(async move {
+            if mark_idea_off_topic_action(idea_id, false).await.is_ok() {
+                off_topic_ideas.refetch();
+            }
+        });
+    };
+
+    let handle_delete = move |idea_id: i32| {
+        leptos::task::spawn_local(async move {
+            if delete_idea_action(idea_id).await.is_ok() {
+                off_topic_ideas.refetch();
+            }
+        });
+    };
 
     view! {
-        <div class="admin-idea-card">
-            <div class="idea-info">
-                <p class="idea-text">{idea.content.clone()}</p>
-                <div class="idea-meta">
-                    <span class="vote-count">{idea.vote_count}" votes"</span>
-                    <span class="idea-date">{formatted_date}</span>
-                </div>
-            </div>
-            <button class="btn-delete" on:click=move |_| on_delete()>"Delete"</button>
+        <div class="moderation-tab">
+            <h2>"Off-Topic Ideas"</h2>
+            <Suspense fallback=|| view! { <p>"Loading off-topic ideas..."</p> }>
+                {move || off_topic_ideas.get().map(|ideas| match ideas {
+                    Ok(ideas_list) if ideas_list.is_empty() => {
+                        view! { <p class="empty-state">"No off-topic ideas"</p> }.into_any()
+                    }
+                    Ok(ideas_list) => {
+                        view! {
+                            <div class="off-topic-list">
+                                <For
+                                    each=move || ideas_list.clone()
+                                    key=|iwa| iwa.idea.id
+                                    children=move |iwa: IdeaWithAuthor| {
+                                        let idea_id = iwa.idea.id;
+                                        view! {
+                                            <div class="off-topic-item">
+                                                <div class="idea-content">
+                                                    <h3>{iwa.idea.title.clone()}</h3>
+                                                    <p>{iwa.idea.content.clone()}</p>
+                                                    <span class="author">"By: " {iwa.author_name}</span>
+                                                </div>
+                                                <div class="moderation-actions">
+                                                    <button
+                                                        class="btn-primary"
+                                                        on:click=move |_| handle_restore(idea_id)
+                                                    >"Restore"</button>
+                                                    <button
+                                                        class="btn-danger"
+                                                        on:click=move |_| handle_delete(idea_id)
+                                                    >"Delete Permanently"</button>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                />
+                            </div>
+                        }.into_any()
+                    }
+                    Err(_) => view! { <p class="error">"Failed to load off-topic ideas"</p> }.into_any()
+                })}
+            </Suspense>
         </div>
+    }
+}
+
+#[component]
+fn UsersTab() -> impl IntoView {
+    let users = Resource::new(|| (), |_| async { get_all_users_admin().await });
+
+    let handle_role_change = move |user_id: i32, new_role: i16| {
+        leptos::task::spawn_local(async move {
+            if update_user_role_action(user_id, new_role).await.is_ok() {
+                users.refetch();
+            }
+        });
+    };
+
+    view! {
+        <div class="users-tab">
+            <h2>"User Management"</h2>
+            <Suspense fallback=|| view! { <p>"Loading users..."</p> }>
+                {move || users.get().map(|users_result| match users_result {
+                    Ok(users_list) => {
+                        view! {
+                            <table class="users-table">
+                                <thead>
+                                    <tr>
+                                        <th>"ID"</th>
+                                        <th>"Name"</th>
+                                        <th>"Email"</th>
+                                        <th>"Role"</th>
+                                        <th>"Actions"</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <For
+                                        each=move || users_list.clone()
+                                        key=|user| user.id
+                                        children=move |user: User| {
+                                            let user_id = user.id;
+                                            let current_role = user.role;
+                                            view! {
+                                                <tr>
+                                                    <td>{user.id}</td>
+                                                    <td>{user.name}</td>
+                                                    <td>{user.email}</td>
+                                                    <td>{role_name(user.role)}</td>
+                                                    <td>
+                                                        <select
+                                                            on:change=move |ev| {
+                                                                let new_role = event_target_value(&ev).parse::<i16>().unwrap_or(0);
+                                                                handle_role_change(user_id, new_role);
+                                                            }
+                                                            prop:value=move || current_role.to_string()
+                                                        >
+                                                            <option value="0">"User"</option>
+                                                            <option value="1">"Moderator"</option>
+                                                            <option value="2">"Admin"</option>
+                                                        </select>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                    />
+                                </tbody>
+                            </table>
+                        }.into_any()
+                    }
+                    Err(_) => view! { <p class="error">"Failed to load users"</p> }.into_any()
+                })}
+            </Suspense>
+        </div>
+    }
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+fn role_name(role: i16) -> &'static str {
+    match role {
+        2 => "Admin",
+        1 => "Moderator",
+        _ => "User",
     }
 }
