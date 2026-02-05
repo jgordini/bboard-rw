@@ -2,7 +2,9 @@ use std::collections::HashMap;
 use leptos::prelude::*;
 use leptos::ev::SubmitEvent;
 use leptos_meta::Title;
-use crate::models::Idea;
+use leptos_router::components::A;
+use crate::auth::{get_user, UserSession};
+use crate::models::{Idea, IdeaWithAuthor, STAGES};
 use leptos_shadcn_ui::{
     Button, ButtonVariant,
     Card, CardHeader, CardTitle, CardContent,
@@ -12,8 +14,15 @@ use leptos_shadcn_ui::{
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 };
 
+// ============================================================================
+// SERVER FUNCTIONS
+// ============================================================================
+
 #[server]
-pub async fn create_idea(title: String, content: String) -> Result<Idea, ServerFnError> {
+pub async fn create_idea_auth(title: String, content: String) -> Result<Idea, ServerFnError> {
+    use crate::auth::require_auth;
+    let user = require_auth().await?;
+
     if title.trim().is_empty() {
         return Err(ServerFnError::new("Idea title cannot be empty"));
     }
@@ -29,7 +38,8 @@ pub async fn create_idea(title: String, content: String) -> Result<Idea, ServerF
     if crate::profanity::contains_profanity(&title) || crate::profanity::contains_profanity(&content) {
         return Err(ServerFnError::new("Your submission contains inappropriate language. Please revise and try again."));
     }
-    Idea::create(title.trim().to_string(), content.trim().to_string())
+
+    Idea::create(user.id, title.trim().to_string(), content.trim().to_string())
         .await
         .map_err(|e| {
             tracing::error!("Failed to create idea: {:?}", e);
@@ -38,7 +48,7 @@ pub async fn create_idea(title: String, content: String) -> Result<Idea, ServerF
 }
 
 #[server]
-pub async fn get_ideas() -> Result<Vec<Idea>, ServerFnError> {
+pub async fn get_ideas_with_authors() -> Result<Vec<IdeaWithAuthor>, ServerFnError> {
     Idea::get_all()
         .await
         .map_err(|e| {
@@ -48,30 +58,26 @@ pub async fn get_ideas() -> Result<Vec<Idea>, ServerFnError> {
 }
 
 #[server]
-pub async fn create_vote(idea_id: i32, voter_fingerprint: String) -> Result<bool, ServerFnError> {
+pub async fn toggle_vote(idea_id: i32) -> Result<bool, ServerFnError> {
+    use crate::auth::require_auth;
     use crate::models::Vote;
-    let has_voted = Vote::has_voted(idea_id, &voter_fingerprint)
+
+    let user = require_auth().await?;
+    Vote::toggle(user.id, idea_id)
         .await
         .map_err(|e| {
-            tracing::error!("Failed to check vote: {:?}", e);
-            ServerFnError::new("Failed to check vote")
-        })?;
-    if has_voted {
-        return Err(ServerFnError::new("You have already voted on this idea"));
-    }
-    Vote::create(idea_id, voter_fingerprint)
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to create vote: {:?}", e);
-            ServerFnError::new("Failed to create vote")
-        })?;
-    Ok(true)
+            tracing::error!("Failed to toggle vote: {:?}", e);
+            ServerFnError::new("Failed to toggle vote")
+        })
 }
 
 #[server]
-pub async fn check_votes(voter_fingerprint: String) -> Result<Vec<i32>, ServerFnError> {
+pub async fn check_user_votes() -> Result<Vec<i32>, ServerFnError> {
+    use crate::auth::require_auth;
     use crate::models::Vote;
-    Vote::get_voted_ideas(&voter_fingerprint)
+
+    let user = require_auth().await?;
+    Vote::get_voted_ideas(user.id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to check votes: {:?}", e);
@@ -101,47 +107,42 @@ pub async fn get_comment_counts() -> Result<HashMap<i32, i64>, ServerFnError> {
         })
 }
 
+#[server]
+pub async fn flag_idea_server(idea_id: i32) -> Result<(), ServerFnError> {
+    use crate::auth::require_auth;
+    use crate::models::Flag;
+
+    let user = require_auth().await?;
+    Flag::create(user.id, "idea", idea_id)
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to flag idea: {}", e)))
+}
+
+// ============================================================================
+// COMPONENTS
+// ============================================================================
+
 #[derive(Clone, Copy, PartialEq)]
 enum SortMode {
     Popular,
     Recent,
 }
 
-/// Main Idea Board page — Digg-style layout
+/// Main Idea Board page
 #[component]
 pub fn IdeasPage() -> impl IntoView {
-    let ideas_resource = Resource::new(|| (), |_| async { get_ideas().await });
+    let user_resource = Resource::new(|| (), |_| async { get_user().await });
+    let ideas_resource = Resource::new(|| (), |_| async { get_ideas_with_authors().await });
     let stats_resource = Resource::new(|| (), |_| async { get_idea_statistics().await });
     let comment_counts_resource = Resource::new(|| (), |_| async { get_comment_counts().await });
-    let sort_mode = RwSignal::new(SortMode::Popular);
-    let voter_fingerprint = RwSignal::new("voter_placeholder".to_string());
     let voted_ideas = RwSignal::new(Vec::<i32>::new());
+    let sort_mode = RwSignal::new(SortMode::Popular);
 
-    #[cfg(target_arch = "wasm32")]
-    {
-        Effect::new(move |_| {
-            if let Some(win) = web_sys::window() {
-                if let Ok(Some(storage)) = win.local_storage() {
-                    if let Ok(Some(existing)) = storage.get_item("voter_id") {
-                        voter_fingerprint.set(existing);
-                        return;
-                    }
-                    let id = format!("voter_{}_{}",
-                        js_sys::Date::now() as u64,
-                        (js_sys::Math::random() * 1000000.0) as u64
-                    );
-                    let _ = storage.set_item("voter_id", &id);
-                    voter_fingerprint.set(id);
-                }
-            }
-        });
-    }
-
+    // Load user's voted ideas
     Effect::new(move |_| {
-        let fp = voter_fingerprint.get();
-        if fp != "voter_placeholder" {
+        if let Some(Ok(Some(_user))) = user_resource.get() {
             leptos::task::spawn_local(async move {
-                if let Ok(ids) = check_votes(fp).await {
+                if let Ok(ids) = check_user_votes().await {
                     voted_ideas.set(ids);
                 }
             });
@@ -153,8 +154,40 @@ pub fn IdeasPage() -> impl IntoView {
         <div class="ideas-page">
             <div class="header-banner">
                 <div class="container">
-                    <h1 class="logo-font">"UAB IT Idea Board"</h1>
-                    <p>"Share your ideas to improve UAB IT services"</p>
+                    <div class="header-content">
+                        <div>
+                            <h1 class="logo-font">"UAB IT Idea Board"</h1>
+                            <p>"Share your ideas to improve UAB IT services"</p>
+                        </div>
+                        <div class="header-actions">
+                            <Suspense fallback=|| ()>
+                                {move || user_resource.get().map(|user_result| {
+                                    match user_result {
+                                        Ok(Some(user)) => view! {
+                                            <div class="user-menu">
+                                                <span class="user-name">"Hello, " {user.name.clone()}</span>
+                                                {move || {
+                                                    if user.is_moderator() {
+                                                        view! { <A href="/admin" class="admin-link">"Admin"</A> }.into_any()
+                                                    } else {
+                                                        view! {}.into_any()
+                                                    }
+                                                }}
+                                                <A href="/profile">"Profile"</A>
+                                            </div>
+                                        }.into_any(),
+                                        Ok(None) => view! {
+                                            <div class="auth-links">
+                                                <A href="/login" class="auth-link">"Login"</A>
+                                                <A href="/signup" class="auth-link auth-link-primary">"Sign Up"</A>
+                                            </div>
+                                        }.into_any(),
+                                        Err(_) => view! {}.into_any()
+                                    }
+                                })}
+                            </Suspense>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -184,7 +217,7 @@ pub fn IdeasPage() -> impl IntoView {
                                     match ideas {
                                         Ok(mut ideas_list) => {
                                             if sort_mode.get() == SortMode::Recent {
-                                                ideas_list.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+                                                ideas_list.sort_by(|a, b| b.idea.created_at.cmp(&a.idea.created_at));
                                             }
                                             if ideas_list.is_empty() {
                                                 view! {
@@ -193,7 +226,7 @@ pub fn IdeasPage() -> impl IntoView {
                                                     </div>
                                                 }.into_any()
                                             } else {
-                                                let ranked: Vec<(usize, Idea)> = ideas_list.into_iter()
+                                                let ranked: Vec<(usize, IdeaWithAuthor)> = ideas_list.into_iter()
                                                     .enumerate()
                                                     .map(|(i, idea)| (i + 1, idea))
                                                     .collect();
@@ -201,13 +234,13 @@ pub fn IdeasPage() -> impl IntoView {
                                                     <div class="digg-list">
                                                         <For
                                                             each=move || ranked.clone()
-                                                            key=|(_, idea)| idea.id
-                                                            children=move |(rank, idea): (usize, Idea)| {
+                                                            key=|(_, iwa)| iwa.idea.id
+                                                            children=move |(rank, iwa): (usize, IdeaWithAuthor)| {
                                                                 view! {
-                                                                    <DiggCard
-                                                                        idea=idea
+                                                                    <IdeaCard
+                                                                        idea_with_author=iwa
                                                                         rank=rank
-                                                                        voter_fingerprint=voter_fingerprint
+                                                                        user_resource=user_resource
                                                                         voted_ideas=voted_ideas
                                                                         ideas_resource=ideas_resource
                                                                         comment_counts_resource=comment_counts_resource
@@ -231,7 +264,11 @@ pub fn IdeasPage() -> impl IntoView {
                     </div>
 
                     <div class="sidebar">
-                        <IdeaSubmissionDialog ideas_resource stats_resource />
+                        <IdeaSubmissionDialog
+                            user_resource=user_resource
+                            ideas_resource=ideas_resource
+                            stats_resource=stats_resource
+                        />
 
                         <Suspense fallback=move || view! { <p class="loading">"Loading..."</p> }>
                             {move || {
@@ -270,7 +307,8 @@ pub fn IdeasPage() -> impl IntoView {
 
 #[component]
 fn IdeaSubmissionDialog(
-    ideas_resource: Resource<Result<Vec<Idea>, ServerFnError>>,
+    user_resource: Resource<Result<Option<UserSession>, ServerFnError>>,
+    ideas_resource: Resource<Result<Vec<IdeaWithAuthor>, ServerFnError>>,
     stats_resource: Resource<Result<(i64, i64), ServerFnError>>,
 ) -> impl IntoView {
     let is_open = RwSignal::new(false);
@@ -289,8 +327,16 @@ fn IdeaSubmissionDialog(
     let content_warning = move || content_count() >= (max_content_chars as f64 * 0.9) as usize;
     let content_error = move || content_count() >= max_content_chars;
 
+    let is_logged_in = move || {
+        user_resource.get()
+            .and_then(|r| r.ok())
+            .and_then(|u| u)
+            .is_some()
+    };
+
     let can_submit = move || {
-        !title.get().trim().is_empty()
+        is_logged_in()
+            && !title.get().trim().is_empty()
             && !content.get().trim().is_empty()
             && title.get().len() <= max_title_chars
             && content.get().len() <= max_content_chars
@@ -308,7 +354,7 @@ fn IdeaSubmissionDialog(
         let title_value = title.get();
         let content_value = content.get();
         leptos::task::spawn_local(async move {
-            match create_idea(title_value, content_value).await {
+            match create_idea_auth(title_value, content_value).await {
                 Ok(_) => {
                     ideas_resource.refetch();
                     stats_resource.refetch();
@@ -338,95 +384,115 @@ fn IdeaSubmissionDialog(
             </CardHeader>
             <CardContent class="sidebar-card-body">
                 <p class="sidebar-intro">"Share your suggestions to improve UAB IT services."</p>
-                <button
-                    class="submit-btn dialog-trigger-btn"
-                    on:click=move |_| is_open.set(true)
-                >
-                    "Post Idea"
-                </button>
-                <Dialog open=is_open on_open_change=handle_open_change>
-                    <Show when=move || is_open.get() fallback=|| ()>
-                        <DialogContent class="idea-dialog-content">
-                            <DialogHeader>
-                            <DialogTitle class="dialog-title">"Submit Your Idea"</DialogTitle>
-                        </DialogHeader>
-                        <form on:submit=handle_submit>
-                            <Show when=move || error_message.get().is_some()>
-                                <Alert class="dialog-alert dialog-alert-error">
-                                    <AlertDescription>
-                                        {move || error_message.get().unwrap_or_default()}
-                                    </AlertDescription>
-                                </Alert>
-                            </Show>
-                            <div class="form-group">
-                                <Label class="form-label">"Title"</Label>
-                                <Input
-                                    class="dialog-input"
-                                    placeholder="Brief title for your idea"
-                                    value=title
-                                    on_change=Callback::new(move |val: String| {
-                                        if val.len() <= max_title_chars {
-                                            title.set(val);
-                                        }
-                                    })
-                                />
-                                <span class="char-counter" class:warning=title_warning class:error=title_error>
-                                    {move || format!("{}/{}", title_count(), max_title_chars)}
-                                </span>
+                {move || {
+                    if is_logged_in() {
+                        view! {
+                            <button
+                                class="submit-btn dialog-trigger-btn"
+                                on:click=move |_| is_open.set(true)
+                            >
+                                "Post Idea"
+                            </button>
+                            <Dialog open=is_open on_open_change=handle_open_change>
+                                <Show when=move || is_open.get() fallback=|| ()>
+                                    <DialogContent class="idea-dialog-content">
+                                        <DialogHeader>
+                                            <DialogTitle class="dialog-title">"Submit Your Idea"</DialogTitle>
+                                        </DialogHeader>
+                                        <form on:submit=handle_submit>
+                                            <Show when=move || error_message.get().is_some()>
+                                                <Alert class="dialog-alert dialog-alert-error">
+                                                    <AlertDescription>
+                                                        {move || error_message.get().unwrap_or_default()}
+                                                    </AlertDescription>
+                                                </Alert>
+                                            </Show>
+                                            <div class="form-group">
+                                                <Label class="form-label">"Title"</Label>
+                                                <Input
+                                                    class="dialog-input"
+                                                    placeholder="Brief title for your idea"
+                                                    value=title
+                                                    on_change=Callback::new(move |val: String| {
+                                                        if val.len() <= max_title_chars {
+                                                            title.set(val);
+                                                        }
+                                                    })
+                                                />
+                                                <span class="char-counter" class:warning=title_warning class:error=title_error>
+                                                    {move || format!("{}/{}", title_count(), max_title_chars)}
+                                                </span>
+                                            </div>
+                                            <div class="form-group">
+                                                <Label class="form-label">"Description"</Label>
+                                                <textarea
+                                                    class="dialog-textarea"
+                                                    placeholder="Describe your idea in more detail..."
+                                                    maxlength=max_content_chars
+                                                    prop:value=move || content.get()
+                                                    on:input=move |ev| {
+                                                        content.set(event_target_value(&ev));
+                                                    }
+                                                />
+                                                <span class="char-counter" class:warning=content_warning class:error=content_error>
+                                                    {move || format!("{}/{}", content_count(), max_content_chars)}
+                                                </span>
+                                            </div>
+                                            <DialogFooter class="dialog-footer">
+                                                <DialogClose class="btn-cancel">
+                                                    "Cancel"
+                                                </DialogClose>
+                                                <Button
+                                                    class="submit-btn"
+                                                    disabled=Signal::derive(move || !can_submit())
+                                                >
+                                                    {move || if is_submitting.get() { "Submitting..." } else { "Submit Idea" }}
+                                                </Button>
+                                            </DialogFooter>
+                                        </form>
+                                    </DialogContent>
+                                </Show>
+                            </Dialog>
+                        }.into_any()
+                    } else {
+                        view! {
+                            <div class="login-prompt">
+                                <p>"Please log in to submit ideas"</p>
+                                <A href="/login" class="btn-login">"Log In"</A>
                             </div>
-                            <div class="form-group">
-                                <Label class="form-label">"Description"</Label>
-                                // Using native textarea since shadcn Textarea has a rendering bug
-                                <textarea
-                                    class="dialog-textarea"
-                                    placeholder="Describe your idea in more detail..."
-                                    maxlength=max_content_chars
-                                    prop:value=move || content.get()
-                                    on:input=move |ev| {
-                                        content.set(event_target_value(&ev));
-                                    }
-                                />
-                                <span class="char-counter" class:warning=content_warning class:error=content_error>
-                                    {move || format!("{}/{}", content_count(), max_content_chars)}
-                                </span>
-                            </div>
-                            <DialogFooter class="dialog-footer">
-                                <DialogClose class="btn-cancel">
-                                    "Cancel"
-                                </DialogClose>
-                                <Button
-                                    class="submit-btn"
-                                    disabled=Signal::derive(move || !can_submit())
-                                >
-                                    {move || if is_submitting.get() { "Submitting..." } else { "Submit Idea" }}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                        </DialogContent>
-                    </Show>
-                </Dialog>
-                
+                        }.into_any()
+                    }
+                }}
             </CardContent>
         </Card>
     }
 }
 
 #[component]
-fn DiggCard(
-    idea: Idea,
+fn IdeaCard(
+    idea_with_author: IdeaWithAuthor,
     rank: usize,
-    voter_fingerprint: RwSignal<String>,
+    user_resource: Resource<Result<Option<UserSession>, ServerFnError>>,
     voted_ideas: RwSignal<Vec<i32>>,
-    ideas_resource: Resource<Result<Vec<Idea>, ServerFnError>>,
+    ideas_resource: Resource<Result<Vec<IdeaWithAuthor>, ServerFnError>>,
     comment_counts_resource: Resource<Result<HashMap<i32, i64>, ServerFnError>>,
 ) -> impl IntoView {
-    let idea_id = idea.id;
-    let vote_count = idea.vote_count;
-    let title = idea.title.clone();
-    let content = idea.content.clone();
-    let created_at = idea.created_at;
+    let idea_id = idea_with_author.idea.id;
+    let vote_count = idea_with_author.idea.vote_count;
+    let title = idea_with_author.idea.title.clone();
+    let content = idea_with_author.idea.content.clone();
+    let stage = idea_with_author.idea.stage.clone();
+    let is_pinned = idea_with_author.idea.is_pinned();
+    let created_at = idea_with_author.idea.created_at;
+    let author_name = idea_with_author.author_name.clone();
 
     let has_voted = move || voted_ideas.get().contains(&idea_id);
+    let is_logged_in = move || {
+        user_resource.get()
+            .and_then(|r| r.ok())
+            .and_then(|u| u)
+            .is_some()
+    };
 
     let comment_count = move || {
         comment_counts_resource.get()
@@ -436,12 +502,11 @@ fn DiggCard(
     };
 
     let handle_vote = move |_| {
-        if has_voted() {
+        if !is_logged_in() || has_voted() {
             return;
         }
-        let fp = voter_fingerprint.get();
         leptos::task::spawn_local(async move {
-            if create_vote(idea_id, fp).await.is_ok() {
+            if toggle_vote(idea_id).await.is_ok() {
                 voted_ideas.update(|v| v.push(idea_id));
                 ideas_resource.refetch();
             }
@@ -449,17 +514,26 @@ fn DiggCard(
     };
 
     let relative_time = format_relative_time(&created_at);
+    let stage_color = stage_badge_color(&stage);
 
     view! {
-        <div class="digg-item">
+        <div class="digg-item" class:pinned=is_pinned>
+            {move || {
+                if is_pinned {
+                    view! { <span class="pin-icon">"📌"</span> }.into_any()
+                } else {
+                    view! {}.into_any()
+                }
+            }}
             <div class="digg-rank">{rank}</div>
             <div class="digg-vote-box" class:voted=has_voted>
                 <span class="digg-arrow">"▲"</span>
                 <span class="digg-count">{vote_count}</span>
                 <button
                     class="digg-btn"
-                    disabled=has_voted
+                    disabled=move || !is_logged_in() || has_voted()
                     on:click=handle_vote
+                    title=move || if !is_logged_in() { "Login to vote" } else if has_voted() { "Already voted" } else { "Vote for this idea" }
                 >
                     {move || if has_voted() { "voted" } else { "vote" }}
                 </button>
@@ -468,6 +542,10 @@ fn DiggCard(
                 <h3 class="digg-title">{title}</h3>
                 <p class="digg-text">{content}</p>
                 <div class="digg-meta">
+                    <Badge variant=BadgeVariant::Secondary class=format!("stage-badge stage-{}", stage_color)>
+                        {stage.clone()}
+                    </Badge>
+                    <span class="author-name">"by " {author_name}</span>
                     <Badge variant=BadgeVariant::Outline class="digg-time">
                         {format!("submitted {}", relative_time)}
                     </Badge>
@@ -487,6 +565,10 @@ fn DiggCard(
     }
 }
 
+// ============================================================================
+// HELPERS
+// ============================================================================
+
 fn format_relative_time(dt: &chrono::DateTime<chrono::Utc>) -> String {
     let now = chrono::Utc::now();
     let duration = now - *dt;
@@ -501,5 +583,15 @@ fn format_relative_time(dt: &chrono::DateTime<chrono::Utc>) -> String {
         format!("{} days ago", duration.num_days())
     } else {
         dt.format("%Y-%m-%d").to_string()
+    }
+}
+
+fn stage_badge_color(stage: &str) -> &str {
+    match stage {
+        "Ideate" => "ideate",
+        "Review" => "review",
+        "In Progress" => "progress",
+        "Completed" => "completed",
+        _ => "default",
     }
 }
