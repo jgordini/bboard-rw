@@ -361,13 +361,17 @@ fn FlagsTab() -> impl IntoView {
                                     key=|item| (item.target_type.clone(), item.target_id)
                                     children=move |item: FlaggedItemDetail| {
                                         let target_type = item.target_type.clone();
+                                        let target_type_for_check = target_type.clone();
                                         let target_id = item.target_id;
+                                        let item_type_display = item.target_type.clone();
+                                        let content_preview = item.content_preview.clone();
+                                        let flag_count = item.flag_count;
                                         view! {
                                             <div class="flagged-item">
                                                 <div class="flagged-info">
-                                                    <span class="flag-badge">{item.flag_count}" flags"</span>
-                                                    <span class="content-type">{item.target_type.clone()}</span>
-                                                    <p class="content-preview">{item.content_preview}</p>
+                                                    <span class="flag-badge">{flag_count}" flags"</span>
+                                                    <span class="content-type">{item_type_display}</span>
+                                                    <p class="content-preview">{content_preview}</p>
                                                 </div>
                                                 <div class="flagged-actions">
                                                     <button
@@ -375,7 +379,7 @@ fn FlagsTab() -> impl IntoView {
                                                         on:click=move |_| handle_clear_flags(target_type.clone(), target_id)
                                                     >"Dismiss Flags"</button>
                                                     {move || {
-                                                        if item.target_type == "idea" {
+                                                        if target_type_for_check == "idea" {
                                                             view! {
                                                                 <>
                                                                     <button
@@ -384,7 +388,7 @@ fn FlagsTab() -> impl IntoView {
                                                                     >"Mark Off-Topic"</button>
                                                                     <button
                                                                         class="btn-danger"
-                                                                        on:click=move |_| handle_delete(target_type.clone(), target_id)
+                                                                        on:click=move |_| handle_delete(target_type_for_check.clone(), target_id)
                                                                     >"Delete"</button>
                                                                 </>
                                                             }.into_any()
