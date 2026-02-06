@@ -76,7 +76,6 @@ fi
 # Ensure data directory exists before compose startup.
 if [ -n "${POSTGRES_DATA_DIR:-}" ]; then
     mkdir -p "${POSTGRES_DATA_DIR}" 2>/dev/null || sudo mkdir -p "${POSTGRES_DATA_DIR}" 2>/dev/null || true
-    chown 999:999 "${POSTGRES_DATA_DIR}" 2>/dev/null || sudo chown 999:999 "${POSTGRES_DATA_DIR}" 2>/dev/null || true
 fi
 
 # Default to host port 80 unless caller overrides WEB_PORT.
