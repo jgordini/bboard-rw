@@ -260,6 +260,20 @@ impl Idea {
         Ok(result.rows_affected() > 0)
     }
 
+    /// Update idea tags (moderator/admin)
+    pub async fn update_tags_mod(id: i32, tags: String) -> Result<bool, sqlx::Error> {
+        let tags_trimmed = tags.trim().to_string();
+        let result = sqlx::query!(
+            "UPDATE ideas SET tags = $1 WHERE id = $2",
+            tags_trimmed,
+            id
+        )
+        .execute(crate::database::get_db())
+        .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
     /// Update idea stage (moderator only)
     pub async fn update_stage(id: i32, stage: String) -> Result<(), sqlx::Error> {
         if !Self::is_valid_stage(&stage) {
