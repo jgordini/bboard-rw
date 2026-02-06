@@ -246,6 +246,20 @@ impl Idea {
         Ok(result.rows_affected() > 0)
     }
 
+    /// Update idea content (moderator/admin)
+    pub async fn update_content_mod(id: i32, title: String, content: String) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query!(
+            "UPDATE ideas SET title = $1, content = $2 WHERE id = $3",
+            title,
+            content,
+            id
+        )
+        .execute(crate::database::get_db())
+        .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
     /// Update idea stage (moderator only)
     pub async fn update_stage(id: i32, stage: String) -> Result<(), sqlx::Error> {
         if !Self::is_valid_stage(&stage) {

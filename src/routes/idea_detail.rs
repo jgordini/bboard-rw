@@ -48,6 +48,70 @@ pub async fn create_comment(idea_id: i32, content: String) -> Result<Comment, Se
         })
 }
 
+#[server]
+pub async fn update_idea_content_mod(idea_id: i32, title: String, content: String) -> Result<(), ServerFnError> {
+    use crate::auth::require_moderator;
+    require_moderator().await?;
+
+    if title.trim().is_empty() {
+        return Err(ServerFnError::new("Idea title cannot be empty"));
+    }
+    if title.len() > 100 {
+        return Err(ServerFnError::new("Idea title cannot exceed 100 characters"));
+    }
+    if content.trim().is_empty() {
+        return Err(ServerFnError::new("Idea description cannot be empty"));
+    }
+    if content.len() > 500 {
+        return Err(ServerFnError::new("Idea description cannot exceed 500 characters"));
+    }
+    if crate::profanity::contains_profanity(&title) || crate::profanity::contains_profanity(&content) {
+        return Err(ServerFnError::new("Your submission contains inappropriate language. Please revise and try again."));
+    }
+
+    let updated = Idea::update_content_mod(idea_id, title.trim().to_string(), content.trim().to_string())
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to update idea: {:?}", e);
+            ServerFnError::new("Failed to update idea")
+        })?;
+
+    if !updated {
+        return Err(ServerFnError::new("Idea not found"));
+    }
+
+    Ok(())
+}
+
+#[server]
+pub async fn update_comment_mod(comment_id: i32, content: String) -> Result<(), ServerFnError> {
+    use crate::auth::require_moderator;
+    require_moderator().await?;
+
+    if content.trim().is_empty() {
+        return Err(ServerFnError::new("Comment cannot be empty"));
+    }
+    if content.len() > 500 {
+        return Err(ServerFnError::new("Comment cannot exceed 500 characters"));
+    }
+    if crate::profanity::contains_profanity(&content) {
+        return Err(ServerFnError::new("Your comment contains inappropriate language. Please revise and try again."));
+    }
+
+    let updated = Comment::update_content_mod(comment_id, content.trim().to_string())
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to update comment: {:?}", e);
+            ServerFnError::new("Failed to update comment")
+        })?;
+
+    if !updated {
+        return Err(ServerFnError::new("Comment not found"));
+    }
+
+    Ok(())
+}
+
 /// Individual idea detail page with comments
 #[component]
 pub fn IdeaDetailPage() -> impl IntoView {
@@ -66,6 +130,9 @@ pub fn IdeaDetailPage() -> impl IntoView {
         move |_| async move { get_user().await },
     );
     let flagged = RwSignal::new(false);
+    let stage_updating = RwSignal::new(false);
+    let idea_editing = RwSignal::new(false);
+    let idea_edit_error = RwSignal::new(Option::<String>::None);
 
     view! {
         <div class="detail-page">
@@ -79,30 +146,94 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                 Ok(idea) => {
                                     let idea_id_val = idea.id;
                                     let idea_pinned = idea.is_pinned();
-                                    let page_title = if idea.title.is_empty() {
+                                    let idea_vote_count = idea.vote_count;
+                                    let idea_title = idea.title.clone();
+                                    let idea_content = idea.content.clone();
+                                    let page_title = if idea_title.is_empty() {
                                         format!("Idea #{} — UAB IT Idea Board", idea.id)
                                     } else {
-                                        format!("{} — UAB IT Idea Board", idea.title)
+                                        format!("{} — UAB IT Idea Board", idea_title)
                                     };
                                     let relative_time = format_relative_time(&idea.created_at);
+                                    let stage = idea.stage.clone();
+                                    let stage_color = stage_badge_color(&stage).to_string();
                                     let tags_str = idea.tags.clone();
+                                    let edit_title = RwSignal::new(idea_title.clone());
+                                    let edit_content = RwSignal::new(idea_content.clone());
+                                    let idea_title_value = StoredValue::new(idea_title.clone());
+                                    let idea_content_value = StoredValue::new(idea_content.clone());
                                     view! {
                                         <Title text=page_title/>
                                         <article class="detail-card">
                                             <div class="detail-card-body">
                                                 <div class="detail-vote-box">
                                                     <span class="detail-vote-arrow">"▲"</span>
-                                                    <span class="detail-vote-count">{idea.vote_count}</span>
+                                                    <span class="detail-vote-count">{idea_vote_count}</span>
                                                     <span class="detail-vote-label">"votes"</span>
                                                 </div>
                                                 <div class="detail-idea-content">
-                                                    <Show when={
-                                                        let t = idea.title.clone();
-                                                        move || !t.is_empty()
-                                                    }>
-                                                        <h1 class="detail-idea-title">{idea.title.clone()}</h1>
+                                                    <Show
+                                                        when=move || idea_editing.get()
+                                                        fallback=move || {
+                                                            view! {
+                                                                <Show when=move || !idea_title_value.get_value().is_empty()>
+                                                                    <h1 class="detail-idea-title">{move || idea_title_value.get_value()}</h1>
+                                                                </Show>
+                                                                <p class="detail-idea-text">{move || idea_content_value.get_value()}</p>
+                                                            }.into_any()
+                                                        }
+                                                    >
+                                                        <form
+                                                            on:submit=move |ev| {
+                                                                ev.prevent_default();
+                                                                let title_value = edit_title.get();
+                                                                let content_value = edit_content.get();
+                                                                idea_edit_error.set(None);
+                                                                let id = idea_id_val;
+                                                                leptos::task::spawn_local(async move {
+                                                                    match update_idea_content_mod(id, title_value, content_value).await {
+                                                                        Ok(()) => {
+                                                                            idea_resource.refetch();
+                                                                            idea_editing.set(false);
+                                                                        }
+                                                                        Err(e) => {
+                                                                            idea_edit_error.set(Some(e.to_string()));
+                                                                        }
+                                                                    }
+                                                                });
+                                                            }
+                                                        >
+                                                            <Show when=move || idea_edit_error.get().is_some()>
+                                                                <div class="dialog-alert dialog-alert-error" role="alert" aria-live="polite" aria-atomic="true">
+                                                                    {move || idea_edit_error.get().unwrap_or_default()}
+                                                                </div>
+                                                            </Show>
+                                                            <div class="form-group">
+                                                                <label class="form-label" for="idea-edit-title">"Title"</label>
+                                                                <input
+                                                                    id="idea-edit-title"
+                                                                    class="dialog-input"
+                                                                    type="text"
+                                                                    maxlength=100
+                                                                    prop:value=move || edit_title.get()
+                                                                    on:input=move |ev| edit_title.set(event_target_value(&ev))
+                                                                />
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label class="form-label" for="idea-edit-content">"Description"</label>
+                                                                <textarea
+                                                                    id="idea-edit-content"
+                                                                    class="dialog-textarea"
+                                                                    maxlength=500
+                                                                    prop:value=move || edit_content.get()
+                                                                    on:input=move |ev| edit_content.set(event_target_value(&ev))
+                                                                />
+                                                            </div>
+                                                            <div class="dialog-footer">
+                                                                <button type="submit" class="submit-btn">"Save"</button>
+                                                            </div>
+                                                        </form>
                                                     </Show>
-                                                    <p class="detail-idea-text">{idea.content.clone()}</p>
                                                     {move || {
                                                         let tag_list: Vec<String> = tags_str
                                                             .split(',')
@@ -127,15 +258,72 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                         }
                                                     }}
                                                     <div class="detail-meta-row">
-                                                        <span class="detail-time">
-                                                            {format!("submitted {}", relative_time)}
-                                                        </span>
+                                                        <div class="detail-meta-info">
+                                                            <Suspense fallback=|| ()>
+                                                                {move || user_resource.get().map(|ur| match ur {
+                                                                    Ok(Some(user)) if user.is_moderator() => {
+                                                                        let current_stage = stage.clone();
+                                                                        let current_stage_for_value = current_stage.clone();
+                                                                        let stage_color_class = stage_color.clone();
+                                                                        view! {
+                                                                            <label class="sr-only" for="idea-stage">"Stage"</label>
+                                                                            <select
+                                                                                id="idea-stage"
+                                                                                class=format!("stage-select stage-badge stage-{}", stage_color_class)
+                                                                                prop:value=move || current_stage_for_value.clone()
+                                                                                disabled=move || stage_updating.get()
+                                                                                on:change=move |ev| {
+                                                                                    let new_stage = event_target_value(&ev);
+                                                                                    if new_stage == current_stage {
+                                                                                        return;
+                                                                                    }
+                                                                                    stage_updating.set(true);
+                                                                                    let id = idea_id_val;
+                                                                                    leptos::task::spawn_local(async move {
+                                                                                        if crate::routes::admin::update_idea_stage_action(id, new_stage).await.is_ok() {
+                                                                                            idea_resource.refetch();
+                                                                                        }
+                                                                                        stage_updating.set(false);
+                                                                                    });
+                                                                                }
+                                                                            >
+                                                                                <option value="Ideate">"Ideate"</option>
+                                                                                <option value="Review">"Review"</option>
+                                                                                <option value="In Progress">"In Progress"</option>
+                                                                                <option value="Completed">"Completed"</option>
+                                                                            </select>
+                                                                        }.into_any()
+                                                                    }
+                                                                    _ => {
+                                                                        let stage_color_class = stage_color.clone();
+                                                                        view! {
+                                                                            <span class=format!("stage-badge stage-{}", stage_color_class)>{stage.clone()}</span>
+                                                                        }.into_any()
+                                                                    }
+                                                                })}
+                                                            </Suspense>
+                                                            <span class="detail-time">
+                                                                {format!("submitted {}", relative_time)}
+                                                            </span>
+                                                        </div>
                                                         <Suspense fallback=|| ()>
                                                             {move || user_resource.get().map(|ur| match ur {
                                                                 Ok(Some(user)) => {
                                                                     let is_mod = user.is_moderator();
                                                                     view! {
                                                                         <div class="detail-card-actions">
+                                                                            <Show when=move || is_mod>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    class="btn-edit"
+                                                                                    on:click=move |_| {
+                                                                                        idea_edit_error.set(None);
+                                                                                        idea_editing.set(!idea_editing.get());
+                                                                                    }
+                                                                                >
+                                                                                    {move || if idea_editing.get() { "Cancel Edit" } else { "Edit" }}
+                                                                                </button>
+                                                                            </Show>
                                                                             <button
                                                                                 type="button"
                                                                                 class="btn-flag"
@@ -208,12 +396,88 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                                                 key=|cwa| cwa.comment.id
                                                                                 children=move |cwa: CommentWithAuthor| {
                                                                                     let time = format_relative_time(&cwa.comment.created_at);
+                                                                                    let is_editing = RwSignal::new(false);
+                                                                                    let edit_content = RwSignal::new(cwa.comment.content.clone());
+                                                                                    let edit_error = RwSignal::new(Option::<String>::None);
+                                                                                    let comment_content_value = StoredValue::new(cwa.comment.content.clone());
                                                                                     view! {
-                                                                                        <div class="comment-item">
-                                                                                            <p class="comment-text">{cwa.comment.content}</p>
+                                                                                <div class="comment-item">
+                                                                                            <Show
+                                                                                                when=move || is_editing.get()
+                                                                                                fallback=move || {
+                                                                                                    view! { <p class="comment-text">{move || comment_content_value.get_value()}</p> }.into_any()
+                                                                                                }
+                                                                                            >
+                                                                                                <form
+                                                                                                    on:submit=move |ev| {
+                                                                                                        ev.prevent_default();
+                                                                                                        let content_value = edit_content.get();
+                                                                                                        edit_error.set(None);
+                                                                                                        let comment_id = cwa.comment.id;
+                                                                                                        leptos::task::spawn_local(async move {
+                                                                                                            match update_comment_mod(comment_id, content_value).await {
+                                                                                                                Ok(()) => {
+                                                                                                                    comments_resource.refetch();
+                                                                                                                    is_editing.set(false);
+                                                                                                                }
+                                                                                                                Err(e) => {
+                                                                                                                    edit_error.set(Some(e.to_string()));
+                                                                                                                }
+                                                                                                            }
+                                                                                                        });
+                                                                                                    }
+                                                                                                >
+                                                                                                    <Show when=move || edit_error.get().is_some()>
+                                                                                                        <div class="dialog-alert dialog-alert-error" role="alert" aria-live="polite" aria-atomic="true">
+                                                                                                            {move || edit_error.get().unwrap_or_default()}
+                                                                                                        </div>
+                                                                                                    </Show>
+                                                                                                    <textarea
+                                                                                                        class="dialog-textarea"
+                                                                                                        maxlength=500
+                                                                                                        prop:value=move || edit_content.get()
+                                                                                                        on:input=move |ev| edit_content.set(event_target_value(&ev))
+                                                                                                    />
+                                                                                                    <div class="dialog-footer">
+                                                                                                        <button
+                                                                                                            type="button"
+                                                                                                            class="btn-cancel"
+                                                                                                            on:click=move |_| {
+                                                                                                                edit_content.set(comment_content_value.get_value());
+                                                                                                                edit_error.set(None);
+                                                                                                                is_editing.set(false);
+                                                                                                            }
+                                                                                                        >
+                                                                                                            "Cancel Edit"
+                                                                                                        </button>
+                                                                                                        <button type="submit" class="submit-btn">"Save"</button>
+                                                                                                    </div>
+                                                                                                </form>
+                                                                                            </Show>
                                                                                             <div class="comment-meta">
                                                                                                 <span class="comment-author">{cwa.author_name}</span>
                                                                                                 <span class="comment-time">{time}</span>
+                                                                                                <Suspense fallback=|| ()>
+                                                                                                    {move || user_resource.get().map(|ur| match ur {
+                                                                                                        Ok(Some(user)) if user.is_moderator() => {
+                                                                                                            view! {
+                                                                                                                <Show when=move || !is_editing.get()>
+                                                                                                                    <button
+                                                                                                                        type="button"
+                                                                                                                        class="btn-edit"
+                                                                                                                        on:click=move |_| {
+                                                                                                                            edit_error.set(None);
+                                                                                                                            is_editing.set(true);
+                                                                                                                        }
+                                                                                                                    >
+                                                                                                                        "Edit"
+                                                                                                                    </button>
+                                                                                                                </Show>
+                                                                                                            }.into_any()
+                                                                                                        }
+                                                                                                        _ => view! {}.into_any(),
+                                                                                                    })}
+                                                                                                </Suspense>
                                                                                             </div>
                                                                                         </div>
                                                                                     }
@@ -320,5 +584,15 @@ fn format_relative_time(dt: &chrono::DateTime<chrono::Utc>) -> String {
         format!("{} days ago", duration.num_days())
     } else {
         dt.format("%Y-%m-%d").to_string()
+    }
+}
+
+fn stage_badge_color(stage: &str) -> &str {
+    match stage {
+        "Ideate" => "ideate",
+        "Review" => "review",
+        "In Progress" => "progress",
+        "Completed" => "completed",
+        _ => "default",
     }
 }

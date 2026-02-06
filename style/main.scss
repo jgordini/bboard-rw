@@ -15,6 +15,7 @@
   --uab-gold-20: #ffe6aa;
   --uab-gold-10: #fff2d2;
   --uab-gold-5: #fff8e8;
+  --uab-gold-30: #ffd98a;
   --evergreen-20: #ace2bc;
   --evergreen-10: #d3f0db;
   --evergreen-5: #e8f7ed;
@@ -24,7 +25,7 @@
 
   // Neutral Colors
   --white: #ffffff;
-  --black: #000000;
+  --black: rgba(0, 0, 0, 0.8);
   --grey: #888888;
   --light-grey: #dddddd;
   --gray-500: #6b7280;
@@ -405,13 +406,13 @@ a {
 
   &.stage-ideate {
     background: var(--evergreen-10);
-    color: var(--evergreen);
+    color: var(--black);
     border: 1px solid var(--evergreen-20);
   }
 
   &.stage-review {
     background: var(--sky-blue-10);
-    color: var(--sky-blue);
+    color: var(--black);
     border: 1px solid var(--sky-blue-20);
   }
 
@@ -422,9 +423,9 @@ a {
   }
 
   &.stage-completed {
-    background: var(--evergreen-5);
-    color: var(--uab-green);
-    border: 1px solid var(--evergreen-20);
+    background: var(--uab-gold-30);
+    color: var(--dragons-lair-green);
+    border: 1px solid var(--uab-gold-20);
   }
 
   &.stage-default {
@@ -606,7 +607,7 @@ a {
 // ============================================================
 
 .form-group {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .form-label {
@@ -762,6 +763,14 @@ a {
   }
 }
 
+// Dialog/footer alignment for edit forms outside the idea dialog
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
 // Cancel button (global so it applies regardless of dialog DOM structure)
 .btn-cancel {
   background: var(--white);
@@ -782,6 +791,24 @@ a {
   &:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
+  }
+}
+
+// Shared by dialog and edit forms — keep global
+.dialog-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: var(--font-small);
+  transition: border-color 0.2s;
+  background: var(--white);
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 2px var(--campus-green-10);
   }
 }
 
@@ -1010,12 +1037,12 @@ a {
   }
 
   .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     border: none;
     padding: 0;
 
     &:last-of-type {
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
     }
   }
 
@@ -1180,14 +1207,14 @@ a {
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
   overflow: hidden;
 }
 
 .detail-card-body {
   display: flex;
-  gap: 1.25rem;
-  padding: 1.5rem;
+  gap: 1rem;
+  padding: 1.25rem;
 }
 
 .detail-vote-box {
@@ -1250,7 +1277,7 @@ a {
   display: flex;
   flex-wrap: wrap;
   gap: 0.375rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.4rem;
 }
 
 .detail-tag {
@@ -1271,7 +1298,14 @@ a {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 0.75rem;
+  margin-top: 0.8rem;
+}
+
+.detail-meta-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .detail-time {
@@ -1284,6 +1318,35 @@ a {
   width: fit-content;
 }
 
+.stage-select {
+  font-family: var(--font-sans);
+  font-size: var(--font-tiny);
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 0.125rem 0.5rem;
+  border-radius: 3px;
+  appearance: none;
+  cursor: pointer;
+  color: var(--black);
+  padding-right: 1.5rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 0.55rem) 50%, calc(100% - 0.35rem) 50%;
+  background-size: 0.35rem 0.35rem;
+  background-repeat: no-repeat;
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.7;
+  }
+
+  &:focus {
+    outline: 2px solid var(--sky-blue-20);
+    outline-offset: 1px;
+  }
+}
+
 .detail-card-actions {
   display: flex;
   justify-content: flex-end;
@@ -1291,7 +1354,8 @@ a {
 }
 
 .btn-flag,
-.btn-pin {
+.btn-pin,
+.btn-edit {
   padding: 0.375rem 0.75rem;
   font-size: var(--font-small);
   font-weight: 500;

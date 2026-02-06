@@ -101,6 +101,19 @@ impl Comment {
     }
 
     #[cfg(feature = "ssr")]
+    pub async fn update_content_mod(id: i32, content: String) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query!(
+            "UPDATE comments SET content = $1 WHERE id = $2",
+            content,
+            id
+        )
+        .execute(crate::database::get_db())
+        .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
+    #[cfg(feature = "ssr")]
     pub async fn toggle_pin(id: i32) -> Result<bool, sqlx::Error> {
         let result = sqlx::query!(
             r#"
