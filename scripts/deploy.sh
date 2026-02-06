@@ -67,8 +67,16 @@ else
 fi
 
 # Use persistent DB storage path automatically when available.
+# Use a dedicated subdirectory to avoid initdb failing on non-empty mount roots
+# (for example, files like lost+found on ext filesystems).
 if [ -z "${POSTGRES_DATA_DIR:-}" ] && [ -d /mnt/postgres-data ]; then
-    export POSTGRES_DATA_DIR="/mnt/postgres-data"
+    export POSTGRES_DATA_DIR="/mnt/postgres-data/bboard-rw-db"
+fi
+
+# Ensure data directory exists before compose startup.
+if [ -n "${POSTGRES_DATA_DIR:-}" ]; then
+    mkdir -p "${POSTGRES_DATA_DIR}" 2>/dev/null || sudo mkdir -p "${POSTGRES_DATA_DIR}" 2>/dev/null || true
+    chown 999:999 "${POSTGRES_DATA_DIR}" 2>/dev/null || sudo chown 999:999 "${POSTGRES_DATA_DIR}" 2>/dev/null || true
 fi
 
 # Default to host port 80 unless caller overrides WEB_PORT.
