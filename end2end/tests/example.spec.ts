@@ -1,40 +1,58 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
 
-const addr = "http://localhost:3000/";
+const baseURL = "http://localhost:3000/";
 
-test("homepage has title and subtitle", async ({ page }) => {
-  await page.goto(addr);
+const randomId = () => Math.random().toString(36).slice(2);
 
-  await expect(page).toHaveTitle("Home");
+async function signup(page: Page) {
+  const id = randomId();
+  const name = `Test User ${id}`;
+  const email = `test-${id}@example.com`;
+  const password = `Password-${id}`;
 
-  await expect(page.locator("h1.logo-font")).toHaveText("conduit");
-  await expect(page.locator("body > main > div > div.banner > div > p")).toHaveText("A place to share your knowledge.")
+  await page.goto(baseURL + "signup");
+  await page.locator("#signup-name").fill(name);
+  await page.locator("#signup-email").fill(email);
+  await page.locator("#signup-password").fill(password);
+  await page.getByRole("button", { name: "Sign up" }).click();
+
+  return { name, email, password };
+}
+
+test("signup shows logout in nav", async ({ page }) => {
+  await signup(page);
+  await expect(page.getByRole("button", { name: "Logout" })).toBeVisible();
 });
 
-test("signup, logout and login works", async ({ page }) => {
-  await page.goto(addr + "signup");
+test("profile updates after logout", async ({ page }) => {
+  await signup(page);
+  await page.goto(baseURL + "profile");
+  await expect(page.getByText("Logged in as")).toBeVisible();
 
-  const username = (Math.random() + 1).toString(36).substring(7);
-  const password = (Math.random() + 1).toString(36).substring(7);
+  await page.getByRole("button", { name: "Logout" }).click();
+  await expect(page.getByText("You are not logged in.")).toBeVisible();
+});
 
-  // Create user
-  await page.getByPlaceholder("Your Username").fill(username);
-  await page.getByPlaceholder("Password").fill(password);
-  await page.getByPlaceholder("Email").fill(username + "@" + username + ".com");
-  await page.getByRole("button", { name: "Sign up" }).click()
+test("idea detail hides comment form after logout", async ({ page }) => {
+  await signup(page);
+  await page.goto(baseURL);
 
-  // Logout user
-  await page.waitForURL(addr);
-  const logout = page.locator("body > nav > div > ul > li:nth-child(5) > form > button");
-  await expect(logout).toBeVisible();
-  await logout.click();
+  await expect(page.getByRole("button", { name: "Post Idea" })).toBeVisible();
+  await page.getByRole("button", { name: "Post Idea" }).click();
 
-  // Login user
-  await page.waitForURL(addr + "login")
-  await page.getByPlaceholder("Your Username").fill(username);
-  await page.getByPlaceholder("Password").fill(password);
-  await page.getByRole("button", { name: "Sign in" }).click()
+  const title = `Idea ${randomId()}`;
+  await page.locator("#idea-title").fill(title);
+  await page.locator("#idea-description").fill("This is a test idea.");
+  await page.getByRole("button", { name: "Submit Idea" }).click();
 
-  await page.waitForURL(addr)
-  await expect(page.locator("a.nav-link > i.ion-person")).toBeVisible()
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  const ideaLink = page.locator("a.digg-content", { hasText: title }).first();
+  await expect(ideaLink).toBeVisible();
+  await ideaLink.click();
+
+  await expect(page.getByRole("heading", { name: "Add a Comment" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Logout" }).click();
+  await expect(page.getByRole("heading", { name: "Add a Comment" })).toHaveCount(0);
 });

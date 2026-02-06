@@ -4,13 +4,14 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
 
-use crate::auth::{get_user};
+use crate::auth::{get_user, AuthRefresh};
 
 #[component]
 pub fn AccountPage() -> impl IntoView {
+    let auth_refresh = expect_context::<AuthRefresh>().0;
     let user_resource = Resource::new(
-        || (),
-        |_| async move { get_user().await },
+        move || auth_refresh.get(),
+        move |_| async move { get_user().await },
     );
 
     view! {

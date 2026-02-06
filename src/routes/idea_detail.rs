@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos::ev::SubmitEvent;
 use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
-use crate::auth::get_user;
+use crate::auth::{get_user, AuthRefresh};
 use crate::models::{Idea, CommentWithAuthor, Comment};
 
 #[server]
@@ -60,7 +60,11 @@ pub fn IdeaDetailPage() -> impl IntoView {
 
     let idea_resource = Resource::new(idea_id, |id| async move { get_idea(id).await });
     let comments_resource = Resource::new(idea_id, |id| async move { get_comments(id).await });
-    let user_resource = Resource::new(|| (), |_| async move { get_user().await });
+    let auth_refresh = expect_context::<AuthRefresh>().0;
+    let user_resource = Resource::new(
+        move || auth_refresh.get(),
+        move |_| async move { get_user().await },
+    );
     let flagged = RwSignal::new(false);
 
     view! {

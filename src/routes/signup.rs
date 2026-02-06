@@ -2,11 +2,19 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
 
-use crate::auth::{validate_signup, SignupAction, SignupResponse, SignupSignal};
+use crate::auth::{AuthRefresh, validate_signup, SignupAction, SignupResponse, SignupSignal};
 
 #[component]
 pub fn Signup(signup: SignupSignal) -> impl IntoView {
     let result_of_call = signup.value();
+    let auth_refresh = expect_context::<AuthRefresh>().0;
+
+    // When signup succeeds, bump auth refresh so nav updates without reload
+    Effect::new(move |_| {
+        if let Some(Ok(SignupResponse::Success)) = result_of_call.get() {
+            auth_refresh.update(|v| *v += 1);
+        }
+    });
 
     let error_cb = move || {
         result_of_call
