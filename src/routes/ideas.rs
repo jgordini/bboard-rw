@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use leptos::prelude::*;
 use leptos::ev::SubmitEvent;
@@ -204,9 +205,7 @@ pub fn IdeasPage() -> impl IntoView {
                                 ideas_resource.get().map(|ideas| {
                                     match ideas {
                                         Ok(mut ideas_list) => {
-                                            if sort_mode.get() == SortMode::Recent {
-                                                ideas_list.sort_by(|a, b| b.idea.created_at.cmp(&a.idea.created_at));
-                                            }
+                                            sort_ideas(&mut ideas_list, sort_mode.get());
                                             if ideas_list.is_empty() {
                                                 view! {
                                                     <div class="empty-state">
@@ -594,4 +593,22 @@ fn stage_badge_color(stage: &str) -> &str {
         "Completed" => "completed",
         _ => "default",
     }
+}
+
+fn compare_pinned_first(a: &IdeaWithAuthor, b: &IdeaWithAuthor) -> Ordering {
+    // Keep pinned ideas ahead of unpinned ideas in every sort mode.
+    b.idea
+        .is_pinned()
+        .cmp(&a.idea.is_pinned())
+        .then_with(|| b.idea.pinned_at.cmp(&a.idea.pinned_at))
+}
+
+fn sort_ideas(ideas: &mut [IdeaWithAuthor], mode: SortMode) {
+    ideas.sort_by(|a, b| match mode {
+        SortMode::Popular => compare_pinned_first(a, b)
+            .then_with(|| b.idea.vote_count.cmp(&a.idea.vote_count))
+            .then_with(|| b.idea.created_at.cmp(&a.idea.created_at)),
+        SortMode::Recent => compare_pinned_first(a, b)
+            .then_with(|| b.idea.created_at.cmp(&a.idea.created_at)),
+    });
 }
