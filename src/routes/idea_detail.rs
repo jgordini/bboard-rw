@@ -207,11 +207,10 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                                                     view! {
                                                                                         <div class="comment-item">
                                                                                             <p class="comment-text">{cwa.comment.content}</p>
-                                                                                            <span class="comment-meta">
+                                                                                            <div class="comment-meta">
                                                                                                 <span class="comment-author">{cwa.author_name}</span>
-                                                                                                " - "
                                                                                                 <span class="comment-time">{time}</span>
-                                                                                            </span>
+                                                                                            </div>
                                                                                         </div>
                                                                                     }
                                                                                 }

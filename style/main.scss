@@ -1355,21 +1355,37 @@ a {
 .comment-item {
   background: var(--white);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--uab-green);
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
 }
 
 .comment-text {
   font-size: var(--font-base-size);
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--foreground);
-  margin-bottom: 0.375rem;
+  margin-bottom: 0.5rem;
   word-wrap: break-word;
 }
 
-.comment-time {
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
   font-size: var(--font-tiny);
   color: var(--gray-500);
+}
+
+.comment-author {
+  font-weight: 600;
+  color: var(--uab-green);
+}
+
+.comment-time {
+  &::before {
+    content: "·";
+    margin-right: 0.375rem;
+  }
 }
 
 @media (max-width: 768px) {
