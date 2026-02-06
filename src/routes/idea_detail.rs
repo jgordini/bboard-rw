@@ -49,7 +49,7 @@ pub async fn create_comment(idea_id: i32, content: String) -> Result<Comment, Se
 }
 
 #[server]
-pub async fn update_idea_content_mod(idea_id: i32, title: String, content: String) -> Result<(), ServerFnError> {
+pub async fn update_idea_content_mod(idea_id: i32, title: String, content: String, tags: String) -> Result<(), ServerFnError> {
     use crate::auth::require_moderator;
     require_moderator().await?;
 
@@ -65,11 +65,14 @@ pub async fn update_idea_content_mod(idea_id: i32, title: String, content: Strin
     if content.len() > 500 {
         return Err(ServerFnError::new("Idea description cannot exceed 500 characters"));
     }
+    if tags.len() > 200 {
+        return Err(ServerFnError::new("Tags cannot exceed 200 characters"));
+    }
     if crate::profanity::contains_profanity(&title) || crate::profanity::contains_profanity(&content) {
         return Err(ServerFnError::new("Your submission contains inappropriate language. Please revise and try again."));
     }
 
-    let updated = Idea::update_content_mod(idea_id, title.trim().to_string(), content.trim().to_string())
+    let updated = Idea::update_content_mod(idea_id, title.trim().to_string(), content.trim().to_string(), tags.trim().to_string())
         .await
         .map_err(|e| {
             tracing::error!("Failed to update idea: {:?}", e);
@@ -112,29 +115,6 @@ pub async fn update_comment_mod(comment_id: i32, content: String) -> Result<(), 
     Ok(())
 }
 
-#[server]
-pub async fn update_idea_tags_mod(idea_id: i32, tags: String) -> Result<(), ServerFnError> {
-    use crate::auth::require_moderator;
-    require_moderator().await?;
-
-    if tags.len() > 200 {
-        return Err(ServerFnError::new("Tags cannot exceed 200 characters"));
-    }
-
-    let updated = Idea::update_tags_mod(idea_id, tags.trim().to_string())
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to update tags: {:?}", e);
-            ServerFnError::new("Failed to update tags")
-        })?;
-
-    if !updated {
-        return Err(ServerFnError::new("Idea not found"));
-    }
-
-    Ok(())
-}
-
 /// Individual idea detail page with comments
 #[component]
 pub fn IdeaDetailPage() -> impl IntoView {
@@ -156,8 +136,6 @@ pub fn IdeaDetailPage() -> impl IntoView {
     let stage_updating = RwSignal::new(false);
     let idea_editing = RwSignal::new(false);
     let idea_edit_error = RwSignal::new(Option::<String>::None);
-    let tags_editing = RwSignal::new(false);
-    let tags_edit_error = RwSignal::new(Option::<String>::None);
 
     view! {
         <div class="detail-page">
@@ -185,6 +163,7 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                     let tags_str = idea.tags.clone();
                                     let edit_title = RwSignal::new(idea_title.clone());
                                     let edit_content = RwSignal::new(idea_content.clone());
+                                    let edit_tags = RwSignal::new(tags_str.clone());
                                     let idea_title_value = StoredValue::new(idea_title.clone());
                                     let idea_content_value = StoredValue::new(idea_content.clone());
                                     view! {
@@ -213,10 +192,11 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                                 ev.prevent_default();
                                                                 let title_value = edit_title.get();
                                                                 let content_value = edit_content.get();
+                                                                let tags_value = edit_tags.get();
                                                                 idea_edit_error.set(None);
                                                                 let id = idea_id_val;
                                                                 leptos::task::spawn_local(async move {
-                                                                    match update_idea_content_mod(id, title_value, content_value).await {
+                                                                    match update_idea_content_mod(id, title_value, content_value, tags_value).await {
                                                                         Ok(()) => {
                                                                             idea_resource.refetch();
                                                                             idea_editing.set(false);
@@ -254,100 +234,46 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                                     on:input=move |ev| edit_content.set(event_target_value(&ev))
                                                                 />
                                                             </div>
+                                                            <div class="form-group">
+                                                                <label class="form-label" for="idea-edit-tags">"Tags (comma-separated)"</label>
+                                                                <input
+                                                                    id="idea-edit-tags"
+                                                                    class="dialog-input"
+                                                                    type="text"
+                                                                    maxlength=200
+                                                                    placeholder="e.g., security, performance, ui"
+                                                                    prop:value=move || edit_tags.get()
+                                                                    on:input=move |ev| edit_tags.set(event_target_value(&ev))
+                                                                />
+                                                            </div>
                                                             <div class="dialog-footer">
                                                                 <button type="submit" class="submit-btn">"Save"</button>
                                                             </div>
                                                         </form>
                                                     </Show>
-                                                    <div class="detail-tags-container">
-                                                        {move || {
-                                                            let tags_str_for_display = tags_str.clone();
-                                                            let tags_str_for_edit = tags_str.clone();
-                                                            let edit_tags = RwSignal::new(tags_str_for_edit.clone());
-                                                            let tags_value = StoredValue::new(tags_str_for_display.clone());
+                                                    {move || {
+                                                        let tag_list: Vec<String> = tags_str
+                                                            .split(',')
+                                                            .map(|s| s.trim())
+                                                            .filter(|s| !s.is_empty())
+                                                            .map(String::from)
+                                                            .collect();
+                                                        if tag_list.is_empty() {
+                                                            view! {}.into_any()
+                                                        } else {
                                                             view! {
-                                                                <Show
-                                                                    when=move || tags_editing.get()
-                                                                    fallback=move || {
-                                                                        let tag_list: Vec<String> = tags_value.get_value()
-                                                                            .split(',')
-                                                                            .map(|s| s.trim())
-                                                                            .filter(|s| !s.is_empty())
-                                                                            .map(String::from)
-                                                                            .collect();
-                                                                        if tag_list.is_empty() {
-                                                                            view! {}.into_any()
-                                                                        } else {
-                                                                            view! {
-                                                                                <div class="detail-tags">
-                                                                                    <For
-                                                                                        each=move || tag_list.clone()
-                                                                                        key=|t| t.clone()
-                                                                                        children=move |tag: String| {
-                                                                                            view! { <span class="detail-tag">{tag}</span> }
-                                                                                        }
-                                                                                    />
-                                                                                </div>
-                                                                            }.into_any()
+                                                                <div class="detail-tags">
+                                                                    <For
+                                                                        each=move || tag_list.clone()
+                                                                        key=|t| t.clone()
+                                                                        children=move |tag: String| {
+                                                                            view! { <span class="detail-tag">{tag}</span> }
                                                                         }
-                                                                    }.into_any()
-                                                                >
-                                                                    <form
-                                                                        class="tags-edit-form"
-                                                                        on:submit=move |ev| {
-                                                                            ev.prevent_default();
-                                                                            let tags_value = edit_tags.get();
-                                                                            tags_edit_error.set(None);
-                                                                            let id = idea_id_val;
-                                                                            leptos::task::spawn_local(async move {
-                                                                                match update_idea_tags_mod(id, tags_value).await {
-                                                                                    Ok(()) => {
-                                                                                        idea_resource.refetch();
-                                                                                        tags_editing.set(false);
-                                                                                    }
-                                                                                    Err(e) => {
-                                                                                        tags_edit_error.set(Some(e.to_string()));
-                                                                                    }
-                                                                                }
-                                                                            });
-                                                                        }
-                                                                    >
-                                                                        <Show when=move || tags_edit_error.get().is_some()>
-                                                                            <div class="dialog-alert dialog-alert-error" role="alert" aria-live="polite" aria-atomic="true">
-                                                                                {move || tags_edit_error.get().unwrap_or_default()}
-                                                                            </div>
-                                                                        </Show>
-                                                                        <div class="form-group">
-                                                                            <label class="form-label" for="tags-edit">"Tags (comma-separated)"</label>
-                                                                            <input
-                                                                                id="tags-edit"
-                                                                                class="dialog-input"
-                                                                                type="text"
-                                                                                maxlength=200
-                                                                                placeholder="e.g., security, performance, ui"
-                                                                                prop:value=move || edit_tags.get()
-                                                                                on:input=move |ev| edit_tags.set(event_target_value(&ev))
-                                                                            />
-                                                                        </div>
-                                                                        <div class="dialog-footer">
-                                                                            <button
-                                                                                type="button"
-                                                                                class="btn-cancel"
-                                                                                on:click=move |_| {
-                                                                                    edit_tags.set(tags_value.get_value());
-                                                                                    tags_edit_error.set(None);
-                                                                                    tags_editing.set(false);
-                                                                                }
-                                                                            >
-                                                                                "Cancel"
-                                                                            </button>
-                                                                            <button type="submit" class="submit-btn">"Save"</button>
-                                                                        </div>
-                                                                    </form>
-                                                                </Show>
-                                                            }
-                                                        }}
-                                                    </div>
+                                                                    />
+                                                                </div>
+                                                            }.into_any()
+                                                        }
+                                                    }}
                                                     <div class="detail-meta-row">
                                                         <div class="detail-meta-info">
                                                             <Suspense fallback=|| ()>
@@ -413,16 +339,6 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                                                     }
                                                                                 >
                                                                                     {move || if idea_editing.get() { "Cancel Edit" } else { "Edit" }}
-                                                                                </button>
-                                                                                <button
-                                                                                    type="button"
-                                                                                    class="btn-edit"
-                                                                                    on:click=move |_| {
-                                                                                        tags_edit_error.set(None);
-                                                                                        tags_editing.set(!tags_editing.get());
-                                                                                    }
-                                                                                >
-                                                                                    {move || if tags_editing.get() { "Cancel Tags" } else { "Edit Tags" }}
                                                                                 </button>
                                                                             </Show>
                                                                             <button

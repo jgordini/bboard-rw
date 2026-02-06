@@ -246,25 +246,13 @@ impl Idea {
         Ok(result.rows_affected() > 0)
     }
 
-    /// Update idea content (moderator/admin)
-    pub async fn update_content_mod(id: i32, title: String, content: String) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query!(
-            "UPDATE ideas SET title = $1, content = $2 WHERE id = $3",
-            title,
-            content,
-            id
-        )
-        .execute(crate::database::get_db())
-        .await?;
-
-        Ok(result.rows_affected() > 0)
-    }
-
-    /// Update idea tags (moderator/admin)
-    pub async fn update_tags_mod(id: i32, tags: String) -> Result<bool, sqlx::Error> {
+    /// Update idea content and tags (moderator/admin)
+    pub async fn update_content_mod(id: i32, title: String, content: String, tags: String) -> Result<bool, sqlx::Error> {
         let tags_trimmed = tags.trim().to_string();
         let result = sqlx::query!(
-            "UPDATE ideas SET tags = $1 WHERE id = $2",
+            "UPDATE ideas SET title = $1, content = $2, tags = $3 WHERE id = $4",
+            title,
+            content,
             tags_trimmed,
             id
         )
