@@ -60,7 +60,7 @@ docker save "$IMAGE_NAME" -o "$DEPLOYMENT_DIR/$IMAGE_TAR"
 echo ""
 echo "[3/5] Ensuring remote directory exists and syncing files..."
 ssh "${SSH_OPTS[@]}" "$RC_HOST" "if [ ! -d $REMOTE_DIR ]; then sudo mkdir -p $REMOTE_DIR && sudo chown -R \$(id -un):\$(id -gn) $REMOTE_DIR; fi"
-rsync -avz -e "$RSYNC_RSH" --exclude='.env' --exclude='.git' \
+rsync -avz -e "$RSYNC_RSH" --exclude='.env' --exclude='.git' --exclude='target' \
     "$DEPLOYMENT_DIR/" "$RC_HOST:$REMOTE_DIR/"
 
 echo ""

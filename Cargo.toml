@@ -41,6 +41,7 @@ tracing-wasm = { version = "0.2.1", optional = true }
 wasm-bindgen = "0.2.106"
 axum-extra = { version = "0.12.2", features = ["cookie"] }
 serde_json = "1.0"
+dotenvy = { version = "0.15.7", optional = true }
 
 [features]
 default = ["ssr", "hydrate"]
@@ -65,7 +66,8 @@ ssr = [
     "dep:regex",
     "dep:mail-send",
     "dep:bcrypt",
-    "dep:time"
+    "dep:time",
+    "dep:dotenvy"
 ]
 
 [package.metadata.cargo-all-features]

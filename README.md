@@ -39,10 +39,12 @@ Set up and run:
 
 ```bash
 cp .env.example .env
-source .env
+# Edit .env with your database credentials
 cargo sqlx database setup
 cargo leptos watch
 ```
+
+The app automatically loads `.env` at startup via `dotenvy`, so you don't need to `source .env` manually.
 
 Navigate to http://localhost:3000
 

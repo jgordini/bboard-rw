@@ -7,6 +7,9 @@ use crate::app::{shell, App};
 ///
 /// Will panic if anything is badly setup from database, or web server
 pub async fn init_app(configuration_path: Option<&str>) {
+    // Load .env file if present (silently ignore if missing, e.g. in Docker)
+    let _ = dotenvy::dotenv();
+
     tracing_subscriber::fmt()
         .with_level(true)
         .with_max_level(tracing::Level::INFO)

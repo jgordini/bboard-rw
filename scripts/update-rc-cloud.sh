@@ -50,7 +50,7 @@ ssh "${SSH_OPTS[@]}" "$RC_HOST" "if [ ! -d $REMOTE_DIR ]; then sudo mkdir -p $RE
 
 echo ""
 echo "[2/4] Syncing deployment files to $RC_HOST:$REMOTE_DIR ..."
-rsync -avz -e "$RSYNC_RSH" --exclude='.env' --exclude='.git' \
+rsync -avz -e "$RSYNC_RSH" --exclude='.env' --exclude='.git' --exclude='target' \
     "$DEPLOYMENT_DIR/" "$RC_HOST:$REMOTE_DIR/"
 
 echo ""
