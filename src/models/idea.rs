@@ -14,6 +14,7 @@ pub struct Idea {
     pub pinned_at: Option<chrono::DateTime<chrono::Utc>>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub vote_count: i32,
+    pub comments_enabled: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -50,7 +51,7 @@ impl Idea {
             Idea,
             r#"
             SELECT id, user_id, title, content, tags, stage, is_public, is_off_topic,
-                   pinned_at, created_at, vote_count
+                   pinned_at, created_at, vote_count, comments_enabled
             FROM ideas
             WHERE id = $1 AND is_public = true AND is_off_topic = false
             "#,
@@ -66,7 +67,7 @@ impl Idea {
             Idea,
             r#"
             SELECT id, user_id, title, content, tags, stage, is_public, is_off_topic,
-                   pinned_at, created_at, vote_count
+                   pinned_at, created_at, vote_count, comments_enabled
             FROM ideas
             WHERE id = $1
             "#,
@@ -82,7 +83,7 @@ impl Idea {
             r#"
             SELECT
                 i.id, i.user_id, i.title, i.content, i.tags, i.stage, i.is_public, i.is_off_topic,
-                i.pinned_at, i.created_at, i.vote_count,
+                i.pinned_at, i.created_at, i.vote_count, i.comments_enabled,
                 u.name as author_name, u.email as author_email
             FROM ideas i
             INNER JOIN users u ON i.user_id = u.id
@@ -106,6 +107,7 @@ impl Idea {
                 pinned_at: r.pinned_at,
                 created_at: r.created_at,
                 vote_count: r.vote_count,
+                comments_enabled: r.comments_enabled,
             },
             author_name: r.author_name,
             author_email: r.author_email,
@@ -118,7 +120,7 @@ impl Idea {
             r#"
             SELECT
                 i.id, i.user_id, i.title, i.content, i.tags, i.stage, i.is_public, i.is_off_topic,
-                i.pinned_at, i.created_at, i.vote_count,
+                i.pinned_at, i.created_at, i.vote_count, i.comments_enabled,
                 u.name as author_name, u.email as author_email
             FROM ideas i
             INNER JOIN users u ON i.user_id = u.id
@@ -148,6 +150,7 @@ impl Idea {
                     pinned_at: r.pinned_at,
                     created_at: r.created_at,
                     vote_count: r.vote_count,
+                    comments_enabled: r.comments_enabled,
                 },
                 author_name: r.author_name,
                 author_email: r.author_email,
@@ -161,7 +164,7 @@ impl Idea {
             Idea,
             r#"
             SELECT id, user_id, title, content, tags, stage, is_public, is_off_topic,
-                   pinned_at, created_at, vote_count
+                   pinned_at, created_at, vote_count, comments_enabled
             FROM ideas
             WHERE user_id = $1
             ORDER BY created_at DESC
@@ -178,7 +181,7 @@ impl Idea {
             r#"
             SELECT
                 i.id, i.user_id, i.title, i.content, i.tags, i.stage, i.is_public, i.is_off_topic,
-                i.pinned_at, i.created_at, i.vote_count,
+                i.pinned_at, i.created_at, i.vote_count, i.comments_enabled,
                 u.name as author_name, u.email as author_email
             FROM ideas i
             INNER JOIN users u ON i.user_id = u.id
@@ -204,6 +207,7 @@ impl Idea {
                     pinned_at: r.pinned_at,
                     created_at: r.created_at,
                     vote_count: r.vote_count,
+                    comments_enabled: r.comments_enabled,
                 },
                 author_name: r.author_name,
                 author_email: r.author_email,
@@ -220,7 +224,7 @@ impl Idea {
             INSERT INTO ideas (user_id, title, content, tags, stage, is_public, is_off_topic)
             VALUES ($1, $2, $3, $4, 'Ideate', true, false)
             RETURNING id, user_id, title, content, tags, stage, is_public, is_off_topic,
-                      pinned_at, created_at, vote_count
+                      pinned_at, created_at, vote_count, comments_enabled
             "#,
             user_id,
             title,
@@ -308,6 +312,23 @@ impl Idea {
         .execute(crate::database::get_db())
         .await?;
         Ok(())
+    }
+
+    /// Toggle comments enabled status (moderator only)
+    pub async fn toggle_comments(id: i32) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query!(
+            r#"
+            UPDATE ideas
+            SET comments_enabled = NOT comments_enabled
+            WHERE id = $1
+            RETURNING comments_enabled as "comments_enabled!"
+            "#,
+            id
+        )
+        .fetch_one(crate::database::get_db())
+        .await?;
+
+        Ok(result.comments_enabled)
     }
 
     /// Delete idea (moderator only)

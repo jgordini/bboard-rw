@@ -505,12 +505,20 @@ fn IdeaCard(
     };
 
     let handle_vote = move |_| {
-        if !is_logged_in() || has_voted() {
+        if !is_logged_in() {
             return;
         }
         leptos::task::spawn_local(async move {
-            if toggle_vote(idea_id).await.is_ok() {
-                voted_ideas.update(|v| v.push(idea_id));
+            if let Ok(now_voted) = toggle_vote(idea_id).await {
+                voted_ideas.update(|v| {
+                    if now_voted {
+                        if !v.contains(&idea_id) {
+                            v.push(idea_id);
+                        }
+                    } else {
+                        v.retain(|&id| id != idea_id);
+                    }
+                });
                 ideas_resource.refetch();
             }
         });
@@ -527,11 +535,11 @@ fn IdeaCard(
                 <span class="digg-count">{vote_count}</span>
                 <button
                     class="digg-btn"
-                    disabled=move || !is_logged_in() || has_voted()
+                    disabled=move || !is_logged_in()
                     on:click=handle_vote
-                    title=move || if !is_logged_in() { "Login to vote" } else if has_voted() { "Already voted" } else { "Vote for this idea" }
+                    title=move || if !is_logged_in() { "Login to vote" } else if has_voted() { "Click to remove vote" } else { "Vote for this idea" }
                 >
-                    {move || if has_voted() { "voted" } else { "vote" }}
+                    {move || if has_voted() { "unvote" } else { "vote" }}
                 </button>
             </div>
             <a class="digg-content" href=format!("/ideas/{}", idea_id)>
