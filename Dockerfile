@@ -1,6 +1,4 @@
-FROM rust:1.91-bookworm as builder
-
-ENV CARGO_BUILD_JOBS=1
+FROM rust:1.91-bookworm AS chef
 
 ARG TARGETARCH
 ARG CARGO_LEPTOS_VERSION=v0.3.2
@@ -16,16 +14,33 @@ RUN set -eux; \
     chmod +x /usr/local/cargo/bin/cargo-leptos; \
     rm -f /tmp/cargo-leptos.tar.gz; \
     rustup target add wasm32-unknown-unknown; \
-    mkdir -p /app
+    cargo install cargo-chef --locked
 
 WORKDIR /app
-ENV JWT_SECRET="replaceme when ran in prod"
-COPY . .
 
+# Stage 1: Generate recipe.json (dependency lockfile for caching)
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+# Stage 2: Build dependencies (cached layer)
+FROM chef AS cacher
+ENV CARGO_BUILD_JOBS=1
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
+
+# Stage 3: Build the application
+FROM chef AS builder
+ENV CARGO_BUILD_JOBS=1
+ENV JWT_SECRET="replaceme when ran in prod"
 ENV SQLX_OFFLINE=true
+
+COPY . .
+COPY --from=cacher /app/target target
+COPY --from=cacher /usr/local/cargo /usr/local/cargo
 RUN cargo leptos build -r -vv
 
-FROM debian:bookworm-slim as runner
+FROM debian:bookworm-slim AS runner
 
 WORKDIR /app
 
