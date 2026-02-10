@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                i.id, i.user_id, i.title, i.content, i.tags, i.stage, i.is_public, i.is_off_topic,\n                i.pinned_at, i.created_at, i.vote_count,\n                u.name as author_name, u.email as author_email\n            FROM ideas i\n            INNER JOIN users u ON i.user_id = u.id\n            WHERE i.id = $1 AND i.is_public = true AND i.is_off_topic = false\n            ",
+  "query": "\n            SELECT id, user_id, title, content, tags, stage, is_public, is_off_topic,\n                   pinned_at, created_at, vote_count, comments_enabled\n            FROM ideas\n            WHERE id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -60,13 +60,8 @@
       },
       {
         "ordinal": 11,
-        "name": "author_name",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 12,
-        "name": "author_email",
-        "type_info": "Varchar"
+        "name": "comments_enabled",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -86,9 +81,8 @@
       true,
       false,
       false,
-      false,
       false
     ]
   },
-  "hash": "195420ca1c3da6d95f5a9cb8c1247e87ae738985d13ad628b055caee86abe8df"
+  "hash": "7a24131659bc4435e1517d52aeeecbf4fc7d703735e1c998e6f6bc6ae2ac02da"
 }

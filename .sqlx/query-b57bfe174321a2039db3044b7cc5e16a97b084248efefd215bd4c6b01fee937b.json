@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT id, user_id, title, content, tags, stage, is_public, is_off_topic,\n                   pinned_at, created_at, vote_count\n            FROM ideas\n            WHERE id = $1 AND is_public = true AND is_off_topic = false\n            ",
+  "query": "\n            INSERT INTO ideas (user_id, title, content, tags, stage, is_public, is_off_topic)\n            VALUES ($1, $2, $3, $4, 'Ideate', true, false)\n            RETURNING id, user_id, title, content, tags, stage, is_public, is_off_topic,\n                      pinned_at, created_at, vote_count, comments_enabled\n            ",
   "describe": {
     "columns": [
       {
@@ -57,11 +57,19 @@
         "ordinal": 10,
         "name": "vote_count",
         "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "comments_enabled",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": [
-        "Int4"
+        "Int4",
+        "Varchar",
+        "Text",
+        "Text"
       ]
     },
     "nullable": [
@@ -75,8 +83,9 @@
       false,
       true,
       false,
+      false,
       false
     ]
   },
-  "hash": "7fa5bb6191358747f2a9bfffaac6999c4b9166cbbd9592364e0d3c94d28e504e"
+  "hash": "b57bfe174321a2039db3044b7cc5e16a97b084248efefd215bd4c6b01fee937b"
 }

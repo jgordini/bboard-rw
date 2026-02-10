@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE ideas\n            SET comments_enabled = NOT comments_enabled\n            WHERE id = $1\n            RETURNING comments_enabled as \"comments_enabled!\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "comments_enabled!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "68ce15e0749d9f1531a671f603dd2aa603146af9993800c298d2546954a923f0"
+}

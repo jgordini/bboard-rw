@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                i.id, i.user_id, i.title, i.content, i.tags, i.stage, i.is_public, i.is_off_topic,\n                i.pinned_at, i.created_at, i.vote_count,\n                u.name as author_name, u.email as author_email\n            FROM ideas i\n            INNER JOIN users u ON i.user_id = u.id\n            WHERE i.is_off_topic = true\n            ORDER BY i.created_at DESC\n            ",
+  "query": "\n            SELECT\n                i.id, i.user_id, i.title, i.content, i.tags, i.stage, i.is_public, i.is_off_topic,\n                i.pinned_at, i.created_at, i.vote_count, i.comments_enabled,\n                u.name as author_name, u.email as author_email\n            FROM ideas i\n            INNER JOIN users u ON i.user_id = u.id\n            WHERE i.is_public = true AND i.is_off_topic = false\n            ORDER BY\n                (CASE WHEN i.pinned_at IS NOT NULL THEN 0 ELSE 1 END),\n                i.pinned_at DESC NULLS LAST,\n                i.vote_count DESC,\n                i.created_at DESC\n            ",
   "describe": {
     "columns": [
       {
@@ -60,11 +60,16 @@
       },
       {
         "ordinal": 11,
+        "name": "comments_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
         "name": "author_name",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "author_email",
         "type_info": "Varchar"
       }
@@ -85,8 +90,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "1d7e03ec5b38e69d7d25578c90ef24686725b63fe2362f580ff825937a6ac43c"
+  "hash": "d598e190cb095bf6da2dcc443f542771e19949ceba14e01be926cfe14e11c238"
 }
