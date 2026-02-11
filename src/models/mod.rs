@@ -1,6 +1,7 @@
 mod idea;
 pub use idea::{Idea, IdeaWithAuthor};
 mod vote;
+#[cfg(feature = "ssr")]
 pub use vote::Vote;
 mod comment;
 pub use comment::{Comment, CommentWithAuthor};
