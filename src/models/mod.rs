@@ -7,4 +7,5 @@ pub use comment::{Comment, CommentWithAuthor};
 mod user;
 pub use user::User;
 mod flag;
-pub use flag::{Flag, FlaggedItem};
+#[cfg(feature = "ssr")]
+pub use flag::Flag;

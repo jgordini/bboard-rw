@@ -195,8 +195,6 @@ pub async fn logout() -> Result<(), ServerFnError> {
     Ok(())
 }
 
-pub type LogoutSignal = ServerAction<Logout>;
-
 // Get current user from session
 #[server]
 pub async fn get_user() -> Result<Option<UserSession>, ServerFnError> {
