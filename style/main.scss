@@ -878,10 +878,18 @@ a {
     font-weight: 700;
     color: var(--uab-green);
     text-decoration: none;
+    display: flex;
+    align-items: center;
 
     &:hover {
       color: var(--dragons-lair-green);
     }
+  }
+
+  .navbar-logo {
+    height: 2.5rem;
+    width: auto;
+    display: block;
   }
 
   .nav.navbar-nav {

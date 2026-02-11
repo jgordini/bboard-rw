@@ -45,7 +45,7 @@ fn NavBar() -> impl IntoView {
         <nav class="navbar">
             <div class="container">
                 <a href="/" class="navbar-brand">
-                    <span class="logo-font">"UAB IT Idea Board"</span>
+                    <img src="/uab-logo.jpg" alt="UAB IT Idea Board" class="navbar-logo"/>
                 </a>
                 <ul class="nav navbar-nav pull-xs-right">
                     <li class="nav-item nav-item-auth">
