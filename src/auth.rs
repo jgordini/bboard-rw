@@ -28,12 +28,6 @@ impl UserSession {
 }
 
 // Login
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct LoginAction {
-    pub email: String,
-    pub password: String,
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum LoginMessages {
     Successful,

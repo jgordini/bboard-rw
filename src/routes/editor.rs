@@ -9,7 +9,7 @@ pub enum EditorResponse {
     Successful(String),
 }
 
-#[cfg_attr(feature = "hydrate", allow(dead_code))]
+#[cfg(feature = "ssr")]
 #[derive(Debug)]
 struct ArticleUpdate {
     title: String,

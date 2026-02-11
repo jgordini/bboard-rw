@@ -24,12 +24,6 @@ pub struct IdeaWithAuthor {
     pub author_email: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct IdeaForm {
-    pub title: String,
-    pub content: String,
-}
-
 // Valid stage values
 pub const STAGES: [&str; 4] = ["Ideate", "Review", "In Progress", "Completed"];
 

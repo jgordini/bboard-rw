@@ -41,21 +41,6 @@ pub fn contains_profanity(text: &str) -> bool {
     false
 }
 
-/// Get a clean version of the text (for logging, not display)
-pub fn get_profanity_matches(text: &str) -> Vec<String> {
-    let normalized = normalize_text(text);
-    let mut matches = Vec::new();
-    
-    for word in BLOCKED_WORDS {
-        let normalized_word = normalize_text(word);
-        if normalized.contains(&normalized_word) {
-            matches.push(word.to_string());
-        }
-    }
-    
-    matches
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -77,14 +77,4 @@ impl Vote {
         Ok(votes.into_iter().map(|v| v.idea_id).collect())
     }
 
-    #[cfg(feature = "ssr")]
-    pub async fn get_vote_count(idea_id: i32) -> Result<i32, sqlx::Error> {
-        let count = sqlx::query_scalar!(
-            "SELECT COUNT(*)::int as count FROM votes WHERE idea_id = $1",
-            idea_id
-        )
-        .fetch_one(crate::database::get_db())
-        .await?;
-        Ok(count.unwrap_or(0))
-    }
 }

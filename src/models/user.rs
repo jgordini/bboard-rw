@@ -13,34 +13,6 @@ pub struct User {
     pub created_on: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Clone)]
-pub enum Role {
-    User = 0,
-    Moderator = 1,
-    Admin = 2,
-}
-
-impl Role {
-    pub fn from_i16(value: i16) -> Option<Self> {
-        match value {
-            0 => Some(Role::User),
-            1 => Some(Role::Moderator),
-            2 => Some(Role::Admin),
-            _ => None,
-        }
-    }
-}
-
-impl User {
-    pub fn is_moderator(&self) -> bool {
-        self.role >= 1
-    }
-
-    pub fn is_admin(&self) -> bool {
-        self.role >= 2
-    }
-}
-
 #[cfg(feature = "ssr")]
 impl User {
     /// Create a new user with hashed password
@@ -164,35 +136,6 @@ impl User {
         Ok(())
     }
 
-    /// Update user name
-    pub async fn update_name(id: i32, name: String) -> Result<(), sqlx::Error> {
-        sqlx::query!(
-            "UPDATE users SET name = $1 WHERE id = $2",
-            name,
-            id
-        )
-        .execute(crate::database::get_db())
-        .await?;
-        Ok(())
-    }
-
-    /// Update user password
-    pub async fn update_password(id: i32, new_password: String) -> Result<(), sqlx::Error> {
-        use bcrypt::{hash, DEFAULT_COST};
-
-        let password_hash = hash(new_password, DEFAULT_COST)
-            .map_err(|e| sqlx::Error::Protocol(format!("Password hashing failed: {}", e)))?;
-
-        sqlx::query!(
-            "UPDATE users SET password_hash = $1 WHERE id = $2",
-            password_hash,
-            id
-        )
-        .execute(crate::database::get_db())
-        .await?;
-        Ok(())
-    }
-
     /// Bootstrap admin user from environment variables
     /// Creates admin if no admin exists
     pub async fn bootstrap_admin() -> Result<(), sqlx::Error> {
@@ -249,8 +192,4 @@ impl User {
         .await
     }
 
-    /// Get user's ideas
-    pub async fn get_ideas(&self) -> Result<Vec<crate::models::idea::Idea>, sqlx::Error> {
-        crate::models::idea::Idea::get_by_user(self.id).await
-    }
 }
