@@ -298,8 +298,7 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                                     class="dialog-input"
                                                                     type="text"
                                                                     maxlength=100
-                                                                    prop:value=move || edit_title.get()
-                                                                    on:input=move |ev| edit_title.set(event_target_value(&ev))
+                                                                    bind:value=edit_title
                                                                 />
                                                             </div>
                                                             <div class="form-group">
@@ -308,8 +307,7 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                                     id="idea-edit-content"
                                                                     class="dialog-textarea"
                                                                     maxlength=500
-                                                                    prop:value=move || edit_content.get()
-                                                                    on:input=move |ev| edit_content.set(event_target_value(&ev))
+                                                                    bind:value=edit_content
                                                                 />
                                                             </div>
                                                             <div class="form-group">
@@ -320,8 +318,7 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                                     type="text"
                                                                     maxlength=200
                                                                     placeholder="e.g., security, performance, ui"
-                                                                    prop:value=move || edit_tags.get()
-                                                                    on:input=move |ev| edit_tags.set(event_target_value(&ev))
+                                                                    bind:value=edit_tags
                                                                 />
                                                             </div>
                                                             <div class="dialog-footer">
@@ -557,8 +554,7 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                                                                     <textarea
                                                                                                         class="dialog-textarea"
                                                                                                         maxlength=500
-                                                                                                        prop:value=move || edit_content.get()
-                                                                                                        on:input=move |ev| edit_content.set(event_target_value(&ev))
+                                                                                                        bind:value=edit_content
                                                                                                     />
                                                                                                     <div class="dialog-footer">
                                                                                                         <button
@@ -684,10 +680,7 @@ fn CommentForm(
                     class="dialog-textarea"
                     placeholder="Add a comment (max 500 characters)…"
                     maxlength=max_chars
-                    prop:value=move || content.get()
-                    on:input=move |ev| {
-                        content.set(event_target_value(&ev));
-                    }
+                    bind:value=content
                 />
             </div>
             <div class="form-footer">

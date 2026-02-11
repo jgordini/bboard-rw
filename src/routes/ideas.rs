@@ -323,8 +323,7 @@ fn IdeaSubmissionDialog(
     };
 
     let can_submit = move || {
-        is_logged_in()
-            && !title.get().trim().is_empty()
+        !title.get().trim().is_empty()
             && !content.get().trim().is_empty()
             && title.get().len() <= max_title_chars
             && content.get().len() <= max_content_chars
@@ -368,103 +367,93 @@ fn IdeaSubmissionDialog(
             <div class="sidebar-card-body">
                 <p class="sidebar-intro">"Share your suggestions to improve UAB IT services."</p>
                 <Suspense fallback=move || view! { <p class="loading">"…"</p> }>
-                    {move || match user_resource.get() {
-                        None => view! { <p class="loading">"…"</p> }.into_any(),
-                        Some(Ok(Some(_))) => view! {
-                            <button
-                                class="submit-btn dialog-trigger-btn"
-                                on:click=move |_| is_open.set(true)
-                            >
-                                "Post Idea"
-                            </button>
-                            <Show when=move || is_open.get() fallback=|| ()>
-                                <div role="dialog" class="dialog-overlay" aria-modal="true" aria-labelledby="dialog-title">
-                                    <div class="idea-dialog-content">
-                                        <header class="dialog-header">
-                                            <h2 id="dialog-title" class="dialog-title">"Submit Your Idea"</h2>
-                                        </header>
-                                        <form on:submit=handle_submit>
-                                            <Show when=move || error_message.get().is_some()>
-                                                <div class="dialog-alert dialog-alert-error" role="alert" aria-live="polite" aria-atomic="true">
-                                                    {move || error_message.get().unwrap_or_default()}
-                                                </div>
-                                            </Show>
-                                            <div class="form-group">
-                                                <label class="form-label" for="idea-title">"Title"</label>
-                                                <input
-                                                    id="idea-title"
-                                                    type="text"
-                                                    class="dialog-input"
-                                                    placeholder="Brief title for your idea…"
-                                                    maxlength=max_title_chars
-                                                    prop:value=move || title.get()
-                                                    on:input=move |ev| {
-                                                        let val = event_target_value(&ev);
-                                                        if val.len() <= max_title_chars {
-                                                            title.set(val);
-                                                        }
-                                                    }
-                                                />
-                                                <span class="char-counter" class:warning=title_warning class:error=title_error>
-                                                    {move || format!("{}/{}", title_count(), max_title_chars)}
-                                                </span>
+                    <Show when=is_logged_in fallback=move || view! {
+                        <A href="/login" attr:class="submit-btn dialog-trigger-btn">"Log in"</A>
+                    }>
+                        <button
+                            class="submit-btn dialog-trigger-btn"
+                            on:click=move |_| is_open.set(true)
+                        >
+                            "Post Idea"
+                        </button>
+                        <div role="dialog" class="dialog-overlay" aria-modal="true" aria-labelledby="dialog-title" style:display=move || if is_open.get() { "flex" } else { "none" }>
+                                <div class="idea-dialog-content">
+                                    <header class="dialog-header">
+                                        <h2 id="dialog-title" class="dialog-title">"Submit Your Idea"</h2>
+                                    </header>
+                                    <form on:submit=handle_submit>
+                                        <Show when=move || error_message.get().is_some()>
+                                            <div class="dialog-alert dialog-alert-error" role="alert" aria-live="polite" aria-atomic="true">
+                                                {move || error_message.get().unwrap_or_default()}
                                             </div>
-                                            <div class="form-group">
-                                                <label class="form-label" for="idea-description">"Description"</label>
-                                                <textarea
-                                                    id="idea-description"
-                                                    class="dialog-textarea"
-                                                    placeholder="Describe your idea in more detail…"
-                                                    maxlength=max_content_chars
-                                                    prop:value=move || content.get()
-                                                    on:input=move |ev| {
-                                                        content.set(event_target_value(&ev));
-                                                    }
-                                                />
-                                                <span class="char-counter" class:warning=content_warning class:error=content_error>
-                                                    {move || format!("{}/{}", content_count(), max_content_chars)}
-                                                </span>
-                                            </div>
-                                            <div class="form-group">
-                                                <label class="form-label" for="idea-tags">"Tags"</label>
-                                                <input
-                                                    id="idea-tags"
-                                                    type="text"
-                                                    class="dialog-input"
-                                                    placeholder="e.g. accessibility, software, hardware"
-                                                    prop:value=move || tags.get()
-                                                    on:input=move |ev| tags.set(event_target_value(&ev))
-                                                />
-                                            </div>
-                                            <div class="dialog-footer">
-                                                <button
-                                                    type="button"
-                                                    class="btn-cancel"
-                                                    on:click=move |_| {
-                                                        is_open.set(false);
-                                                        error_message.set(None);
-                                                        tags.set(String::new());
-                                                    }
-                                                >
-                                                    "Cancel"
-                                                </button>
-                                                <button
-                                                    type="submit"
-                                                    class="submit-btn"
-                                                    disabled=move || !can_submit()
-                                                >
-                                                    {move || if is_submitting.get() { "Submitting…" } else { "Submit Idea" }}
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
+                                        </Show>
+                                        <div class="form-group">
+                                            <label class="form-label" for="idea-title">"Title"</label>
+                                            <input
+                                                id="idea-title"
+                                                type="text"
+                                                class="dialog-input"
+                                                placeholder="Brief title for your idea…"
+                                                maxlength=max_title_chars
+                                                prop:value=move || title.get()
+                                                on:input=move |ev| {
+                                                    title.set(event_target_value(&ev));
+                                                }
+                                            />
+                                            <span class="char-counter" class:warning=title_warning class:error=title_error>
+                                                {move || format!("{}/{}", title_count(), max_title_chars)}
+                                            </span>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label" for="idea-description">"Description"</label>
+                                            <textarea
+                                                id="idea-description"
+                                                class="dialog-textarea"
+                                                placeholder="Describe your idea in more detail…"
+                                                maxlength=max_content_chars
+                                                prop:value=move || content.get()
+                                                on:input=move |ev| {
+                                                    content.set(event_target_value(&ev));
+                                                }
+                                            />
+                                            <span class="char-counter" class:warning=content_warning class:error=content_error>
+                                                {move || format!("{}/{}", content_count(), max_content_chars)}
+                                            </span>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label" for="idea-tags">"Tags"</label>
+                                            <input
+                                                id="idea-tags"
+                                                type="text"
+                                                class="dialog-input"
+                                                placeholder="e.g. accessibility, software, hardware"
+                                                bind:value=tags
+                                            />
+                                        </div>
+                                        <div class="dialog-footer">
+                                            <button
+                                                type="button"
+                                                class="btn-cancel"
+                                                on:click=move |_| {
+                                                    is_open.set(false);
+                                                    error_message.set(None);
+                                                    tags.set(String::new());
+                                                }
+                                            >
+                                                "Cancel"
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                class="submit-btn"
+                                                disabled=move || !can_submit()
+                                            >
+                                                {move || if is_submitting.get() { "Submitting…" } else { "Submit Idea" }}
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
-                            </Show>
-                        }.into_any(),
-                        Some(_) => view! {
-                            <A href="/login" attr:class="submit-btn dialog-trigger-btn">"Log in"</A>
-                        }.into_any(),
-                    }}
+                        </div>
+                    </Show>
                 </Suspense>
             </div>
         </article>
