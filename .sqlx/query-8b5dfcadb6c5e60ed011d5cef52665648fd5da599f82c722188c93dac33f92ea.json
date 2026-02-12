@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                target_type,\n                target_id,\n                COUNT(*) as \"flag_count!\",\n                MIN(created_at) as \"first_flagged!\"\n            FROM flags\n            GROUP BY target_type, target_id\n            ORDER BY COUNT(*) DESC, MIN(created_at) ASC\n            ",
+  "query": "\n                SELECT\n                    target_type,\n                    target_id,\n                    COUNT(*) as \"flag_count!\",\n                    MIN(created_at) as \"first_flagged!\"\n                FROM flags\n                GROUP BY target_type, target_id\n                ORDER BY COUNT(*) DESC, MIN(created_at) ASC\n                ",
   "describe": {
     "columns": [
       {
@@ -34,5 +34,5 @@
       null
     ]
   },
-  "hash": "379ed9aa05f185d4b4aa2cc48b7825d4571a0e57156a1254bf5244b8c2d67bf0"
+  "hash": "8b5dfcadb6c5e60ed011d5cef52665648fd5da599f82c722188c93dac33f92ea"
 }

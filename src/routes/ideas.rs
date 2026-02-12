@@ -134,6 +134,7 @@ pub fn IdeasPage() -> impl IntoView {
     let comment_counts_resource = Resource::new(|| (), |_| async { get_comment_counts().await });
     let voted_ideas = RwSignal::new(Vec::<i32>::new());
     let sort_mode = RwSignal::new(SortMode::Popular);
+    let search_query = RwSignal::new(String::new());
 
     // Load user's voted ideas
     Effect::new(move |_| {
@@ -206,10 +207,19 @@ pub fn IdeasPage() -> impl IntoView {
                                     match ideas {
                                         Ok(mut ideas_list) => {
                                             sort_ideas(&mut ideas_list, sort_mode.get());
+                                            let query = search_query.get().to_lowercase();
+                                            if !query.is_empty() {
+                                                ideas_list.retain(|iwa| {
+                                                    iwa.idea.title.to_lowercase().contains(&query)
+                                                        || iwa.idea.content.to_lowercase().contains(&query)
+                                                        || iwa.idea.tags.to_lowercase().contains(&query)
+                                                        || iwa.author_name.to_lowercase().contains(&query)
+                                                });
+                                            }
                                             if ideas_list.is_empty() {
                                                 view! {
                                                     <div class="empty-state">
-                                                        <p>"No ideas yet. Be the first to submit one!"</p>
+                                                        <p>{move || if search_query.get().is_empty() { "No ideas yet. Be the first to submit one!" } else { "No ideas match your search." }}</p>
                                                     </div>
                                                 }.into_any()
                                             } else {
@@ -251,6 +261,21 @@ pub fn IdeasPage() -> impl IntoView {
                     </div>
 
                     <div class="sidebar">
+                        <article class="sidebar-card">
+                            <header class="sidebar-card-header">
+                                <h3 class="sidebar-card-title">"Search Ideas"</h3>
+                            </header>
+                            <div class="sidebar-card-body">
+                                <input
+                                    type="search"
+                                    class="search-input"
+                                    placeholder="Search by title, content, tags…"
+                                    prop:value=move || search_query.get()
+                                    on:input=move |ev| search_query.set(event_target_value(&ev))
+                                />
+                            </div>
+                        </article>
+
                         <IdeaSubmissionDialog
                             user_resource=user_resource
                             ideas_resource=ideas_resource

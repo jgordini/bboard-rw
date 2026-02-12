@@ -571,6 +571,29 @@ a {
   }
 }
 
+// Search input
+.search-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  font-family: var(--font-sans);
+  font-size: var(--font-small);
+  color: var(--foreground);
+  background: var(--white);
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 2px var(--campus-green-10);
+  }
+}
+
 // Stats
 .stats-row {
   display: flex;
@@ -1478,6 +1501,11 @@ a {
   border-left: 3px solid var(--uab-green);
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
+
+  &.pinned {
+    background: var(--gray-100);
+    border-left-color: var(--gold);
+  }
 }
 
 .comment-text {

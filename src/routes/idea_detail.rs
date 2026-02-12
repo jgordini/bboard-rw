@@ -143,6 +143,19 @@ pub async fn delete_comment_mod(comment_id: i32) -> Result<(), ServerFnError> {
 }
 
 #[server]
+pub async fn toggle_comment_pin(comment_id: i32) -> Result<bool, ServerFnError> {
+    use crate::auth::require_moderator;
+    require_moderator().await?;
+
+    Comment::toggle_pin(comment_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to toggle comment pin: {:?}", e);
+            ServerFnError::new("Failed to toggle comment pin")
+        })
+}
+
+#[server]
 pub async fn toggle_idea_comments(idea_id: i32) -> Result<bool, ServerFnError> {
     use crate::auth::require_moderator;
     require_moderator().await?;
@@ -515,12 +528,16 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                                                 key=|cwa| cwa.comment.id
                                                                                 children=move |cwa: CommentWithAuthor| {
                                                                                     let time = format_relative_time(&cwa.comment.created_at);
+                                                                                    let is_pinned = cwa.comment.is_pinned;
                                                                                     let is_editing = RwSignal::new(false);
                                                                                     let edit_content = RwSignal::new(cwa.comment.content.clone());
                                                                                     let edit_error = RwSignal::new(Option::<String>::None);
                                                                                     let comment_content_value = StoredValue::new(cwa.comment.content.clone());
                                                                                     view! {
-                                                                                <div class="comment-item">
+                                                                                <div class="comment-item" class:pinned=is_pinned>
+                                                                                            <Show when=move || is_pinned>
+                                                                                                <span class="pinned-badge">"Pinned"</span>
+                                                                                            </Show>
                                                                                             <Show
                                                                                                 when=move || is_editing.get()
                                                                                                 fallback=move || {
@@ -578,34 +595,48 @@ pub fn IdeaDetailPage() -> impl IntoView {
                                                                                                 <Suspense fallback=|| ()>
                                                                                                     {move || user_resource.get().map(|ur| match ur {
                                                                                                         Ok(Some(user)) if user.is_moderator() => {
-                                                                                                            let comment_id = cwa.comment.id;
-                                                                                                            view! {
-                                                                                                                <Show when=move || !is_editing.get()>
-                                                                                                                    <button
-                                                                                                                        type="button"
-                                                                                                                        class="btn-edit"
-                                                                                                                        on:click=move |_| {
-                                                                                                                            edit_error.set(None);
-                                                                                                                            is_editing.set(true);
-                                                                                                                        }
-                                                                                                                    >
-                                                                                                                        "Edit"
-                                                                                                                    </button>
-                                                                                                                    <button
-                                                                                                                        type="button"
-                                                                                                                        class="btn-delete"
-                                                                                                                        on:click=move |_| {
-                                                                                                                            leptos::task::spawn_local(async move {
-                                                                                                                                if delete_comment_mod(comment_id).await.is_ok() {
-                                                                                                                                    comments_resource.refetch();
-                                                                                                                                }
-                                                                                                                            });
-                                                                                                                        }
-                                                                                                                    >
-                                                                                                                        "Delete"
-                                                                                                                    </button>
-                                                                                                                </Show>
-                                                                                                            }.into_any()
+                                                                                            let comment_id = cwa.comment.id;
+                                                                                            let comment_is_pinned = cwa.comment.is_pinned;
+                                                                                            view! {
+                                                                                                <Show when=move || !is_editing.get()>
+                                                                                                    <button
+                                                                                                        type="button"
+                                                                                                        class="btn-pin"
+                                                                                                        on:click=move |_| {
+                                                                                                            leptos::task::spawn_local(async move {
+                                                                                                                if toggle_comment_pin(comment_id).await.is_ok() {
+                                                                                                                    comments_resource.refetch();
+                                                                                                                }
+                                                                                                            });
+                                                                                                        }
+                                                                                                    >
+                                                                                                        {move || if comment_is_pinned { "Unpin" } else { "Pin" }}
+                                                                                                    </button>
+                                                                                                    <button
+                                                                                                        type="button"
+                                                                                                        class="btn-edit"
+                                                                                                        on:click=move |_| {
+                                                                                                            edit_error.set(None);
+                                                                                                            is_editing.set(true);
+                                                                                                        }
+                                                                                                    >
+                                                                                                        "Edit"
+                                                                                                    </button>
+                                                                                                    <button
+                                                                                                        type="button"
+                                                                                                        class="btn-delete"
+                                                                                                        on:click=move |_| {
+                                                                                                            leptos::task::spawn_local(async move {
+                                                                                                                if delete_comment_mod(comment_id).await.is_ok() {
+                                                                                                                    comments_resource.refetch();
+                                                                                                                }
+                                                                                                            });
+                                                                                                        }
+                                                                                                    >
+                                                                                                        "Delete"
+                                                                                                    </button>
+                                                                                                </Show>
+                                                                                            }.into_any()
                                                                                                         }
                                                                                                         _ => view! {}.into_any(),
                                                                                                     })}

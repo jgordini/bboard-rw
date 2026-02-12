@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO flags (user_id, target_type, target_id)\n                VALUES ($1, $2, $3)\n                ON CONFLICT (user_id, target_type, target_id) DO NOTHING\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Varchar",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1465b789a038c906ab7041c280717d7728dfa709b0c4d77aa867ae6710eb54a1"
+}
