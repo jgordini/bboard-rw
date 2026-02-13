@@ -3,6 +3,7 @@ use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
 use crate::auth::{get_user, AuthRefresh};
 use crate::models::{Idea, CommentWithAuthor, Comment};
+use crate::routes::error_helpers::server_fn_error_with_log;
 use crate::routes::ideas::check_user_votes;
 use crate::routes::validation_helpers::{
     validate_comment_content, validate_idea_tags, validate_idea_title_and_content,
@@ -16,8 +17,8 @@ pub async fn get_idea(id: i32) -> Result<Idea, ServerFnError> {
     Idea::get_by_id(id)
         .await
         .map_err(|e| {
-            tracing::error!("Failed to fetch idea {}: {:?}", id, e);
-            ServerFnError::new("Idea not found")
+            let context = format!("Failed to fetch idea {id}");
+            server_fn_error_with_log(&context, e, "Idea not found")
         })?
         .ok_or_else(|| ServerFnError::new("Idea not found"))
 }
@@ -26,10 +27,7 @@ pub async fn get_idea(id: i32) -> Result<Idea, ServerFnError> {
 pub async fn get_comments(idea_id: i32) -> Result<Vec<CommentWithAuthor>, ServerFnError> {
     Comment::get_by_idea_id(idea_id, false)
         .await
-        .map_err(|e| {
-            tracing::error!("Failed to fetch comments: {:?}", e);
-            ServerFnError::new("Failed to fetch comments")
-        })
+        .map_err(|e| server_fn_error_with_log("Failed to fetch comments", e, "Failed to fetch comments"))
 }
 
 #[server]
@@ -40,10 +38,7 @@ pub async fn create_comment(idea_id: i32, content: String) -> Result<Comment, Se
     // Check if comments are enabled on this idea
     let idea = Idea::get_by_id(idea_id)
         .await
-        .map_err(|e| {
-            tracing::error!("Failed to fetch idea: {:?}", e);
-            ServerFnError::new("Failed to fetch idea")
-        })?
+        .map_err(|e| server_fn_error_with_log("Failed to fetch idea", e, "Failed to fetch idea"))?
         .ok_or_else(|| ServerFnError::new("Idea not found"))?;
 
     if !idea.comments_enabled {
@@ -53,10 +48,7 @@ pub async fn create_comment(idea_id: i32, content: String) -> Result<Comment, Se
     validate_comment_content(&content)?;
     Comment::create(user.id, idea_id, content.trim().to_string())
         .await
-        .map_err(|e| {
-            tracing::error!("Failed to create comment: {:?}", e);
-            ServerFnError::new("Failed to create comment")
-        })
+        .map_err(|e| server_fn_error_with_log("Failed to create comment", e, "Failed to create comment"))
 }
 
 #[server]
@@ -69,10 +61,7 @@ pub async fn update_idea_content_mod(idea_id: i32, title: String, content: Strin
 
     let updated = Idea::update_content_mod(idea_id, title.trim().to_string(), content.trim().to_string(), tags.trim().to_string())
         .await
-        .map_err(|e| {
-            tracing::error!("Failed to update idea: {:?}", e);
-            ServerFnError::new("Failed to update idea")
-        })?;
+        .map_err(|e| server_fn_error_with_log("Failed to update idea", e, "Failed to update idea"))?;
 
     if !updated {
         return Err(ServerFnError::new("Idea not found"));
@@ -90,10 +79,7 @@ pub async fn update_comment_mod(comment_id: i32, content: String) -> Result<(), 
 
     let updated = Comment::update_content_mod(comment_id, content.trim().to_string())
         .await
-        .map_err(|e| {
-            tracing::error!("Failed to update comment: {:?}", e);
-            ServerFnError::new("Failed to update comment")
-        })?;
+        .map_err(|e| server_fn_error_with_log("Failed to update comment", e, "Failed to update comment"))?;
 
     if !updated {
         return Err(ServerFnError::new("Comment not found"));
@@ -109,10 +95,7 @@ pub async fn delete_comment_mod(comment_id: i32) -> Result<(), ServerFnError> {
 
     Comment::soft_delete(comment_id)
         .await
-        .map_err(|e| {
-            tracing::error!("Failed to delete comment: {:?}", e);
-            ServerFnError::new("Failed to delete comment")
-        })
+        .map_err(|e| server_fn_error_with_log("Failed to delete comment", e, "Failed to delete comment"))
 }
 
 #[server]
@@ -123,8 +106,7 @@ pub async fn toggle_comment_pin(comment_id: i32) -> Result<bool, ServerFnError> 
     Comment::toggle_pin(comment_id)
         .await
         .map_err(|e| {
-            tracing::error!("Failed to toggle comment pin: {:?}", e);
-            ServerFnError::new("Failed to toggle comment pin")
+            server_fn_error_with_log("Failed to toggle comment pin", e, "Failed to toggle comment pin")
         })
 }
 
@@ -135,10 +117,7 @@ pub async fn toggle_idea_comments(idea_id: i32) -> Result<bool, ServerFnError> {
 
     Idea::toggle_comments(idea_id)
         .await
-        .map_err(|e| {
-            tracing::error!("Failed to toggle comments: {:?}", e);
-            ServerFnError::new("Failed to toggle comments")
-        })
+        .map_err(|e| server_fn_error_with_log("Failed to toggle comments", e, "Failed to toggle comments"))
 }
 
 /// Individual idea detail page with comments

@@ -16,3 +16,4 @@ mod reset_password;
 mod view_helpers;
 mod async_helpers;
 mod validation_helpers;
+mod error_helpers;

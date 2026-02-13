@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use leptos::prelude::*;
 use crate::models::{Idea, IdeaWithAuthor};
+use crate::routes::error_helpers::server_fn_error_with_log;
 use crate::routes::validation_helpers::validate_idea_title_and_content;
 
 mod components;
@@ -20,20 +21,14 @@ pub async fn create_idea_auth(title: String, content: String, tags: String) -> R
 
     Idea::create(user.id, title.trim().to_string(), content.trim().to_string(), tags.trim().to_string())
         .await
-        .map_err(|e| {
-            tracing::error!("Failed to create idea: {:?}", e);
-            ServerFnError::new("Failed to create idea")
-        })
+        .map_err(|e| server_fn_error_with_log("Failed to create idea", e, "Failed to create idea"))
 }
 
 #[server]
 pub async fn get_ideas_with_authors() -> Result<Vec<IdeaWithAuthor>, ServerFnError> {
     Idea::get_all()
         .await
-        .map_err(|e| {
-            tracing::error!("Failed to fetch ideas: {:?}", e);
-            ServerFnError::new("Failed to fetch ideas")
-        })
+        .map_err(|e| server_fn_error_with_log("Failed to fetch ideas", e, "Failed to fetch ideas"))
 }
 
 #[server]
@@ -44,10 +39,7 @@ pub async fn toggle_vote(idea_id: i32) -> Result<bool, ServerFnError> {
     let user = require_auth().await?;
     Vote::toggle(user.id, idea_id)
         .await
-        .map_err(|e| {
-            tracing::error!("Failed to toggle vote: {:?}", e);
-            ServerFnError::new("Failed to toggle vote")
-        })
+        .map_err(|e| server_fn_error_with_log("Failed to toggle vote", e, "Failed to toggle vote"))
 }
 
 #[server]
@@ -58,10 +50,7 @@ pub async fn check_user_votes() -> Result<Vec<i32>, ServerFnError> {
     let user = require_auth().await?;
     Vote::get_voted_ideas(user.id)
         .await
-        .map_err(|e| {
-            tracing::error!("Failed to check votes: {:?}", e);
-            ServerFnError::new("Failed to check votes")
-        })
+        .map_err(|e| server_fn_error_with_log("Failed to check votes", e, "Failed to check votes"))
 }
 
 #[server]
@@ -69,8 +58,7 @@ pub async fn get_idea_statistics() -> Result<(i64, i64), ServerFnError> {
     Idea::get_statistics()
         .await
         .map_err(|e| {
-            tracing::error!("Failed to fetch statistics: {:?}", e);
-            ServerFnError::new("Failed to fetch statistics")
+            server_fn_error_with_log("Failed to fetch statistics", e, "Failed to fetch statistics")
         })
 }
 
@@ -81,8 +69,7 @@ pub async fn get_comment_counts() -> Result<HashMap<i32, i64>, ServerFnError> {
         .await
         .map(|counts| counts.into_iter().collect())
         .map_err(|e| {
-            tracing::error!("Failed to fetch comment counts: {:?}", e);
-            ServerFnError::new("Failed to fetch comment counts")
+            server_fn_error_with_log("Failed to fetch comment counts", e, "Failed to fetch comment counts")
         })
 }
 

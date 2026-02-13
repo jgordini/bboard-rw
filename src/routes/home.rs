@@ -3,6 +3,7 @@ use leptos_meta::Title;
 use leptos_router::hooks::use_query;
 
 use crate::components::ArticlePreviewList;
+use crate::routes::error_helpers::{server_fn_error_with_log, server_fn_server_error_with_log};
 
 #[server(HomeAction, "/api", "GetJson")]
 async fn home_articles(
@@ -17,8 +18,11 @@ async fn home_articles(
     crate::models::Article::for_home_page(page, amount, tag, my_feed)
         .await
         .map_err(|x| {
-            tracing::error!("problem while fetching home articles: {x:?}");
-            ServerFnError::new("Problem while fetching home articles")
+            server_fn_error_with_log(
+                "problem while fetching home articles",
+                x,
+                "Problem while fetching home articles",
+            )
         })
 }
 
@@ -29,8 +33,11 @@ async fn get_tags() -> Result<Vec<String>, ServerFnError> {
         .fetch_all(crate::database::get_db())
         .await
         .map_err(|x| {
-            tracing::error!("problem while fetching tags: {x:?}");
-            ServerFnError::ServerError("Problem while fetching tags".into())
+            server_fn_server_error_with_log(
+                "problem while fetching tags",
+                x,
+                "Problem while fetching tags",
+            )
         })
 }
 

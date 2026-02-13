@@ -4,6 +4,7 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 
 use crate::components::ArticlePreviewList;
 use crate::components::ButtonFollow;
+use crate::routes::error_helpers::{server_fn_error_with_log, server_fn_server_error_with_log};
 
 #[server(UserArticlesAction, "/api", "GetJson")]
 #[tracing::instrument]
@@ -14,9 +15,11 @@ pub async fn profile_articles(
     crate::models::Article::for_user_profile(username, favourites.unwrap_or_default())
         .await
         .map_err(|x| {
-            let err = format!("Error while getting user_profile articles: {x:?}");
-            tracing::error!("{err}");
-            ServerFnError::ServerError("Could not retrieve articles, try again later".into())
+            server_fn_server_error_with_log(
+                "Error while getting user_profile articles",
+                x,
+                "Could not retrieve articles, try again later",
+            )
         })
 }
 
@@ -32,9 +35,11 @@ pub async fn user_profile(username: String) -> Result<UserProfileModel, ServerFn
     let user = crate::models::User::get(username.clone())
         .await
         .map_err(|x| {
-            let err = format!("Error while getting user in user_profile: {x:?}");
-            tracing::error!("{err}");
-            ServerFnError::new("Could not retrieve articles, try again later")
+            server_fn_error_with_log(
+                "Error while getting user in user_profile",
+                x,
+                "Could not retrieve articles, try again later",
+            )
         })?;
     match crate::auth::get_username() {
         Some(lu) => sqlx::query!(
@@ -45,9 +50,11 @@ pub async fn user_profile(username: String) -> Result<UserProfileModel, ServerFn
         .fetch_one(crate::database::get_db())
         .await
         .map_err(|x| {
-            let err = format!("Error while getting user in user_profile: {x:?}");
-            tracing::error!("{err}");
-            ServerFnError::ServerError("Could not retrieve articles, try again later".into())
+            server_fn_server_error_with_log(
+                "Error while getting user in user_profile",
+                x,
+                "Could not retrieve articles, try again later",
+            )
         })
         .map(|x| UserProfileModel {
             user,
