@@ -2,6 +2,7 @@ use leptos::prelude::*;
 
 use crate::auth::UserSession;
 use crate::models::Idea;
+use crate::routes::async_helpers::{spawn_server_action, spawn_server_action_ok, spawn_server_action_refetch};
 use crate::routes::ideas::toggle_vote;
 use crate::routes::view_helpers::{format_relative_time, stage_badge_color};
 
@@ -50,11 +51,9 @@ pub(super) fn IdeaDetailCard(
                                         class="detail-vote-btn"
                                         on:click=move |_| {
                                             let id = idea_id_val;
-                                            leptos::task::spawn_local(async move {
-                                                if let Ok(now_voted) = toggle_vote(id).await {
-                                                    has_voted.set(now_voted);
-                                                    idea_resource.refetch();
-                                                }
+                                            spawn_server_action_ok(toggle_vote(id), move |now_voted| {
+                                                has_voted.set(now_voted);
+                                                idea_resource.refetch();
                                             });
                                         }
                                         title=move || if has_voted.get() { "Click to remove vote" } else { "Vote for this idea" }
@@ -89,19 +88,16 @@ pub(super) fn IdeaDetailCard(
                                 let tags_value = edit_tags.get();
                                 idea_edit_error.set(None);
                                 let id = idea_id_val;
-                                leptos::task::spawn_local(async move {
-                                    match update_idea_content_mod(id, title_value, content_value, tags_value)
-                                        .await
-                                    {
-                                        Ok(()) => {
-                                            idea_resource.refetch();
-                                            idea_editing.set(false);
-                                        }
-                                        Err(e) => {
-                                            idea_edit_error.set(Some(e.to_string()));
-                                        }
-                                    }
-                                });
+                                spawn_server_action(
+                                    update_idea_content_mod(id, title_value, content_value, tags_value),
+                                    move |_| {
+                                        idea_resource.refetch();
+                                        idea_editing.set(false);
+                                    },
+                                    move |e| {
+                                        idea_edit_error.set(Some(e.to_string()));
+                                    },
+                                );
                             }
                         >
                             <Show when=move || idea_edit_error.get().is_some()>
@@ -193,15 +189,19 @@ pub(super) fn IdeaDetailCard(
                                                     }
                                                     stage_updating.set(true);
                                                     let id = idea_id_val;
-                                                    leptos::task::spawn_local(async move {
-                                                        if crate::routes::admin::update_idea_stage_action(id, new_stage)
-                                                            .await
-                                                            .is_ok()
-                                                        {
+                                                    spawn_server_action(
+                                                        crate::routes::admin::update_idea_stage_action(
+                                                            id,
+                                                            new_stage,
+                                                        ),
+                                                        move |_| {
                                                             idea_resource.refetch();
-                                                        }
-                                                        stage_updating.set(false);
-                                                    });
+                                                            stage_updating.set(false);
+                                                        },
+                                                        move |_| {
+                                                            stage_updating.set(false);
+                                                        },
+                                                    );
                                                 }
                                             >
                                                 <option value="Ideate">"Ideate"</option>
@@ -263,11 +263,10 @@ pub(super) fn IdeaDetailCard(
                                                     class="btn-pin"
                                                     on:click=move |_| {
                                                         let id = idea_id_val;
-                                                        leptos::task::spawn_local(async move {
-                                                            if crate::routes::admin::toggle_idea_pin_action(id).await.is_ok() {
-                                                                idea_resource.refetch();
-                                                            }
-                                                        });
+                                                        spawn_server_action_refetch(
+                                                            crate::routes::admin::toggle_idea_pin_action(id),
+                                                            move || idea_resource.refetch(),
+                                                        );
                                                     }
                                                 >
                                                     {move || if idea_pinned { "Unpin" } else { "Pin" }}
@@ -277,11 +276,10 @@ pub(super) fn IdeaDetailCard(
                                                     class="btn-toggle-comments"
                                                     on:click=move |_| {
                                                         let id = idea_id_val;
-                                                        leptos::task::spawn_local(async move {
-                                                            if toggle_idea_comments(id).await.is_ok() {
-                                                                idea_resource.refetch();
-                                                            }
-                                                        });
+                                                        spawn_server_action_refetch(
+                                                            toggle_idea_comments(id),
+                                                            move || idea_resource.refetch(),
+                                                        );
                                                     }
                                                 >
                                                     {move || if idea_comments_enabled { "Lock Comments" } else { "Unlock Comments" }}

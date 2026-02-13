@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use web_sys::window;
 
 use crate::models::User;
+use crate::routes::async_helpers::spawn_server_action;
 
 use super::super::{delete_user_action, role_name, update_user_role_action, get_all_users_admin};
 
@@ -10,29 +11,27 @@ pub(super) fn UsersTab() -> impl IntoView {
     let users = Resource::new(|| (), |_| async { get_all_users_admin().await });
 
     let handle_role_change = move |user_id: i32, new_role: i16| {
-        leptos::task::spawn_local(async move {
-            match update_user_role_action(user_id, new_role).await {
-                Ok(()) => users.refetch(),
-                Err(e) => {
-                    if let Some(w) = window() {
-                        let _ = w.alert_with_message(&e.to_string());
-                    }
+        spawn_server_action(
+            update_user_role_action(user_id, new_role),
+            move |_| users.refetch(),
+            move |e| {
+                if let Some(w) = window() {
+                    let _ = w.alert_with_message(&e.to_string());
                 }
-            }
-        });
+            },
+        );
     };
 
     let handle_delete = move |user_id: i32| {
-        leptos::task::spawn_local(async move {
-            match delete_user_action(user_id).await {
-                Ok(()) => users.refetch(),
-                Err(e) => {
-                    if let Some(w) = window() {
-                        let _ = w.alert_with_message(&e.to_string());
-                    }
+        spawn_server_action(
+            delete_user_action(user_id),
+            move |_| users.refetch(),
+            move |e| {
+                if let Some(w) = window() {
+                    let _ = w.alert_with_message(&e.to_string());
                 }
-            }
-        });
+            },
+        );
     };
 
     view! {

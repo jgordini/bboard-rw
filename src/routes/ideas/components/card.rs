@@ -4,6 +4,7 @@ use leptos::prelude::*;
 
 use crate::auth::UserSession;
 use crate::models::IdeaWithAuthor;
+use crate::routes::async_helpers::spawn_server_action_ok;
 use crate::routes::view_helpers::{format_relative_time, stage_badge_color};
 
 use super::super::toggle_vote;
@@ -47,19 +48,17 @@ pub(super) fn IdeaCard(
         if !is_logged_in() {
             return;
         }
-        leptos::task::spawn_local(async move {
-            if let Ok(now_voted) = toggle_vote(idea_id).await {
-                voted_ideas.update(|v| {
-                    if now_voted {
-                        if !v.contains(&idea_id) {
-                            v.push(idea_id);
-                        }
-                    } else {
-                        v.retain(|&id| id != idea_id);
+        spawn_server_action_ok(toggle_vote(idea_id), move |now_voted| {
+            voted_ideas.update(|v| {
+                if now_voted {
+                    if !v.contains(&idea_id) {
+                        v.push(idea_id);
                     }
-                });
-                ideas_resource.refetch();
-            }
+                } else {
+                    v.retain(|&id| id != idea_id);
+                }
+            });
+            ideas_resource.refetch();
         });
     };
 

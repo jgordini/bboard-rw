@@ -4,6 +4,7 @@ use leptos_router::components::A;
 
 use crate::auth::UserSession;
 use crate::models::IdeaWithAuthor;
+use crate::routes::async_helpers::spawn_server_action;
 
 use super::super::create_idea_auth;
 
@@ -57,22 +58,22 @@ pub(super) fn IdeaSubmissionDialog(
         let title_value = title.get();
         let content_value = content.get();
         let tags_value = tags.get();
-        leptos::task::spawn_local(async move {
-            match create_idea_auth(title_value, content_value, tags_value).await {
-                Ok(_) => {
-                    ideas_resource.refetch();
-                    stats_resource.refetch();
-                    title.set(String::new());
-                    content.set(String::new());
-                    tags.set(String::new());
-                    is_open.set(false);
-                }
-                Err(e) => {
-                    error_message.set(Some(e.to_string()));
-                }
-            }
-            is_submitting.set(false);
-        });
+        spawn_server_action(
+            create_idea_auth(title_value, content_value, tags_value),
+            move |_| {
+                ideas_resource.refetch();
+                stats_resource.refetch();
+                title.set(String::new());
+                content.set(String::new());
+                tags.set(String::new());
+                is_open.set(false);
+                is_submitting.set(false);
+            },
+            move |e| {
+                error_message.set(Some(e.to_string()));
+                is_submitting.set(false);
+            },
+        );
     };
 
     view! {

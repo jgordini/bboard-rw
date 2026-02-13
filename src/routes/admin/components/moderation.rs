@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use web_sys::window;
 
 use crate::models::IdeaWithAuthor;
+use crate::routes::async_helpers::spawn_server_action_refetch;
 
 use super::super::{delete_idea_action, get_off_topic_ideas, mark_idea_off_topic_action};
 
@@ -10,18 +11,14 @@ pub(super) fn ModerationTab() -> impl IntoView {
     let off_topic_ideas = Resource::new(|| (), |_| async { get_off_topic_ideas().await });
 
     let handle_restore = move |idea_id: i32| {
-        leptos::task::spawn_local(async move {
-            if mark_idea_off_topic_action(idea_id, false).await.is_ok() {
-                off_topic_ideas.refetch();
-            }
+        spawn_server_action_refetch(mark_idea_off_topic_action(idea_id, false), move || {
+            off_topic_ideas.refetch();
         });
     };
 
     let handle_delete = move |idea_id: i32| {
-        leptos::task::spawn_local(async move {
-            if delete_idea_action(idea_id).await.is_ok() {
-                off_topic_ideas.refetch();
-            }
+        spawn_server_action_refetch(delete_idea_action(idea_id), move || {
+            off_topic_ideas.refetch();
         });
     };
 

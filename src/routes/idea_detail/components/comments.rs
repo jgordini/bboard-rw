@@ -3,6 +3,7 @@ use leptos::prelude::*;
 
 use crate::auth::UserSession;
 use crate::models::CommentWithAuthor;
+use crate::routes::async_helpers::{spawn_server_action, spawn_server_action_refetch};
 use crate::routes::view_helpers::format_relative_time;
 
 use super::super::{create_comment, delete_comment_mod, toggle_comment_pin, update_comment_mod};
@@ -113,17 +114,16 @@ fn CommentItem(
                         ev.prevent_default();
                         let content_value = edit_content.get();
                         edit_error.set(None);
-                        leptos::task::spawn_local(async move {
-                            match update_comment_mod(comment_id, content_value).await {
-                                Ok(()) => {
-                                    comments_resource.refetch();
-                                    is_editing.set(false);
-                                }
-                                Err(e) => {
-                                    edit_error.set(Some(e.to_string()));
-                                }
-                            }
-                        });
+                        spawn_server_action(
+                            update_comment_mod(comment_id, content_value),
+                            move |_| {
+                                comments_resource.refetch();
+                                is_editing.set(false);
+                            },
+                            move |e| {
+                                edit_error.set(Some(e.to_string()));
+                            },
+                        );
                     }
                 >
                     <Show when=move || edit_error.get().is_some()>
@@ -164,11 +164,10 @@ fn CommentItem(
                                         type="button"
                                         class="btn-pin"
                                         on:click=move |_| {
-                                            leptos::task::spawn_local(async move {
-                                                if toggle_comment_pin(comment_id).await.is_ok() {
-                                                    comments_resource.refetch();
-                                                }
-                                            });
+                                            spawn_server_action_refetch(
+                                                toggle_comment_pin(comment_id),
+                                                move || comments_resource.refetch(),
+                                            );
                                         }
                                     >
                                         {move || if comment_is_pinned { "Unpin" } else { "Pin" }}
@@ -187,11 +186,10 @@ fn CommentItem(
                                         type="button"
                                         class="btn-delete"
                                         on:click=move |_| {
-                                            leptos::task::spawn_local(async move {
-                                                if delete_comment_mod(comment_id).await.is_ok() {
-                                                    comments_resource.refetch();
-                                                }
-                                            });
+                                            spawn_server_action_refetch(
+                                                delete_comment_mod(comment_id),
+                                                move || comments_resource.refetch(),
+                                            );
                                         }
                                     >
                                         "Delete"
@@ -226,10 +224,8 @@ fn CommentForm(
             return;
         }
         let content_clone = content_value.clone();
-        leptos::task::spawn_local(async move {
-            if create_comment(idea_id, content_clone).await.is_ok() {
-                comments_resource.refetch();
-            }
+        spawn_server_action_refetch(create_comment(idea_id, content_clone), move || {
+            comments_resource.refetch();
         });
         content.set(String::new());
     };
