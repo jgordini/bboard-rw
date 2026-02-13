@@ -2,6 +2,18 @@
 
 Date: 2026-02-06
 
+## Update: 2026-02-13 (Cloudflare + HTTPS via Caddy)
+
+- Replaced `nginx + certbot` with `caddy` (Cloudflare DNS plugin) in Compose
+  `tls` profile.
+- Added `caddy/Dockerfile` to build Caddy with
+  `github.com/caddy-dns/cloudflare`.
+- Added `caddy/Caddyfile` to terminate TLS and reverse proxy to `web:8080`.
+- Updated `scripts/deploy.sh` TLS flow to manage Caddy directly.
+- `renew-certs` mode is now informational only; Caddy auto-renews certs.
+- Kept app backend private when TLS is enabled (`WEB_BIND_HOST=127.0.0.1`,
+  `WEB_PORT=8080`) and exposed only `80/443` publicly.
+
 ## Goal
 
 Replace the legacy app stack in `/var/fider` with `bboard-rw`, and run the new app on host port `80`.

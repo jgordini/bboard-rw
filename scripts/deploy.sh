@@ -5,20 +5,24 @@
 # Runs on the remote cloud instance.
 #
 # Modes:
-#   replace         Stop legacy /var/fider stack and deploy bboard-rw on WEB_PORT (default 80)
+#   replace         Stop legacy /var/fider stack and deploy bboard-rw
 #   replace-prebuilt Stop legacy /var/fider stack and deploy from preloaded image
-#   up              Start or rebuild full bboard-rw stack (web + db)
+#   up              Start or rebuild full bboard-rw stack
 #   update          Rebuild and restart only web service from synced source
 #   update-prebuilt Restart only web service from preloaded Docker image
+#   tls-init        Start/rebuild caddy TLS proxy when TLS is enabled
+#   renew-certs     No-op helper; Caddy renews certificates automatically
 #   status          Show compose status
 #   down            Stop bboard-rw stack
 #
 # Usage:
 #   ./deploy.sh replace
 #   ./deploy.sh replace-prebuilt
-#   WEB_PORT=80 ./deploy.sh up
+#   ENABLE_LETSENCRYPT=true DOMAIN=uabspark.com ./deploy.sh up
 #   ./deploy.sh update
 #   ./deploy.sh update-prebuilt
+#   ./deploy.sh tls-init
+#   ./deploy.sh renew-certs
 # =============================================================================
 
 set -euo pipefail
@@ -28,7 +32,7 @@ LEGACY_DIR="/var/fider"
 MODE="${1:-replace}"
 
 usage() {
-    echo "Usage: $0 [replace|replace-prebuilt|up|update|update-prebuilt|status|down]"
+    echo "Usage: $0 [replace|replace-prebuilt|up|update|update-prebuilt|tls-init|renew-certs|status|down]"
 }
 
 echo "========================================================================"
@@ -78,8 +82,30 @@ if [ -n "${POSTGRES_DATA_DIR:-}" ]; then
     mkdir -p "${POSTGRES_DATA_DIR}" 2>/dev/null || sudo mkdir -p "${POSTGRES_DATA_DIR}" 2>/dev/null || true
 fi
 
-# Default to host port 80 unless caller overrides WEB_PORT.
-export WEB_PORT="${WEB_PORT:-80}"
+ENABLE_LETSENCRYPT="${ENABLE_LETSENCRYPT:-false}"
+if [ "${ENABLE_LETSENCRYPT}" = "true" ] || [ "${ENABLE_LETSENCRYPT}" = "1" ]; then
+    TLS_ENABLED=true
+else
+    TLS_ENABLED=false
+fi
+
+if [ "${TLS_ENABLED}" = "true" ]; then
+    export DOMAIN="${DOMAIN:-uabspark.com}"
+    export DOMAIN_WWW="${DOMAIN_WWW:-www.${DOMAIN}}"
+    export LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-admin@${DOMAIN}}"
+    export WEB_BIND_HOST="${WEB_BIND_HOST:-127.0.0.1}"
+    export WEB_PORT="${WEB_PORT:-8080}"
+    export WEB_HTTP_PORT="${WEB_HTTP_PORT:-80}"
+    export WEB_HTTPS_PORT="${WEB_HTTPS_PORT:-443}"
+    if [ -z "${CLOUDFLARE_DNS_API_TOKEN:-}" ]; then
+        echo "ERROR: CLOUDFLARE_DNS_API_TOKEN is required when ENABLE_LETSENCRYPT=true."
+        exit 1
+    fi
+else
+    # Preserve legacy behavior when TLS profile is disabled.
+    export WEB_BIND_HOST="${WEB_BIND_HOST:-0.0.0.0}"
+    export WEB_PORT="${WEB_PORT:-80}"
+fi
 
 # Prevent a common production misconfiguration copied from local dev.
 if [ -n "${DATABASE_URL:-}" ] && [[ "${DATABASE_URL}" == *"@localhost"* ]]; then
@@ -87,47 +113,91 @@ if [ -n "${DATABASE_URL:-}" ] && [[ "${DATABASE_URL}" == *"@localhost"* ]]; then
     export DATABASE_URL="postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db/${POSTGRES_DB:-realworld}"
 fi
 
+stop_legacy_stack() {
+    if [ -f "$LEGACY_DIR/docker-compose.yml" ]; then
+        echo "Stopping legacy stack in $LEGACY_DIR ..."
+        (cd "$LEGACY_DIR" && docker compose down) || true
+    else
+        echo "No legacy compose file found in $LEGACY_DIR (nothing to stop)."
+    fi
+}
+
+deploy_stack_without_tls() {
+    local build_flag="$1"
+    docker compose up -d --remove-orphans "${build_flag}"
+}
+
+deploy_stack_with_tls() {
+    local build_flag="$1"
+    docker compose --profile tls up -d --remove-orphans "${build_flag}"
+}
+
 echo ""
 echo "[1/3] Validating compose configuration..."
-docker compose config >/dev/null
+if [ "${TLS_ENABLED}" = "true" ]; then
+    docker compose --profile tls config >/dev/null
+else
+    docker compose config >/dev/null
+fi
 echo "Compose configuration is valid."
+
+DEPLOY_RAN=false
 
 echo ""
 echo "[2/3] Deploying services..."
 case "$MODE" in
     replace)
-        if [ -f "$LEGACY_DIR/docker-compose.yml" ]; then
-            echo "Stopping legacy stack in $LEGACY_DIR ..."
-            (cd "$LEGACY_DIR" && docker compose down) || true
+        stop_legacy_stack
+        if [ "${TLS_ENABLED}" = "true" ]; then
+            deploy_stack_with_tls "--build"
         else
-            echo "No legacy compose file found in $LEGACY_DIR (nothing to stop)."
+            deploy_stack_without_tls "--build"
         fi
-        docker compose up -d --build
+        DEPLOY_RAN=true
         ;;
     replace-prebuilt)
-        if [ -f "$LEGACY_DIR/docker-compose.yml" ]; then
-            echo "Stopping legacy stack in $LEGACY_DIR ..."
-            (cd "$LEGACY_DIR" && docker compose down) || true
+        stop_legacy_stack
+        if [ "${TLS_ENABLED}" = "true" ]; then
+            deploy_stack_with_tls "--no-build"
         else
-            echo "No legacy compose file found in $LEGACY_DIR (nothing to stop)."
+            deploy_stack_without_tls "--no-build"
         fi
-        docker compose up -d --no-build
+        DEPLOY_RAN=true
         ;;
     up)
-        docker compose up -d --build
+        if [ "${TLS_ENABLED}" = "true" ]; then
+            deploy_stack_with_tls "--build"
+        else
+            deploy_stack_without_tls "--build"
+        fi
+        DEPLOY_RAN=true
         ;;
     update)
-        docker compose up -d --no-deps --force-recreate --build web
+        docker compose up -d --remove-orphans --no-deps --force-recreate --build web
+        DEPLOY_RAN=true
         ;;
     update-prebuilt)
-        docker compose up -d --no-deps --force-recreate --no-build web
+        docker compose up -d --remove-orphans --no-deps --force-recreate --no-build web
+        DEPLOY_RAN=true
+        ;;
+    tls-init)
+        if [ "${TLS_ENABLED}" != "true" ]; then
+            echo "ERROR: tls-init requires ENABLE_LETSENCRYPT=true in environment or .env."
+            exit 1
+        fi
+        docker compose --profile tls up -d --remove-orphans --no-deps --build caddy
+        DEPLOY_RAN=true
+        ;;
+    renew-certs)
+        echo "Caddy renews certificates automatically; no manual renewal action required."
+        exit 0
         ;;
     status)
-        docker compose ps
+        docker compose --profile tls ps
         exit 0
         ;;
     down)
-        docker compose down
+        docker compose --profile tls down
         exit 0
         ;;
     *)
@@ -137,24 +207,38 @@ case "$MODE" in
         ;;
 esac
 
+if [ "${DEPLOY_RAN}" != "true" ]; then
+    exit 0
+fi
+
 echo ""
 echo "[3/3] Verifying deployment..."
 sleep 5
 echo ""
 echo "Container Status:"
-docker compose ps
+docker compose --profile tls ps
 echo ""
 echo "Recent web logs:"
 docker compose logs --tail=30 web || true
+if [ "${TLS_ENABLED}" = "true" ]; then
+    echo ""
+    echo "Recent caddy logs:"
+    docker compose --profile tls logs --tail=30 caddy || true
+fi
 
 echo ""
 echo "========================================================================"
 echo "Deployment complete"
 echo "========================================================================"
-echo "Expected URL: http://<floating-ip>:${WEB_PORT}"
+if [ "${TLS_ENABLED}" = "true" ]; then
+    echo "Expected URL: https://${DOMAIN}"
+else
+    echo "Expected URL: http://<floating-ip>:${WEB_PORT}"
+fi
 echo ""
 echo "Useful commands:"
-echo "  Status:  docker compose ps"
+echo "  Status:  docker compose --profile tls ps"
 echo "  Logs:    docker compose logs -f web"
+echo "  Caddy:   docker compose --profile tls logs -f caddy"
 echo "  Stop:    ./scripts/deploy.sh down"
 echo ""

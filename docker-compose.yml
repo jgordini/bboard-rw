@@ -11,10 +11,30 @@ services:
       MAILER_PASSWD: '${MAILER_PASSWD:-yourpassword}'
       MAILER_SMTP_SERVER: '${MAILER_SMTP_SERVER:-smtp-mail.outlook.com}'
     ports:
-      - '${WEB_PORT:-8080}:8080'
+      - '${WEB_BIND_HOST:-0.0.0.0}:${WEB_PORT:-8080}:8080'
     depends_on:
       db:
         condition: service_healthy
+  caddy:
+    build:
+      context: .
+      dockerfile: caddy/Dockerfile
+    restart: unless-stopped
+    profiles: ["tls"]
+    depends_on:
+      - web
+    environment:
+      DOMAIN: '${DOMAIN:-localhost}'
+      DOMAIN_WWW: '${DOMAIN_WWW:-localhost}'
+      LETSENCRYPT_EMAIL: '${LETSENCRYPT_EMAIL:-admin@example.com}'
+      CLOUDFLARE_DNS_API_TOKEN: '${CLOUDFLARE_DNS_API_TOKEN:-}'
+    ports:
+      - '${WEB_HTTP_PORT:-80}:80'
+      - '${WEB_HTTPS_PORT:-443}:443'
+    volumes:
+      - './caddy/Caddyfile:/etc/caddy/Caddyfile:ro'
+      - 'caddy_data:/data'
+      - 'caddy_config:/config'
   db:
     image: postgres:17-alpine
     restart: always
@@ -34,3 +54,5 @@ services:
 
 volumes:
   db_data:
+  caddy_data:
+  caddy_config:

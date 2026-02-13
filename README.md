@@ -76,3 +76,18 @@ docker compose up
 ```
 
 Navigate to http://localhost:8080
+
+## Cloudflare + HTTPS (Caddy, RC Cloud)
+
+For origin HTTPS behind Cloudflare, this repo supports `caddy` with the
+Cloudflare DNS challenge plugin.
+
+1. Copy `scripts/rc-cloud.env.example` to `/var/bboard-rw/.env` on the server.
+2. Set a valid `CLOUDFLARE_DNS_API_TOKEN` and `LETSENCRYPT_EMAIL`.
+3. Deploy with `ENABLE_LETSENCRYPT=true` in `.env`:
+   - `./scripts/update-rc-cloud.sh ubuntu@<ip>`
+   - Remote: `cd /var/bboard-rw && ./scripts/deploy.sh replace`
+4. In Cloudflare, set SSL/TLS mode to `Full (strict)`.
+
+With `ENABLE_LETSENCRYPT=true`, the app backend remains private at
+`127.0.0.1:8080` and Caddy serves public `80/443`.
