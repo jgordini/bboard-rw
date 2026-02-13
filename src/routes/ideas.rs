@@ -2,7 +2,9 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use leptos::prelude::*;
 use crate::models::{Idea, IdeaWithAuthor};
+#[cfg(feature = "ssr")]
 use crate::routes::error_helpers::server_fn_error_with_log;
+#[cfg(feature = "ssr")]
 use crate::routes::validation_helpers::validate_idea_title_and_content;
 
 mod components;

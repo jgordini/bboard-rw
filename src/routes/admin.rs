@@ -179,6 +179,40 @@ pub async fn delete_user_action(user_id: i32) -> Result<(), ServerFnError> {
         .map_err(|e| ServerFnError::new(format!("Failed to delete user: {}", e)))
 }
 
+#[server]
+pub async fn export_ideas_csv() -> Result<String, ServerFnError> {
+    use crate::auth::require_admin;
+    require_admin().await?;
+
+    #[cfg(feature = "ssr")]
+    {
+        build_ideas_csv()
+            .await
+            .map_err(|e| ServerFnError::new(format!("Failed to export ideas CSV: {}", e)))
+    }
+    #[cfg(not(feature = "ssr"))]
+    {
+        Err(ServerFnError::new("CSV export is only available on the server"))
+    }
+}
+
+#[server]
+pub async fn export_comments_csv() -> Result<String, ServerFnError> {
+    use crate::auth::require_admin;
+    require_admin().await?;
+
+    #[cfg(feature = "ssr")]
+    {
+        build_comments_csv()
+            .await
+            .map_err(|e| ServerFnError::new(format!("Failed to export comments CSV: {}", e)))
+    }
+    #[cfg(not(feature = "ssr"))]
+    {
+        Err(ServerFnError::new("CSV export is only available on the server"))
+    }
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -254,4 +288,141 @@ fn role_name(role: i16) -> &'static str {
         1 => "Moderator",
         _ => "User",
     }
+}
+
+#[cfg(feature = "ssr")]
+fn csv_escape(value: &str) -> String {
+    let escaped = value.replace('"', "\"\"");
+    format!("\"{}\"", escaped)
+}
+
+#[cfg(feature = "ssr")]
+async fn build_ideas_csv() -> Result<String, sqlx::Error> {
+    use sqlx::Row;
+
+    let rows = sqlx::query(
+        r#"
+        SELECT
+            i.id,
+            i.user_id,
+            u.name AS author_name,
+            u.email AS author_email,
+            i.title,
+            i.content,
+            i.tags,
+            i.stage,
+            i.is_public,
+            i.is_off_topic,
+            i.comments_enabled,
+            i.vote_count,
+            i.pinned_at,
+            i.created_at
+        FROM ideas i
+        INNER JOIN users u ON i.user_id = u.id
+        ORDER BY i.created_at DESC
+        "#,
+    )
+    .fetch_all(crate::database::get_db())
+    .await?;
+
+    let mut csv = String::from(
+        "id,user_id,author_name,author_email,title,content,tags,stage,is_public,is_off_topic,comments_enabled,vote_count,pinned_at,created_at\n",
+    );
+
+    for row in rows {
+        let id: i32 = row.try_get("id")?;
+        let user_id: i32 = row.try_get("user_id")?;
+        let author_name: String = row.try_get("author_name")?;
+        let author_email: String = row.try_get("author_email")?;
+        let title: String = row.try_get("title")?;
+        let content: String = row.try_get("content")?;
+        let tags: String = row.try_get("tags")?;
+        let stage: String = row.try_get("stage")?;
+        let is_public: bool = row.try_get("is_public")?;
+        let is_off_topic: bool = row.try_get("is_off_topic")?;
+        let comments_enabled: bool = row.try_get("comments_enabled")?;
+        let vote_count: i32 = row.try_get("vote_count")?;
+        let pinned_at: Option<chrono::DateTime<chrono::Utc>> = row.try_get("pinned_at")?;
+        let created_at: chrono::DateTime<chrono::Utc> = row.try_get("created_at")?;
+
+        csv.push_str(&format!(
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+            id,
+            user_id,
+            csv_escape(&author_name),
+            csv_escape(&author_email),
+            csv_escape(&title),
+            csv_escape(&content),
+            csv_escape(&tags),
+            csv_escape(&stage),
+            is_public,
+            is_off_topic,
+            comments_enabled,
+            vote_count,
+            csv_escape(&pinned_at.map(|x| x.to_rfc3339()).unwrap_or_default()),
+            csv_escape(&created_at.to_rfc3339()),
+        ));
+    }
+
+    Ok(csv)
+}
+
+#[cfg(feature = "ssr")]
+async fn build_comments_csv() -> Result<String, sqlx::Error> {
+    use sqlx::Row;
+
+    let rows = sqlx::query(
+        r#"
+        SELECT
+            c.id,
+            c.idea_id,
+            i.title AS idea_title,
+            c.user_id,
+            u.name AS author_name,
+            u.email AS author_email,
+            c.content,
+            c.is_pinned,
+            c.is_deleted,
+            c.created_at
+        FROM comments c
+        INNER JOIN users u ON c.user_id = u.id
+        INNER JOIN ideas i ON c.idea_id = i.id
+        ORDER BY c.created_at DESC
+        "#,
+    )
+    .fetch_all(crate::database::get_db())
+    .await?;
+
+    let mut csv = String::from(
+        "id,idea_id,idea_title,user_id,author_name,author_email,content,is_pinned,is_deleted,created_at\n",
+    );
+
+    for row in rows {
+        let id: i32 = row.try_get("id")?;
+        let idea_id: i32 = row.try_get("idea_id")?;
+        let idea_title: String = row.try_get("idea_title")?;
+        let user_id: i32 = row.try_get("user_id")?;
+        let author_name: String = row.try_get("author_name")?;
+        let author_email: String = row.try_get("author_email")?;
+        let content: String = row.try_get("content")?;
+        let is_pinned: bool = row.try_get("is_pinned")?;
+        let is_deleted: bool = row.try_get("is_deleted")?;
+        let created_at: chrono::DateTime<chrono::Utc> = row.try_get("created_at")?;
+
+        csv.push_str(&format!(
+            "{},{},{},{},{},{},{},{},{},{}\n",
+            id,
+            idea_id,
+            csv_escape(&idea_title),
+            user_id,
+            csv_escape(&author_name),
+            csv_escape(&author_email),
+            csv_escape(&content),
+            is_pinned,
+            is_deleted,
+            csv_escape(&created_at.to_rfc3339()),
+        ));
+    }
+
+    Ok(csv)
 }

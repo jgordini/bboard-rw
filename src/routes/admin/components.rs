@@ -59,7 +59,7 @@ pub(super) fn AdminDashboard(user: UserSession) -> impl IntoView {
 
             <div class="admin-content">
                 {move || match active_tab.get() {
-                    "overview" => view! { <OverviewTab stats=stats /> }.into_any(),
+                    "overview" => view! { <OverviewTab stats=stats is_admin=user_for_content.is_admin() /> }.into_any(),
                     "flags" => view! { <FlagsTab /> }.into_any(),
                     "moderation" => view! { <ModerationTab /> }.into_any(),
                     "users" if user_for_content.is_admin() => view! { <UsersTab /> }.into_any(),

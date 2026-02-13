@@ -3,6 +3,7 @@ use std::env;
 use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::{hooks::use_query, params::Params};
+#[cfg(feature = "ssr")]
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "ssr")]

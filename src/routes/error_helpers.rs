@@ -1,5 +1,8 @@
+#![cfg_attr(not(feature = "ssr"), allow(dead_code))]
+
 use leptos::prelude::ServerFnError;
 
+#[allow(dead_code)]
 pub(crate) fn server_fn_error_with_log<E: std::fmt::Debug>(
     context: &str,
     error: E,

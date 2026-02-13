@@ -3,8 +3,10 @@ use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
 use crate::auth::{get_user, AuthRefresh};
 use crate::models::{Idea, CommentWithAuthor, Comment};
+#[cfg(feature = "ssr")]
 use crate::routes::error_helpers::server_fn_error_with_log;
 use crate::routes::ideas::check_user_votes;
+#[cfg(feature = "ssr")]
 use crate::routes::validation_helpers::{
     validate_comment_content, validate_idea_tags, validate_idea_title_and_content,
 };
