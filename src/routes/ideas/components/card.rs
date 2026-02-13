@@ -5,7 +5,7 @@ use leptos::prelude::*;
 use crate::auth::UserSession;
 use crate::models::IdeaWithAuthor;
 use crate::routes::async_helpers::spawn_server_action_ok;
-use crate::routes::view_helpers::{format_relative_time, stage_badge_color};
+use crate::routes::view_helpers::{format_relative_time, is_user_logged_in, stage_badge_color};
 
 use super::super::toggle_vote;
 
@@ -28,13 +28,7 @@ pub(super) fn IdeaCard(
     let author_name = idea_with_author.author_name.clone();
 
     let has_voted = move || voted_ideas.get().contains(&idea_id);
-    let is_logged_in = move || {
-        user_resource
-            .get()
-            .and_then(|r: Result<Option<UserSession>, ServerFnError>| r.ok())
-            .and_then(|u| u)
-            .is_some()
-    };
+    let is_logged_in = move || is_user_logged_in(&user_resource);
 
     let comment_count = move || {
         comment_counts_resource

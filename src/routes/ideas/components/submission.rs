@@ -5,6 +5,7 @@ use leptos_router::components::A;
 use crate::auth::UserSession;
 use crate::models::IdeaWithAuthor;
 use crate::routes::async_helpers::spawn_server_action;
+use crate::routes::view_helpers::is_user_logged_in;
 
 use super::super::create_idea_auth;
 
@@ -31,13 +32,7 @@ pub(super) fn IdeaSubmissionDialog(
     let content_warning = move || content_count() >= (max_content_chars as f64 * 0.9) as usize;
     let content_error = move || content_count() >= max_content_chars;
 
-    let is_logged_in = move || {
-        user_resource
-            .get()
-            .and_then(|r: Result<Option<UserSession>, ServerFnError>| r.ok())
-            .and_then(|u| u)
-            .is_some()
-    };
+    let is_logged_in = move || is_user_logged_in(&user_resource);
 
     let can_submit = move || {
         !title.get().trim().is_empty()

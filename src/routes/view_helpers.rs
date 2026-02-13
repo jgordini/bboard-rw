@@ -1,3 +1,7 @@
+use leptos::prelude::{Get, Resource, ServerFnError};
+
+use crate::auth::UserSession;
+
 pub fn format_relative_time(dt: &chrono::DateTime<chrono::Utc>) -> String {
     let now = chrono::Utc::now();
     let duration = now - *dt;
@@ -23,4 +27,10 @@ pub fn stage_badge_color(stage: &str) -> &'static str {
         "Completed" => "completed",
         _ => "default",
     }
+}
+
+pub fn is_user_logged_in(
+    user_resource: &Resource<Result<Option<UserSession>, ServerFnError>>,
+) -> bool {
+    matches!(user_resource.get(), Some(Ok(Some(_))))
 }

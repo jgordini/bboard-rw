@@ -10,6 +10,12 @@ pub struct ArticleResult {
     pub(super) logged_user: Option<crate::models::User>,
 }
 
+fn comment_server_error(operation: &str, error: impl std::fmt::Debug) -> ServerFnError {
+    let err = format!("Error while {operation}: {error:?}");
+    tracing::error!("{err}");
+    ServerFnError::ServerError("Could not post a comment, try again later".into())
+}
+
 #[server(GetArticleAction, "/api", "GetJson")]
 #[tracing::instrument]
 pub async fn get_article(slug: String) -> Result<ArticleResult, ServerFnError> {
@@ -114,21 +120,15 @@ pub async fn post_comment(slug: String, body: String) -> Result<(), ServerFnErro
     crate::models::Comment::insert(slug, logged_user, body)
         .await
         .map(|_| ())
-        .map_err(|x| {
-            let err = format!("Error while posting a comment: {x:?}");
-            tracing::error!("{err}");
-            ServerFnError::ServerError("Could not post a comment, try again later".into())
-        })
+        .map_err(|x| comment_server_error("posting a comment", x))
 }
 
 #[server(GetCommentsAction, "/api", "GetJson")]
 #[tracing::instrument]
 pub async fn get_comments(slug: String) -> Result<Vec<crate::models::Comment>, ServerFnError> {
-    crate::models::Comment::get_all(slug).await.map_err(|x| {
-        let err = format!("Error while posting a comment: {x:?}");
-        tracing::error!("{err}");
-        ServerFnError::ServerError("Could not post a comment, try again later".into())
-    })
+    crate::models::Comment::get_all(slug)
+        .await
+        .map_err(|x| comment_server_error("getting comments", x))
 }
 
 #[server(DeleteCommentsAction, "/api")]
@@ -141,11 +141,7 @@ pub async fn delete_comment(id: i32) -> Result<(), ServerFnError> {
     crate::models::Comment::delete(id, logged_user)
         .await
         .map(|_| ())
-        .map_err(|x| {
-            let err = format!("Error while posting a comment: {x:?}");
-            tracing::error!("{err}");
-            ServerFnError::ServerError("Could not post a comment, try again later".into())
-        })
+        .map_err(|x| comment_server_error("deleting a comment", x))
 }
 
 #[component]

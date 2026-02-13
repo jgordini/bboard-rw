@@ -156,6 +156,20 @@ fn validate_reset(password: &str, confirm: &str) -> bool {
     password == confirm
 }
 
+fn action_status_message<F>(read_result: F, log_context: &'static str) -> String
+where
+    F: FnOnce() -> Option<Result<String, ServerFnError>>,
+{
+    match read_result() {
+        Some(Ok(message)) => message,
+        Some(Err(error)) => {
+            tracing::error!("{log_context}: {error:?}");
+            String::from("There was a problem, try again later")
+        }
+        None => String::new(),
+    }
+}
+
 #[tracing::instrument]
 #[server(ResetPasswordAction2, "/api")]
 pub async fn reset_password_2(
@@ -223,17 +237,10 @@ fn AskForEmail() -> impl IntoView {
     let result_of_call = reset.value();
 
     let error = move || {
-        result_of_call.with(|msg| {
-            msg.as_ref()
-                .map(|inner| match inner {
-                    Ok(x) => x.clone(),
-                    Err(x) => {
-                        tracing::error!("Problem while sending email: {x:?}");
-                        String::from("There was a problem, try again later")
-                    }
-                })
-                .unwrap_or_default()
-        })
+        action_status_message(
+            || result_of_call.get(),
+            "Problem while handling reset-password email action",
+        )
     };
     view! {
         <div class="col-md-6 offset-md-3 col-xs-12">
@@ -260,17 +267,10 @@ fn ConfirmPassword(token: String) -> impl IntoView {
     let result_of_call = reset.value();
 
     let error = move || {
-        result_of_call.with(|msg| {
-            msg.as_ref()
-                .map(|inner| match inner {
-                    Ok(x) => x.clone(),
-                    Err(x) => {
-                        tracing::error!("Problem during reset: {x:?}");
-                        String::from("There was a problem, try again later")
-                    }
-                })
-                .unwrap_or_default()
-        })
+        action_status_message(
+            || result_of_call.get(),
+            "Problem while handling reset-password confirm action",
+        )
     };
     view! {
         <div class="col-md-6 offset-md-3 col-xs-12">

@@ -6,6 +6,12 @@ use crate::routes::async_helpers::spawn_server_action;
 
 use super::super::{delete_user_action, role_name, update_user_role_action, get_all_users_admin};
 
+fn show_admin_error(error: ServerFnError) {
+    if let Some(w) = window() {
+        let _ = w.alert_with_message(&error.to_string());
+    }
+}
+
 #[component]
 pub(super) fn UsersTab() -> impl IntoView {
     let users = Resource::new(|| (), |_| async { get_all_users_admin().await });
@@ -14,11 +20,7 @@ pub(super) fn UsersTab() -> impl IntoView {
         spawn_server_action(
             update_user_role_action(user_id, new_role),
             move |_| users.refetch(),
-            move |e| {
-                if let Some(w) = window() {
-                    let _ = w.alert_with_message(&e.to_string());
-                }
-            },
+            show_admin_error,
         );
     };
 
@@ -26,11 +28,7 @@ pub(super) fn UsersTab() -> impl IntoView {
         spawn_server_action(
             delete_user_action(user_id),
             move |_| users.refetch(),
-            move |e| {
-                if let Some(w) = window() {
-                    let _ = w.alert_with_message(&e.to_string());
-                }
-            },
+            show_admin_error,
         );
     };
 
