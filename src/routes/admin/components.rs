@@ -4,11 +4,13 @@ use crate::auth::UserSession;
 
 use super::{get_admin_stats, role_name};
 
+mod export;
 mod flags;
 mod moderation;
 mod overview;
 mod users;
 
+use export::ExportTab;
 use flags::FlagsTab;
 use moderation::ModerationTab;
 use overview::OverviewTab;
@@ -46,6 +48,10 @@ pub(super) fn AdminDashboard(user: UserSession) -> impl IntoView {
                     if user_for_tab_button.is_admin() {
                         view! {
                             <button
+                                class:active=move || active_tab.get() == "export"
+                                on:click=move |_| active_tab.set("export")
+                            >"Data Export"</button>
+                            <button
                                 class:active=move || active_tab.get() == "users"
                                 on:click=move |_| active_tab.set("users")
                             >"User Management"</button>
@@ -59,9 +65,10 @@ pub(super) fn AdminDashboard(user: UserSession) -> impl IntoView {
 
             <div class="admin-content">
                 {move || match active_tab.get() {
-                    "overview" => view! { <OverviewTab stats=stats is_admin=user_for_content.is_admin() /> }.into_any(),
+                    "overview" => view! { <OverviewTab stats=stats /> }.into_any(),
                     "flags" => view! { <FlagsTab /> }.into_any(),
                     "moderation" => view! { <ModerationTab /> }.into_any(),
+                    "export" if user_for_content.is_admin() => view! { <ExportTab /> }.into_any(),
                     "users" if user_for_content.is_admin() => view! { <UsersTab /> }.into_any(),
                     _ => view! { <p>"Unknown tab"</p> }.into_any(),
                 }}
