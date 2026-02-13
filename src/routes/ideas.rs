@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use leptos::prelude::*;
 use crate::models::{Idea, IdeaWithAuthor};
+use crate::routes::validation_helpers::validate_idea_title_and_content;
 
 mod components;
 use components::IdeasBoard;
@@ -15,21 +16,7 @@ pub async fn create_idea_auth(title: String, content: String, tags: String) -> R
     use crate::auth::require_auth;
     let user = require_auth().await?;
 
-    if title.trim().is_empty() {
-        return Err(ServerFnError::new("Idea title cannot be empty"));
-    }
-    if title.len() > 100 {
-        return Err(ServerFnError::new("Idea title cannot exceed 100 characters"));
-    }
-    if content.trim().is_empty() {
-        return Err(ServerFnError::new("Idea description cannot be empty"));
-    }
-    if content.len() > 500 {
-        return Err(ServerFnError::new("Idea description cannot exceed 500 characters"));
-    }
-    if crate::profanity::contains_profanity(&title) || crate::profanity::contains_profanity(&content) {
-        return Err(ServerFnError::new("Your submission contains inappropriate language. Please revise and try again."));
-    }
+    validate_idea_title_and_content(&title, &content)?;
 
     Idea::create(user.id, title.trim().to_string(), content.trim().to_string(), tags.trim().to_string())
         .await

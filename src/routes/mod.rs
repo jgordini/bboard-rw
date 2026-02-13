@@ -15,3 +15,4 @@ mod account;
 mod reset_password;
 mod view_helpers;
 mod async_helpers;
+mod validation_helpers;

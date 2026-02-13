@@ -4,6 +4,9 @@ use leptos_router::hooks::use_params_map;
 use crate::auth::{get_user, AuthRefresh};
 use crate::models::{Idea, CommentWithAuthor, Comment};
 use crate::routes::ideas::check_user_votes;
+use crate::routes::validation_helpers::{
+    validate_comment_content, validate_idea_tags, validate_idea_title_and_content,
+};
 
 mod components;
 use components::IdeaDetailLoaded;
@@ -47,15 +50,7 @@ pub async fn create_comment(idea_id: i32, content: String) -> Result<Comment, Se
         return Err(ServerFnError::new("Comments are locked on this idea"));
     }
 
-    if content.trim().is_empty() {
-        return Err(ServerFnError::new("Comment cannot be empty"));
-    }
-    if content.len() > 500 {
-        return Err(ServerFnError::new("Comment cannot exceed 500 characters"));
-    }
-    if crate::profanity::contains_profanity(&content) {
-        return Err(ServerFnError::new("Your comment contains inappropriate language. Please revise and try again."));
-    }
+    validate_comment_content(&content)?;
     Comment::create(user.id, idea_id, content.trim().to_string())
         .await
         .map_err(|e| {
@@ -69,24 +64,8 @@ pub async fn update_idea_content_mod(idea_id: i32, title: String, content: Strin
     use crate::auth::require_moderator;
     require_moderator().await?;
 
-    if title.trim().is_empty() {
-        return Err(ServerFnError::new("Idea title cannot be empty"));
-    }
-    if title.len() > 100 {
-        return Err(ServerFnError::new("Idea title cannot exceed 100 characters"));
-    }
-    if content.trim().is_empty() {
-        return Err(ServerFnError::new("Idea description cannot be empty"));
-    }
-    if content.len() > 500 {
-        return Err(ServerFnError::new("Idea description cannot exceed 500 characters"));
-    }
-    if tags.len() > 200 {
-        return Err(ServerFnError::new("Tags cannot exceed 200 characters"));
-    }
-    if crate::profanity::contains_profanity(&title) || crate::profanity::contains_profanity(&content) {
-        return Err(ServerFnError::new("Your submission contains inappropriate language. Please revise and try again."));
-    }
+    validate_idea_title_and_content(&title, &content)?;
+    validate_idea_tags(&tags)?;
 
     let updated = Idea::update_content_mod(idea_id, title.trim().to_string(), content.trim().to_string(), tags.trim().to_string())
         .await
@@ -107,15 +86,7 @@ pub async fn update_comment_mod(comment_id: i32, content: String) -> Result<(), 
     use crate::auth::require_moderator;
     require_moderator().await?;
 
-    if content.trim().is_empty() {
-        return Err(ServerFnError::new("Comment cannot be empty"));
-    }
-    if content.len() > 500 {
-        return Err(ServerFnError::new("Comment cannot exceed 500 characters"));
-    }
-    if crate::profanity::contains_profanity(&content) {
-        return Err(ServerFnError::new("Your comment contains inappropriate language. Please revise and try again."));
-    }
+    validate_comment_content(&content)?;
 
     let updated = Comment::update_content_mod(comment_id, content.trim().to_string())
         .await
