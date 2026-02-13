@@ -62,7 +62,7 @@ pub fn IdeasBoard() -> impl IntoView {
                                                 <A href="/signup" attr:class="auth-link auth-link-primary">"Sign Up"</A>
                                             </div>
                                         }.into_any(),
-                                        Err(_) => view! {}.into_any()
+                                        Err(_) => ().into_any()
                                     }
                                 })}
                             </Suspense>

@@ -79,7 +79,7 @@ pub(super) fn IdeaCard(
                     if is_pinned {
                         view! { <span class="pinned-badge">"Pinned"</span> }.into_any()
                     } else {
-                        view! {}.into_any()
+                        ().into_any()
                     }
                 }}
                 <h3 class="digg-title">{title}</h3>

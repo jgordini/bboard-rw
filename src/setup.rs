@@ -30,6 +30,8 @@ pub async fn init_app(configuration_path: Option<&str>) -> Result<(), String> {
         .append_index_html_on_directories(false);
 
     let app = axum::Router::new()
+        .route("/auth/cas/login", axum::routing::get(crate::auth::cas_login_redirect))
+        .route("/auth/cas/callback", axum::routing::get(crate::auth::cas_callback))
         .leptos_routes(&leptos_options, routes, {
             let leptos_options = leptos_options.clone();
             move || shell(leptos_options.clone())

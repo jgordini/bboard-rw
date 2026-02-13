@@ -30,7 +30,7 @@ pub(super) fn CommentsSection(
                         }
                             .into_any()
                     } else {
-                        view! {}.into_any()
+                        ().into_any()
                     }
                 }
             >
@@ -198,7 +198,7 @@ fn CommentItem(
                             }
                                 .into_any()
                         }
-                        _ => view! {}.into_any(),
+                        _ => ().into_any(),
                     })}
                 </Suspense>
             </div>

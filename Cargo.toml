@@ -21,6 +21,7 @@ mail-send = { version = "0.5.2", optional = true }
 regex = { version = "1.12.2", optional = true }
 bcrypt = { version = "0.17", optional = true }
 time = { version = "0.3", optional = true }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"], optional = true }
 
 serde = { version = "1.0.228", features = ["derive"] }
 chrono = { version = "0.4", features = ["serde"] }
@@ -67,6 +68,7 @@ ssr = [
     "dep:mail-send",
     "dep:bcrypt",
     "dep:time",
+    "dep:reqwest",
     "dep:dotenvy"
 ]
 

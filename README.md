@@ -54,6 +54,9 @@ See `.env.example` for all options:
 
 - `DATABASE_URL` - PostgreSQL connection string
 - `ADMIN_PASSWORD` - Password for the admin panel (defaults to "admin")
+- `CAS_LOGIN_URL` - CAS login endpoint (UAB: `https://padlock.idm.uab.edu/cas/login`)
+- `CAS_VALIDATE_URL` - CAS service ticket validation endpoint
+- `CAS_SERVICE_ID` - Whitelisted callback URL for CAS (`https://uabspark.com/auth/cas/callback`)
 
 ## Testing
 
@@ -91,3 +94,10 @@ Cloudflare DNS challenge plugin.
 
 With `ENABLE_LETSENCRYPT=true`, the app backend remains private at
 `127.0.0.1:8080` and Caddy serves public `80/443`.
+
+## CAS Login Endpoints
+
+- Start login: `/auth/cas/login`
+- Callback: `/auth/cas/callback`
+
+The callback URL must be whitelisted by UAB IAM as the CAS service ID.

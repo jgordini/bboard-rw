@@ -151,7 +151,7 @@ pub(super) fn IdeaDetailCard(
                                 .map(String::from)
                                 .collect();
                             if tag_list.is_empty() {
-                                view! {}.into_any()
+                                ().into_any()
                             } else {
                                 view! {
                                     <div class="detail-tags">
@@ -290,7 +290,7 @@ pub(super) fn IdeaDetailCard(
                                     }
                                         .into_any()
                                 }
-                                _ => view! {}.into_any(),
+                                _ => ().into_any(),
                             })}
                         </Suspense>
                     </div>
