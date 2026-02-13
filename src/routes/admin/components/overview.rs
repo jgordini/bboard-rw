@@ -40,6 +40,7 @@ pub(super) fn OverviewTab(
 ) -> impl IntoView {
     let export_status = RwSignal::new(String::new());
     let is_exporting = RwSignal::new(false);
+    let export_failed = RwSignal::new(false);
 
     let handle_export_ideas = move |_| {
         if is_exporting.get() {
@@ -47,6 +48,7 @@ pub(super) fn OverviewTab(
         }
 
         is_exporting.set(true);
+        export_failed.set(false);
         export_status.set("Preparing ideas CSV...".to_string());
 
         spawn_server_action(
@@ -54,10 +56,12 @@ pub(super) fn OverviewTab(
             move |csv| {
                 trigger_csv_download("ideas_export.csv", &csv);
                 export_status.set("Ideas CSV downloaded.".to_string());
+                export_failed.set(false);
                 is_exporting.set(false);
             },
             move |error| {
                 export_status.set(format!("Failed to export ideas CSV: {}", error));
+                export_failed.set(true);
                 is_exporting.set(false);
             },
         );
@@ -69,6 +73,7 @@ pub(super) fn OverviewTab(
         }
 
         is_exporting.set(true);
+        export_failed.set(false);
         export_status.set("Preparing comments CSV...".to_string());
 
         spawn_server_action(
@@ -76,10 +81,12 @@ pub(super) fn OverviewTab(
             move |csv| {
                 trigger_csv_download("comments_export.csv", &csv);
                 export_status.set("Comments CSV downloaded.".to_string());
+                export_failed.set(false);
                 is_exporting.set(false);
             },
             move |error| {
                 export_status.set(format!("Failed to export comments CSV: {}", error));
+                export_failed.set(true);
                 is_exporting.set(false);
             },
         );
@@ -110,13 +117,15 @@ pub(super) fn OverviewTab(
                             </div>
                         </div>
                         <Show when=move || is_admin>
-                            <div class="admin-export-panel">
-                                <h3>"Data Export"</h3>
-                                <p>"Download complete snapshots of ideas and comments as CSV files."</p>
+                            <section class="admin-export-panel" aria-label="Data export controls">
+                                <header class="admin-export-heading">
+                                    <h3>"Data Export"</h3>
+                                    <p>"Download complete snapshots of ideas and comments as CSV files."</p>
+                                </header>
                                 <div class="admin-export-actions">
                                     <button
                                         type="button"
-                                        class="btn btn-primary"
+                                        class="btn btn-primary admin-export-btn"
                                         disabled=move || is_exporting.get()
                                         on:click=handle_export_ideas
                                     >
@@ -124,7 +133,7 @@ pub(super) fn OverviewTab(
                                     </button>
                                     <button
                                         type="button"
-                                        class="btn btn-primary"
+                                        class="btn btn-primary admin-export-btn"
                                         disabled=move || is_exporting.get()
                                         on:click=handle_export_comments
                                     >
@@ -132,9 +141,16 @@ pub(super) fn OverviewTab(
                                     </button>
                                 </div>
                                 <Show when=move || !export_status.get().is_empty()>
-                                    <p>{move || export_status.get()}</p>
+                                    <p
+                                        class="admin-export-status"
+                                        class:error=move || export_failed.get()
+                                        class:success=move || !export_failed.get()
+                                        aria-live="polite"
+                                    >
+                                        {move || export_status.get()}
+                                    </p>
                                 </Show>
-                            </div>
+                            </section>
                         </Show>
                     }
                         .into_any(),
