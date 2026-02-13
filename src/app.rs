@@ -4,7 +4,7 @@ use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
 
 use crate::auth::{get_user, Logout, LoginSignal, SignupSignal};
-use crate::routes::{IdeasPage, AdminPage, IdeaDetailPage, Login, Signup, AccountPage};
+use crate::routes::{IdeasPage, AdminPage, IdeaDetailPage, Login, Signup, AccountPage, ResetPassword};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -104,6 +104,7 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/ideas/:id") view=|| view! { <IdeaDetailPage/> }/>
                     <Route path=path!("/login") view=|| view! { <LoginRoute/> }/>
                     <Route path=path!("/signup") view=|| view! { <SignupRoute/> }/>
+                    <Route path=path!("/reset_password") view=|| view! { <ResetPassword/> }/>
                     <Route path=path!("/profile") view=|| view! { <AccountPage/> }/>
                     <Route path=path!("/admin") view=|| view! { <AdminPage/> }/>
                 </Routes>

@@ -3,10 +3,7 @@ use leptos_axum::{generate_route_list, LeptosRoutes};
 
 use crate::app::{shell, App};
 
-/// # Panics
-///
-/// Will panic if anything is badly setup from database, or web server
-pub async fn init_app(configuration_path: Option<&str>) {
+pub async fn init_app(configuration_path: Option<&str>) -> Result<(), String> {
     // Load .env file if present (silently ignore if missing, e.g. in Docker)
     let _ = dotenvy::dotenv();
 
@@ -15,17 +12,16 @@ pub async fn init_app(configuration_path: Option<&str>) {
         .with_max_level(tracing::Level::INFO)
         .init();
     // Init the pool into static
-    crate::database::init_db()
-        .await
-        .expect("problem during initialization of the database");
+    crate::database::init_db().await?;
 
     // Bootstrap admin user if needed
     crate::models::User::bootstrap_admin()
         .await
-        .expect("Failed to bootstrap admin user");
+        .map_err(|e| format!("Failed to bootstrap admin user: {e}"))?;
 
     // Get leptos configuration
-    let conf = get_configuration(configuration_path).unwrap();
+    let conf = get_configuration(configuration_path)
+        .map_err(|e| format!("Failed to load Leptos configuration: {e}"))?;
     let addr = conf.leptos_options.site_addr;
     // Generate the list of routes in your Leptos App
     let routes = generate_route_list(|| view! { <App/> });
@@ -55,6 +51,11 @@ pub async fn init_app(configuration_path: Option<&str>) {
         // .layer(axum::middleware::from_fn(crate::auth::auth_middleware)) // Disabled for anonymous idea board
         .with_state(leptos_options);
 
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(addr)
+        .await
+        .map_err(|e| format!("Failed to bind server listener at {addr}: {e}"))?;
+    axum::serve(listener, app)
+        .await
+        .map_err(|e| format!("HTTP server failed: {e}"))?;
+    Ok(())
 }

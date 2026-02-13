@@ -102,6 +102,26 @@ impl User {
         .await
     }
 
+    /// Update a user's password hash by email.
+    pub async fn set_password_by_email(email: &str, password: String) -> Result<(), sqlx::Error> {
+        use bcrypt::{hash, DEFAULT_COST};
+
+        let password_hash = hash(password, DEFAULT_COST)
+            .map_err(|e| sqlx::Error::Protocol(format!("Password hashing failed: {e}")))?;
+
+        let result = sqlx::query("UPDATE users SET password_hash = $1 WHERE email = $2")
+            .bind(password_hash)
+            .bind(email)
+            .execute(crate::database::get_db())
+            .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(sqlx::Error::RowNotFound);
+        }
+
+        Ok(())
+    }
+
     /// Update user role (admin only). Cannot change an admin's role.
     pub async fn update_role(id: i32, role: i16) -> Result<(), sqlx::Error> {
         let target = Self::get_by_id(id).await?;

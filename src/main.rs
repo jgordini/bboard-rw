@@ -3,7 +3,10 @@
 #[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
-    realworld_leptos::setup::init_app(None).await;
+    if let Err(e) = realworld_leptos::setup::init_app(None).await {
+        eprintln!("Fatal startup error: {e}");
+        std::process::exit(1);
+    }
 }
 
 #[cfg(not(feature = "ssr"))]
