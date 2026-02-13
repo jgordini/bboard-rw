@@ -34,3 +34,9 @@ pub fn is_user_logged_in(
 ) -> bool {
     matches!(user_resource.get(), Some(Ok(Some(_))))
 }
+
+pub fn confirm_action(message: &str) -> bool {
+    web_sys::window()
+        .and_then(|window| window.confirm_with_message(message).ok())
+        .unwrap_or(false)
+}

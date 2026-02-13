@@ -2,7 +2,10 @@ use leptos::prelude::*;
 
 use crate::auth::UserSession;
 use crate::models::Idea;
-use crate::routes::async_helpers::{spawn_server_action, spawn_server_action_ok, spawn_server_action_refetch};
+use crate::routes::async_helpers::{
+    spawn_server_action, spawn_server_action_ok, spawn_server_action_refetch_resource,
+    spawn_server_action_with_error,
+};
 use crate::routes::ideas::toggle_vote;
 use crate::routes::view_helpers::{format_relative_time, stage_badge_color};
 
@@ -88,15 +91,13 @@ pub(super) fn IdeaDetailCard(
                                 let tags_value = edit_tags.get();
                                 idea_edit_error.set(None);
                                 let id = idea_id_val;
-                                spawn_server_action(
+                                spawn_server_action_with_error(
                                     update_idea_content_mod(id, title_value, content_value, tags_value),
                                     move |_| {
                                         idea_resource.refetch();
                                         idea_editing.set(false);
                                     },
-                                    move |e| {
-                                        idea_edit_error.set(Some(e.to_string()));
-                                    },
+                                    idea_edit_error,
                                 );
                             }
                         >
@@ -263,9 +264,9 @@ pub(super) fn IdeaDetailCard(
                                                     class="btn-pin"
                                                     on:click=move |_| {
                                                         let id = idea_id_val;
-                                                        spawn_server_action_refetch(
+                                                        spawn_server_action_refetch_resource(
                                                             crate::routes::admin::toggle_idea_pin_action(id),
-                                                            move || idea_resource.refetch(),
+                                                            idea_resource,
                                                         );
                                                     }
                                                 >
@@ -276,9 +277,9 @@ pub(super) fn IdeaDetailCard(
                                                     class="btn-toggle-comments"
                                                     on:click=move |_| {
                                                         let id = idea_id_val;
-                                                        spawn_server_action_refetch(
+                                                        spawn_server_action_refetch_resource(
                                                             toggle_idea_comments(id),
-                                                            move || idea_resource.refetch(),
+                                                            idea_resource,
                                                         );
                                                     }
                                                 >

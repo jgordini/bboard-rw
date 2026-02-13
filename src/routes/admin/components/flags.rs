@@ -1,7 +1,7 @@
 use leptos::prelude::*;
-use web_sys::window;
 
-use crate::routes::async_helpers::spawn_server_action_refetch;
+use crate::routes::async_helpers::spawn_server_action_refetch_resource;
+use crate::routes::view_helpers::confirm_action;
 
 use super::super::{
     FlaggedItemDetail, clear_flags_action, delete_idea_action, get_flagged_content,
@@ -13,24 +13,18 @@ pub(super) fn FlagsTab() -> impl IntoView {
     let flagged_items = Resource::new(|| (), |_| async { get_flagged_content().await });
 
     let handle_clear_flags = move |target_type: String, target_id: i32| {
-        spawn_server_action_refetch(clear_flags_action(target_type, target_id), move || {
-            flagged_items.refetch();
-        });
+        spawn_server_action_refetch_resource(clear_flags_action(target_type, target_id), flagged_items);
     };
 
     let handle_mark_off_topic = move |idea_id: i32| {
-        spawn_server_action_refetch(mark_idea_off_topic_action(idea_id, true), move || {
-            flagged_items.refetch();
-        });
+        spawn_server_action_refetch_resource(mark_idea_off_topic_action(idea_id, true), flagged_items);
     };
 
     let handle_delete = move |target_type: String, target_id: i32| {
         if target_type != "idea" {
             return;
         }
-        spawn_server_action_refetch(delete_idea_action(target_id), move || {
-            flagged_items.refetch();
-        });
+        spawn_server_action_refetch_resource(delete_idea_action(target_id), flagged_items);
     };
 
     view! {
@@ -78,10 +72,8 @@ pub(super) fn FlagsTab() -> impl IntoView {
                                                                     <button
                                                                         class="btn-danger"
                                                                         on:click=move |_| {
-                                                                            if let Some(w) = window() {
-                                                                                if w.confirm_with_message("Delete this idea? This cannot be undone.").unwrap_or(false) {
-                                                                                    handle_delete(target_type_for_delete.clone(), target_id);
-                                                                                }
+                                                                            if confirm_action("Delete this idea? This cannot be undone.") {
+                                                                                handle_delete(target_type_for_delete.clone(), target_id);
                                                                             }
                                                                         }
                                                                     >"Delete"</button>

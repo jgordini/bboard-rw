@@ -3,7 +3,9 @@ use leptos::prelude::*;
 
 use crate::auth::UserSession;
 use crate::models::CommentWithAuthor;
-use crate::routes::async_helpers::{spawn_server_action, spawn_server_action_refetch};
+use crate::routes::async_helpers::{
+    spawn_server_action_refetch_resource, spawn_server_action_with_error,
+};
 use crate::routes::view_helpers::format_relative_time;
 
 use super::super::{create_comment, delete_comment_mod, toggle_comment_pin, update_comment_mod};
@@ -114,15 +116,13 @@ fn CommentItem(
                         ev.prevent_default();
                         let content_value = edit_content.get();
                         edit_error.set(None);
-                        spawn_server_action(
+                        spawn_server_action_with_error(
                             update_comment_mod(comment_id, content_value),
                             move |_| {
                                 comments_resource.refetch();
                                 is_editing.set(false);
                             },
-                            move |e| {
-                                edit_error.set(Some(e.to_string()));
-                            },
+                            edit_error,
                         );
                     }
                 >
@@ -164,9 +164,9 @@ fn CommentItem(
                                         type="button"
                                         class="btn-pin"
                                         on:click=move |_| {
-                                            spawn_server_action_refetch(
+                                            spawn_server_action_refetch_resource(
                                                 toggle_comment_pin(comment_id),
-                                                move || comments_resource.refetch(),
+                                                comments_resource,
                                             );
                                         }
                                     >
@@ -186,9 +186,9 @@ fn CommentItem(
                                         type="button"
                                         class="btn-delete"
                                         on:click=move |_| {
-                                            spawn_server_action_refetch(
+                                            spawn_server_action_refetch_resource(
                                                 delete_comment_mod(comment_id),
-                                                move || comments_resource.refetch(),
+                                                comments_resource,
                                             );
                                         }
                                     >
@@ -224,9 +224,7 @@ fn CommentForm(
             return;
         }
         let content_clone = content_value.clone();
-        spawn_server_action_refetch(create_comment(idea_id, content_clone), move || {
-            comments_resource.refetch();
-        });
+        spawn_server_action_refetch_resource(create_comment(idea_id, content_clone), comments_resource);
         content.set(String::new());
     };
 

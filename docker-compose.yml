@@ -2,6 +2,7 @@ services:
   web:
     image: realworld-leptos:0.1.0
     build: .
+    restart: unless-stopped
     environment:
       DATABASE_URL: '${DATABASE_URL:-postgres://postgres:postgres@db/realworld}'
       JWT_SECRET: '${JWT_SECRET:-changeme when deploy to production}'

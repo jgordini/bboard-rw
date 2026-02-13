@@ -3,6 +3,7 @@ use web_sys::window;
 
 use crate::models::User;
 use crate::routes::async_helpers::spawn_server_action;
+use crate::routes::view_helpers::confirm_action;
 
 use super::super::{delete_user_action, role_name, update_user_role_action, get_all_users_admin};
 
@@ -94,10 +95,8 @@ pub(super) fn UsersTab() -> impl IntoView {
                                                                         type="button"
                                                                         class="btn-danger"
                                                                         on:click=move |_| {
-                                                                            if let Some(w) = window() {
-                                                                                if w.confirm_with_message("Permanently delete this user? This cannot be undone.").unwrap_or(false) {
-                                                                                    handle_delete(user_id);
-                                                                                }
+                                                                            if confirm_action("Permanently delete this user? This cannot be undone.") {
+                                                                                handle_delete(user_id);
                                                                             }
                                                                         }
                                                                     >"Delete"</button>

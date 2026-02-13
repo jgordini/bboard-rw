@@ -1,6 +1,7 @@
 use std::future::Future;
 
-use leptos::prelude::ServerFnError;
+use leptos::prelude::{Resource, RwSignal, ServerFnError, Set};
+use serde::{de::DeserializeOwned, Serialize};
 
 pub(crate) fn spawn_server_action<T, Fut, OnOk, OnErr>(
     future: Fut,
@@ -37,4 +38,33 @@ where
     OnRefetch: FnOnce() + 'static,
 {
     spawn_server_action_ok(future, move |_| on_refetch());
+}
+
+pub(crate) fn spawn_server_action_refetch_resource<T, Fut, V>(
+    future: Fut,
+    resource: Resource<V>,
+)
+where
+    T: 'static,
+    Fut: Future<Output = Result<T, ServerFnError>> + 'static,
+    V: Send + Sync + Serialize + DeserializeOwned + 'static,
+{
+    spawn_server_action_refetch(future, move || resource.refetch());
+}
+
+pub(crate) fn spawn_server_action_with_error<T, Fut, OnOk>(
+    future: Fut,
+    on_ok: OnOk,
+    error_signal: RwSignal<Option<String>>,
+)
+where
+    T: 'static,
+    Fut: Future<Output = Result<T, ServerFnError>> + 'static,
+    OnOk: FnOnce(T) + 'static,
+{
+    spawn_server_action(
+        future,
+        on_ok,
+        move |error| error_signal.set(Some(error.to_string())),
+    );
 }

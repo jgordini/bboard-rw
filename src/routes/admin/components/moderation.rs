@@ -1,8 +1,8 @@
 use leptos::prelude::*;
-use web_sys::window;
 
 use crate::models::IdeaWithAuthor;
-use crate::routes::async_helpers::spawn_server_action_refetch;
+use crate::routes::async_helpers::spawn_server_action_refetch_resource;
+use crate::routes::view_helpers::confirm_action;
 
 use super::super::{delete_idea_action, get_off_topic_ideas, mark_idea_off_topic_action};
 
@@ -11,15 +11,11 @@ pub(super) fn ModerationTab() -> impl IntoView {
     let off_topic_ideas = Resource::new(|| (), |_| async { get_off_topic_ideas().await });
 
     let handle_restore = move |idea_id: i32| {
-        spawn_server_action_refetch(mark_idea_off_topic_action(idea_id, false), move || {
-            off_topic_ideas.refetch();
-        });
+        spawn_server_action_refetch_resource(mark_idea_off_topic_action(idea_id, false), off_topic_ideas);
     };
 
     let handle_delete = move |idea_id: i32| {
-        spawn_server_action_refetch(delete_idea_action(idea_id), move || {
-            off_topic_ideas.refetch();
-        });
+        spawn_server_action_refetch_resource(delete_idea_action(idea_id), off_topic_ideas);
     };
 
     view! {
@@ -53,10 +49,8 @@ pub(super) fn ModerationTab() -> impl IntoView {
                                                     <button
                                                         class="btn-danger"
                                                         on:click=move |_| {
-                                                            if let Some(w) = window() {
-                                                                if w.confirm_with_message("Permanently delete this idea? This cannot be undone.").unwrap_or(false) {
-                                                                    handle_delete(idea_id);
-                                                                }
+                                                            if confirm_action("Permanently delete this idea? This cannot be undone.") {
+                                                                handle_delete(idea_id);
                                                             }
                                                         }
                                                     >"Delete Permanently"</button>
