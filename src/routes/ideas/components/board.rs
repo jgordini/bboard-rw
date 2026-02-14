@@ -44,7 +44,7 @@ pub fn IdeasBoard() -> impl IntoView {
                 <div class="container">
                     <div class="header-content">
                         <div>
-                            <h1 class="logo-font">"UAB IT Idea Board"</h1>
+                            <h1 class="logo-font">"Spark"</h1>
                             <p>"Share your ideas to improve UAB IT services"</p>
                         </div>
                         <div class="header-actions">
