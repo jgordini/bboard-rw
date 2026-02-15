@@ -11,19 +11,19 @@ pub(super) fn OverviewTab(stats: Resource<Result<AdminStats, ServerFnError>>) ->
                 {move || stats.get().map(|s| match s {
                     Ok(stats) => view! {
                         <div class="stats-grid grid">
-                            <div class="stat-card uk-panel-box callout callout-primary">
+                            <div class="stat-card callout callout-primary">
                                 <h3>"Total Ideas"</h3>
                                 <span class="stat-number">{stats.total_ideas}</span>
                             </div>
-                            <div class="stat-card uk-panel-box callout callout-primary">
+                            <div class="stat-card callout callout-primary">
                                 <h3>"Total Sparks"</h3>
                                 <span class="stat-number">{stats.total_votes}</span>
                             </div>
-                            <div class="stat-card uk-panel-box callout callout-secondary">
+                            <div class="stat-card callout callout-secondary">
                                 <h3>"Total Users"</h3>
                                 <span class="stat-number">{stats.total_users}</span>
                             </div>
-                            <div class="stat-card uk-panel-box callout callout-secondary">
+                            <div class="stat-card callout callout-secondary">
                                 <h3>"Flagged Items"</h3>
                                 <span class="stat-number">{stats.flagged_items}</span>
                             </div>

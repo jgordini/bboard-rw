@@ -38,7 +38,7 @@ pub(super) fn ModerationTab() -> impl IntoView {
                                     children=move |iwa: IdeaWithAuthor| {
                                         let idea_id = iwa.idea.id;
                                         view! {
-                                            <div class="off-topic-item uk-panel-box callout callout-secondary">
+                                            <div class="off-topic-item callout callout-secondary">
                                                 <div class="idea-content">
                                                     <h3>{iwa.idea.title.clone()}</h3>
                                                     <p>{iwa.idea.content.clone()}</p>

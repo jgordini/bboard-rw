@@ -224,10 +224,11 @@ pub fn ResetPassword() -> impl IntoView {
             <div class="container page">
                 <div class="row">
                     {q.with(|x| {
-                        if let Ok(token_query) = x
-                            && let Some(token) = token_query.token.as_ref() {
+                        if let Ok(token_query) = x {
+                            if let Some(token) = token_query.token.as_ref() {
                                 return view! {<ConfirmPassword token={token.clone()}/>}.into_any()
                             }
+                        }
                         view! {<AskForEmail/> }.into_any()
                     })}
                 </div>

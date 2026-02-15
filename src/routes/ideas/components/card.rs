@@ -104,13 +104,13 @@ pub(super) fn IdeaCard(
     let stage_color = stage_badge_color(&stage);
 
     view! {
-        <div class="digg-item uk-panel-box" class:pinned=is_pinned class:voted=has_voted>
-            <div class="digg-rank">{rank}</div>
-            <div class="digg-vote-box" class:voted=has_voted>
-                <span class="digg-arrow" aria-hidden="true">"▲"</span>
-                <span class="digg-count">{vote_count}</span>
+        <div class="spark-item" class:pinned=is_pinned class:voted=has_voted>
+            <div class="spark-rank">{rank}</div>
+            <div class="spark-vote-box" class:voted=has_voted>
+                <span class="spark-arrow" aria-hidden="true">"▲"</span>
+                <span class="spark-count">{vote_count}</span>
                 <button
-                    class="digg-btn btn"
+                    class="spark-btn btn"
                     disabled=move || !is_logged_in() || is_toggling.get()
                     on:click=handle_vote
                     title=move || if !is_logged_in() { "Login to spark" } else if has_voted() { "Remove spark" } else { "Spark this idea" }
@@ -118,7 +118,7 @@ pub(super) fn IdeaCard(
                     {move || if has_voted() { "sparked" } else { "spark" }}
                 </button>
             </div>
-            <a class="digg-content" href=format!("/ideas/{}", idea_id)>
+            <a class="spark-content" href=format!("/ideas/{}", idea_id)>
                 {move || {
                     if is_pinned {
                         view! { <span class="pinned-badge">"Pinned"</span> }.into_any()
@@ -126,13 +126,13 @@ pub(super) fn IdeaCard(
                         ().into_any()
                     }
                 }}
-                <h3 class="digg-title">{title}</h3>
-                <p class="digg-text">{content}</p>
-                <div class="digg-meta">
+                <h3 class="spark-title">{title}</h3>
+                <p class="spark-text">{content}</p>
+                <div class="spark-meta">
                     <span class=format!("stage-badge stage-{}", stage_color)>{stage.clone()}</span>
                     <span class="author-name">"by " {author_name}</span>
-                    <span class="digg-time">{format!("submitted {}", relative_time)}</span>
-                    <span class="digg-comments-badge">
+                    <span class="spark-time">{format!("submitted {}", relative_time)}</span>
+                    <span class="spark-comments-badge">
                         {move || {
                             let count = comment_count();
                             if count == 1 {

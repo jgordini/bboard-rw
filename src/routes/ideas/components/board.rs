@@ -73,7 +73,7 @@ pub fn IdeasBoard() -> impl IntoView {
             </div>
 
             <div class="container page">
-                <div class="digg-layout">
+                <div class="spark-layout">
                     <div class="main-column">
                         <div class="sort-tabs">
                             <button
@@ -120,7 +120,7 @@ pub fn IdeasBoard() -> impl IntoView {
                                                     .map(|(i, idea)| (i + 1, idea))
                                                     .collect();
                                                 view! {
-                                                    <div class="digg-list">
+                                                    <div class="spark-list">
                                                         <For
                                                             each=move || ranked.clone()
                                                             key=|(_, iwa)| iwa.idea.id

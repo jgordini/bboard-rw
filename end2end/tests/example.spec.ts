@@ -47,7 +47,7 @@ test("idea detail hides comment form after logout", async ({ page }) => {
 
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
-  const ideaLink = page.locator("a.digg-content", { hasText: title }).first();
+  const ideaLink = page.locator("a.spark-content", { hasText: title }).first();
   await expect(ideaLink).toBeVisible();
   await ideaLink.click();
 

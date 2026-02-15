@@ -226,10 +226,10 @@ a {
 }
 
 // ============================================================
-// Digg-Style Layout
+// Spark-Style Layout
 // ============================================================
 
-.digg-layout {
+.spark-layout {
   display: grid;
   grid-template-columns: 1fr 300px;
   gap: 1.5rem;
@@ -276,13 +276,13 @@ a {
   }
 }
 
-// Digg Idea List
-.digg-list {
+// Spark Idea List
+.spark-list {
   display: flex;
   flex-direction: column;
 }
 
-.digg-item {
+.spark-item {
   display: flex;
   align-items: stretch;
   background: var(--white);
@@ -316,7 +316,7 @@ a {
 }
 
 // Rank Number
-.digg-rank {
+.spark-rank {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -332,7 +332,7 @@ a {
 }
 
 // Spark Box — the signature vote element
-.digg-vote-box {
+.spark-vote-box {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -348,15 +348,15 @@ a {
     background: var(--uab-gold-10);
     border-right-color: var(--uab-gold-20);
 
-    .digg-arrow {
+    .spark-arrow {
       color: var(--uab-gold);
     }
 
-    .digg-count {
+    .spark-count {
       color: var(--uab-green);
     }
 
-    .digg-btn {
+    .spark-btn {
       background: var(--uab-gold-20);
       color: var(--uab-green);
       border-color: var(--uab-gold-30);
@@ -364,20 +364,20 @@ a {
   }
 }
 
-.digg-arrow {
+.spark-arrow {
   font-size: 1.25rem;
   line-height: 1;
   color: var(--uab-green);
 }
 
-.digg-count {
+.spark-count {
   font-size: 1.5rem;
   font-weight: 800;
   line-height: 1.1;
   color: var(--uab-green);
 }
 
-.digg-btn {
+.spark-btn {
   margin-top: 0.125rem;
   padding: 0.125rem 0.625rem;
   font-family: var(--font-sans);
@@ -444,7 +444,7 @@ a {
 }
 
 // Idea Content (clickable link)
-.digg-content {
+.spark-content {
   flex: 1;
   padding: 0.875rem 1rem;
   display: flex;
@@ -458,16 +458,16 @@ a {
     text-decoration: none;
   }
 
-  &:hover .digg-title {
+  &:hover .spark-title {
     color: var(--gray-500);
   }
 }
 
-.digg-content .digg-meta {
+.spark-content .spark-meta {
   margin-top: auto;
 }
 
-.digg-title {
+.spark-title {
   font-family: var(--font-serif);
   font-size: 1.125rem;
   font-weight: 600;
@@ -478,7 +478,7 @@ a {
   transition: color 0.15s;
 }
 
-.digg-text {
+.spark-text {
   font-size: var(--font-small);
   line-height: 1.5;
   color: var(--gray-500);
@@ -490,20 +490,20 @@ a {
   overflow: hidden;
 }
 
-.digg-meta {
+.spark-meta {
   display: flex;
   gap: 0.5rem;
   align-items: center;
   flex-wrap: wrap;
 }
 
-.digg-meta .author-name {
+.spark-meta .author-name {
   margin-left: auto;
   font-size: var(--font-tiny);
   color: var(--gray-500);
 }
 
-.digg-time {
+.spark-time {
   display: inline-block;
   font-size: var(--font-tiny);
   color: var(--gray-500);
@@ -512,7 +512,7 @@ a {
   border-radius: 3px;
 }
 
-.digg-comments-badge {
+.spark-comments-badge {
   display: inline-block;
   font-size: var(--font-tiny);
   font-weight: 600;
@@ -1185,7 +1185,7 @@ a {
     }
   }
 
-  .digg-layout {
+  .spark-layout {
     grid-template-columns: 1fr;
   }
 
@@ -1194,17 +1194,17 @@ a {
     order: -1;
   }
 
-  .digg-rank {
+  .spark-rank {
     min-width: 32px;
     font-size: 0.875rem;
   }
 
-  .digg-vote-box {
+  .spark-vote-box {
     min-width: 56px;
     padding: 0.5rem 0.375rem;
   }
 
-  .digg-count {
+  .spark-count {
     font-size: 1.25rem;
   }
 
@@ -2351,7 +2351,7 @@ body.alt-linear-theme {
     padding-top: 2rem;
   }
 
-  .digg-layout {
+  .spark-layout {
     grid-template-columns: minmax(0, 1fr) 320px;
     gap: 1.25rem;
   }
@@ -2388,7 +2388,7 @@ body.alt-linear-theme {
     }
   }
 
-  .digg-item {
+  .spark-item {
     border: 1px solid rgba(48, 103, 69, 0.13);
     border-left: 4px solid var(--campus-green);
     border-radius: 0;
@@ -2413,33 +2413,33 @@ body.alt-linear-theme {
     }
   }
 
-  .digg-rank {
+  .spark-rank {
     min-width: 52px;
     background: var(--evergreen-5);
     color: var(--uab-green);
     font-size: 1rem;
   }
 
-  .digg-vote-box {
+  .spark-vote-box {
     min-width: 78px;
     background: linear-gradient(180deg, var(--uab-gold-5) 0%, #fffcf4 100%);
     border-right: 1px solid var(--uab-gold-10);
   }
 
-  .digg-vote-box.voted {
+  .spark-vote-box.voted {
     background: linear-gradient(180deg, var(--uab-gold-5) 0%, var(--uab-gold-10) 100%);
     border-right-color: var(--uab-gold-20);
   }
 
-  .digg-title {
+  .spark-title {
     font-size: 1.2rem;
   }
 
-  .digg-text {
+  .spark-text {
     color: #52655a;
   }
 
-  .digg-comments-badge {
+  .spark-comments-badge {
     background: var(--sky-blue-10);
     border-color: var(--sky-blue-20);
     color: var(--dragons-lair-green);
@@ -2619,7 +2619,7 @@ body.alt-linear-theme {
       align-items: flex-start;
     }
 
-    .digg-layout {
+    .spark-layout {
       grid-template-columns: 1fr;
     }
 

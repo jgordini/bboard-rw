@@ -41,7 +41,7 @@ pub(super) fn IdeaDetailCard(
     let tags_str_value = StoredValue::new(tags_str.clone());
 
     view! {
-        <article class="detail-card uk-panel-box">
+        <article class="detail-card">
             <div class="detail-card-body">
                 <div class="detail-vote-box" class:voted=move || has_voted.get()>
                     <span class="detail-vote-arrow">"▲"</span>

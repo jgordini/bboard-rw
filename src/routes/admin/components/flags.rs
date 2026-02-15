@@ -55,7 +55,7 @@ pub(super) fn FlagsTab() -> impl IntoView {
                                         let content_preview = item.content_preview.clone();
                                         let flag_count = item.flag_count;
                                         view! {
-                                            <div class="flagged-item uk-panel-box callout callout-secondary">
+                                            <div class="flagged-item callout callout-secondary">
                                                 <div class="flagged-info">
                                                     <span class="flag-badge">{flag_count}" flags"</span>
                                                     <span class="content-type">{item_type_display}</span>

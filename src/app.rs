@@ -100,7 +100,7 @@ fn render_auth_nav_item(auth_state: AuthNavState, logout: ServerAction<Logout>) 
 fn GlobalStyles() -> impl IntoView {
     view! {
         <Stylesheet href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"/>
-        <Stylesheet href="/pkg/realworld-leptos.css"/>
+        <Stylesheet href="/pkg/uab-spark.css"/>
     }
 }
 
