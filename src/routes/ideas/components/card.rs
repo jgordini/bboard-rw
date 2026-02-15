@@ -19,7 +19,7 @@ pub(super) fn IdeaCard(
     comment_counts_resource: Resource<Result<HashMap<i32, i64>, ServerFnError>>,
 ) -> impl IntoView {
     let idea_id = idea_with_author.idea.id;
-    let vote_count = idea_with_author.idea.vote_count;
+    let vote_count = RwSignal::new(idea_with_author.idea.vote_count);
     let title = idea_with_author.idea.title.clone();
     let content = idea_with_author.idea.content.clone();
     let stage = idea_with_author.idea.stage.clone();
@@ -42,17 +42,22 @@ pub(super) fn IdeaCard(
         if !is_logged_in() {
             return;
         }
-        spawn_server_action_ok(toggle_vote(idea_id), move |now_voted| {
-            voted_ideas.update(|v| {
-                if now_voted {
-                    if !v.contains(&idea_id) {
-                        v.push(idea_id);
-                    }
-                } else {
-                    v.retain(|&id| id != idea_id);
-                }
-            });
-            ideas_resource.refetch();
+        // Optimistic update: adjust count immediately
+        let was_voted = voted_ideas.get().contains(&idea_id);
+        if was_voted {
+            vote_count.update(|c| *c -= 1);
+        } else {
+            vote_count.update(|c| *c += 1);
+        }
+        voted_ideas.update(|v| {
+            if was_voted {
+                v.retain(|&id| id != idea_id);
+            } else if !v.contains(&idea_id) {
+                v.push(idea_id);
+            }
+        });
+        spawn_server_action_ok(toggle_vote(idea_id), move |_now_voted| {
+            // Server confirmed — no refetch needed
         });
     };
 
