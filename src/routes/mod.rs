@@ -16,5 +16,6 @@ mod ideas;
 mod login;
 mod reset_password;
 mod signup;
+#[cfg(feature = "ssr")]
 mod validation_helpers;
 mod view_helpers;

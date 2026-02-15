@@ -67,8 +67,8 @@ pub async fn update_idea_content_mod(
     use crate::auth::require_moderator;
     require_moderator().await?;
 
-    validate_idea_title_and_content(&title, &content)?;
     validate_idea_tags(&tags)?;
+    validate_idea_title_and_content(&title, &content)?;
 
     let updated = Idea::update_content_mod(
         idea_id,
