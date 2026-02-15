@@ -41,7 +41,7 @@ pub(super) fn IdeaDetailCard(
     let tags_str_value = StoredValue::new(tags_str.clone());
 
     view! {
-        <article class="detail-card">
+        <article class="detail-card uk-panel-box">
             <div class="detail-card-body">
                 <div class="detail-vote-box" class:voted=move || has_voted.get()>
                     <span class="detail-vote-arrow">"▲"</span>
@@ -51,7 +51,7 @@ pub(super) fn IdeaDetailCard(
                             Ok(Some(_)) => {
                                 view! {
                                     <button
-                                        class="detail-vote-btn"
+                                        class="detail-vote-btn btn"
                                         on:click=move |_| {
                                             let id = idea_id_val;
                                             spawn_server_action_ok(toggle_vote(id), move |now_voted| {
@@ -137,7 +137,7 @@ pub(super) fn IdeaDetailCard(
                                 />
                             </div>
                             <div class="dialog-footer">
-                                <button type="submit" class="submit-btn">"Save"</button>
+                                <button type="submit" class="submit-btn btn btn-primary">"Save"</button>
                             </div>
                         </form>
                     </Show>
@@ -235,7 +235,7 @@ pub(super) fn IdeaDetailCard(
                                             <Show when=move || is_mod>
                                                 <button
                                                     type="button"
-                                                    class="btn-edit"
+                                                    class="btn-edit btn btn-secondary"
                                                     on:click=move |_| {
                                                         idea_edit_error.set(None);
                                                         idea_editing.set(!idea_editing.get());
@@ -246,7 +246,7 @@ pub(super) fn IdeaDetailCard(
                                             </Show>
                                             <button
                                                 type="button"
-                                                class="btn-flag"
+                                                class="btn-flag btn btn-secondary"
                                                 disabled=move || flagged.get()
                                                 on:click=move |_| {
                                                     let id = idea_id_val;
@@ -261,7 +261,7 @@ pub(super) fn IdeaDetailCard(
                                             <Show when=move || is_mod>
                                                 <button
                                                     type="button"
-                                                    class="btn-pin"
+                                                    class="btn-pin btn btn-secondary"
                                                     on:click=move |_| {
                                                         let id = idea_id_val;
                                                         spawn_server_action_refetch_resource(
@@ -274,7 +274,7 @@ pub(super) fn IdeaDetailCard(
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    class="btn-toggle-comments"
+                                                    class="btn-toggle-comments btn btn-secondary"
                                                     on:click=move |_| {
                                                         let id = idea_id_val;
                                                         spawn_server_action_refetch_resource(

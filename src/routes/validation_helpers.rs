@@ -20,7 +20,9 @@ pub(crate) fn validate_idea_title_and_content(
         return Err(ServerFnError::new("Idea title cannot be empty"));
     }
     if title.len() > 100 {
-        return Err(ServerFnError::new("Idea title cannot exceed 100 characters"));
+        return Err(ServerFnError::new(
+            "Idea title cannot exceed 100 characters",
+        ));
     }
     if content.trim().is_empty() {
         return Err(ServerFnError::new("Idea description cannot be empty"));

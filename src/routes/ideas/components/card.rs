@@ -60,13 +60,13 @@ pub(super) fn IdeaCard(
     let stage_color = stage_badge_color(&stage);
 
     view! {
-        <div class="digg-item" class:pinned=is_pinned>
+        <div class="digg-item uk-panel-box" class:pinned=is_pinned>
             <div class="digg-rank">{rank}</div>
             <div class="digg-vote-box" class:voted=has_voted>
                 <span class="digg-arrow" aria-hidden="true">"▲"</span>
                 <span class="digg-count">{vote_count}</span>
                 <button
-                    class="digg-btn"
+                    class="digg-btn btn"
                     disabled=move || !is_logged_in()
                     on:click=handle_vote
                     title=move || if !is_logged_in() { "Login to vote" } else if has_voted() { "Click to remove vote" } else { "Vote for this idea" }

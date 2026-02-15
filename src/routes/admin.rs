@@ -1,10 +1,10 @@
+use crate::auth::{UserSession, get_user};
+#[cfg(feature = "ssr")]
+use crate::models::{Flag, Idea};
+use crate::models::{IdeaWithAuthor, User};
 use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
-use crate::auth::{get_user, UserSession};
-use crate::models::{IdeaWithAuthor, User};
-#[cfg(feature = "ssr")]
-use crate::models::{Idea, Flag};
 
 mod components;
 use components::AdminDashboard;
@@ -87,7 +87,10 @@ pub async fn clear_flags_action(target_type: String, target_id: i32) -> Result<(
 }
 
 #[server]
-pub async fn mark_idea_off_topic_action(idea_id: i32, is_off_topic: bool) -> Result<(), ServerFnError> {
+pub async fn mark_idea_off_topic_action(
+    idea_id: i32,
+    is_off_topic: bool,
+) -> Result<(), ServerFnError> {
     use crate::auth::require_moderator;
     require_moderator().await?;
 
@@ -192,7 +195,9 @@ pub async fn export_ideas_csv() -> Result<String, ServerFnError> {
     }
     #[cfg(not(feature = "ssr"))]
     {
-        Err(ServerFnError::new("CSV export is only available on the server"))
+        Err(ServerFnError::new(
+            "CSV export is only available on the server",
+        ))
     }
 }
 
@@ -209,7 +214,9 @@ pub async fn export_comments_csv() -> Result<String, ServerFnError> {
     }
     #[cfg(not(feature = "ssr"))]
     {
-        Err(ServerFnError::new("CSV export is only available on the server"))
+        Err(ServerFnError::new(
+            "CSV export is only available on the server",
+        ))
     }
 }
 

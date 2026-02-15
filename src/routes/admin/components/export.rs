@@ -5,8 +5,7 @@ use crate::routes::async_helpers::spawn_server_action;
 use super::super::{export_comments_csv, export_ideas_csv};
 
 #[cfg(feature = "hydrate")]
-#[wasm_bindgen::prelude::wasm_bindgen(
-    inline_js = r#"
+#[wasm_bindgen::prelude::wasm_bindgen(inline_js = r#"
 export function downloadCsv(filename, content) {
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -18,8 +17,7 @@ export function downloadCsv(filename, content) {
   link.remove();
   URL.revokeObjectURL(url);
 }
-"#
-)]
+"#)]
 extern "C" {
     #[wasm_bindgen::prelude::wasm_bindgen(js_name = downloadCsv)]
     fn download_csv(filename: &str, content: &str);

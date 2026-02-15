@@ -13,11 +13,17 @@ pub(super) fn FlagsTab() -> impl IntoView {
     let flagged_items = Resource::new(|| (), |_| async { get_flagged_content().await });
 
     let handle_clear_flags = move |target_type: String, target_id: i32| {
-        spawn_server_action_refetch_resource(clear_flags_action(target_type, target_id), flagged_items);
+        spawn_server_action_refetch_resource(
+            clear_flags_action(target_type, target_id),
+            flagged_items,
+        );
     };
 
     let handle_mark_off_topic = move |idea_id: i32| {
-        spawn_server_action_refetch_resource(mark_idea_off_topic_action(idea_id, true), flagged_items);
+        spawn_server_action_refetch_resource(
+            mark_idea_off_topic_action(idea_id, true),
+            flagged_items,
+        );
     };
 
     let handle_delete = move |target_type: String, target_id: i32| {
@@ -49,7 +55,7 @@ pub(super) fn FlagsTab() -> impl IntoView {
                                         let content_preview = item.content_preview.clone();
                                         let flag_count = item.flag_count;
                                         view! {
-                                            <div class="flagged-item">
+                                            <div class="flagged-item uk-panel-box callout callout-secondary">
                                                 <div class="flagged-info">
                                                     <span class="flag-badge">{flag_count}" flags"</span>
                                                     <span class="content-type">{item_type_display}</span>
@@ -57,7 +63,7 @@ pub(super) fn FlagsTab() -> impl IntoView {
                                                 </div>
                                                 <div class="flagged-actions">
                                                     <button
-                                                        class="btn-secondary"
+                                                        class="btn btn-secondary"
                                                         on:click=move |_| handle_clear_flags(target_type.clone(), target_id)
                                                     >"Dismiss Flags"</button>
                                                     {move || {
@@ -66,11 +72,11 @@ pub(super) fn FlagsTab() -> impl IntoView {
                                                             view! {
                                                                 <>
                                                                     <button
-                                                                        class="btn-warning"
+                                                                        class="btn btn-warning"
                                                                         on:click=move |_| handle_mark_off_topic(target_id)
                                                                     >"Mark Off-Topic"</button>
                                                                     <button
-                                                                        class="btn-danger"
+                                                                        class="btn btn-danger"
                                                                         on:click=move |_| {
                                                                             if confirm_action("Delete this idea? This cannot be undone.") {
                                                                                 handle_delete(target_type_for_delete.clone(), target_id);

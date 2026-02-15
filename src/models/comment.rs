@@ -39,8 +39,15 @@ impl Comment {
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn get_by_idea_id(idea_id: i32, include_deleted: bool) -> Result<Vec<CommentWithAuthor>, sqlx::Error> {
-        let delete_filter = if include_deleted { "" } else { "AND c.is_deleted = false" };
+    pub async fn get_by_idea_id(
+        idea_id: i32,
+        include_deleted: bool,
+    ) -> Result<Vec<CommentWithAuthor>, sqlx::Error> {
+        let delete_filter = if include_deleted {
+            ""
+        } else {
+            "AND c.is_deleted = false"
+        };
 
         let query_str = format!(
             r#"
@@ -87,7 +94,11 @@ impl Comment {
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn update_content(id: i32, user_id: i32, content: String) -> Result<bool, sqlx::Error> {
+    pub async fn update_content(
+        id: i32,
+        user_id: i32,
+        content: String,
+    ) -> Result<bool, sqlx::Error> {
         let result = sqlx::query!(
             "UPDATE comments SET content = $1 WHERE id = $2 AND user_id = $3",
             content,
@@ -132,12 +143,9 @@ impl Comment {
 
     #[cfg(feature = "ssr")]
     pub async fn soft_delete(id: i32) -> Result<(), sqlx::Error> {
-        sqlx::query!(
-            "UPDATE comments SET is_deleted = true WHERE id = $1",
-            id
-        )
-        .execute(crate::database::get_db())
-        .await?;
+        sqlx::query!("UPDATE comments SET is_deleted = true WHERE id = $1", id)
+            .execute(crate::database::get_db())
+            .await?;
         Ok(())
     }
 
@@ -162,11 +170,9 @@ impl Comment {
 
     #[cfg(feature = "ssr")]
     pub async fn count_all_grouped() -> Result<Vec<(i32, i64)>, sqlx::Error> {
-        let rows = sqlx::query!(
-            "SELECT idea_id, COUNT(*) as count FROM comments GROUP BY idea_id"
-        )
-        .fetch_all(crate::database::get_db())
-        .await?;
+        let rows = sqlx::query!("SELECT idea_id, COUNT(*) as count FROM comments GROUP BY idea_id")
+            .fetch_all(crate::database::get_db())
+            .await?;
         Ok(rows
             .into_iter()
             .map(|r| (r.idea_id, r.count.unwrap_or(0)))

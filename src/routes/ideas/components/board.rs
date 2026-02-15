@@ -5,12 +5,12 @@ use leptos_router::components::A;
 use crate::auth::get_user;
 use crate::models::IdeaWithAuthor;
 
-use super::card::IdeaCard;
-use super::submission::IdeaSubmissionDialog;
 use super::super::{
     SortMode, check_user_votes, get_comment_counts, get_idea_statistics, get_ideas_with_authors,
     sort_ideas,
 };
+use super::card::IdeaCard;
+use super::submission::IdeaSubmissionDialog;
 
 #[component]
 pub fn IdeasBoard() -> impl IntoView {
@@ -39,11 +39,12 @@ pub fn IdeasBoard() -> impl IntoView {
 
     view! {
         <Title text="UAB IT Idea Board"/>
-        <div class="ideas-page">
-            <div class="header-banner">
+        <div class="ideas-page ideas-page-linear">
+            <div class="header-banner linear-hero-banner">
                 <div class="container">
-                    <div class="header-content">
+                    <div class="header-content linear-hero-grid">
                         <div>
+                            <span class="hero-eyebrow">"UAB IT Innovation Hub"</span>
                             <h1 class="logo-font">"Spark"</h1>
                             <p>"Share your ideas to improve UAB IT services"</p>
                         </div>
@@ -76,14 +77,14 @@ pub fn IdeasBoard() -> impl IntoView {
                     <div class="main-column">
                         <div class="sort-tabs">
                             <button
-                                class="sort-tab"
+                                class="sort-tab btn btn-secondary"
                                 class:active=move || sort_mode.get() == SortMode::Popular
                                 on:click=move |_| sort_mode.set(SortMode::Popular)
                             >
                                 "Popular"
                             </button>
                             <button
-                                class="sort-tab"
+                                class="sort-tab btn btn-secondary"
                                 class:active=move || sort_mode.get() == SortMode::Recent
                                 on:click=move |_| sort_mode.set(SortMode::Recent)
                             >
@@ -152,7 +153,7 @@ pub fn IdeasBoard() -> impl IntoView {
                     </div>
 
                     <div class="sidebar">
-                        <article class="sidebar-card">
+                        <article class="sidebar-card callout callout-secondary">
                             <header class="sidebar-card-header">
                                 <h3 class="sidebar-card-title">"Search Ideas"</h3>
                             </header>
@@ -178,7 +179,7 @@ pub fn IdeasBoard() -> impl IntoView {
                                 stats_resource.get().map(|stats| {
                                     match stats {
                                         Ok((ideas_count, votes_count)) => view! {
-                                            <article class="sidebar-card">
+                                            <article class="sidebar-card callout callout-primary">
                                                 <header class="sidebar-card-header">
                                                     <h3 class="sidebar-card-title">"Community"</h3>
                                                 </header>

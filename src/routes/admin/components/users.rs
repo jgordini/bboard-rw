@@ -5,7 +5,7 @@ use crate::models::User;
 use crate::routes::async_helpers::spawn_server_action;
 use crate::routes::view_helpers::confirm_action;
 
-use super::super::{delete_user_action, role_name, update_user_role_action, get_all_users_admin};
+use super::super::{delete_user_action, get_all_users_admin, role_name, update_user_role_action};
 
 fn show_admin_error(error: ServerFnError) {
     if let Some(w) = window() {
@@ -40,7 +40,7 @@ pub(super) fn UsersTab() -> impl IntoView {
                 {move || users.get().map(|users_result| match users_result {
                     Ok(users_list) => {
                         view! {
-                            <table class="users-table">
+                            <table class="users-table table-primary table-striped">
                                 <thead>
                                     <tr>
                                         <th>"ID"</th>
@@ -93,7 +93,7 @@ pub(super) fn UsersTab() -> impl IntoView {
                                                                 view! {
                                                                     <button
                                                                         type="button"
-                                                                        class="btn-danger"
+                                                                        class="btn btn-danger"
                                                                         on:click=move |_| {
                                                                             if confirm_action("Permanently delete this user? This cannot be undone.") {
                                                                                 handle_delete(user_id);

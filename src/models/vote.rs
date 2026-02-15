@@ -64,12 +64,9 @@ mod inner {
         }
 
         pub async fn get_voted_ideas(user_id: i32) -> Result<Vec<i32>, sqlx::Error> {
-            let votes = sqlx::query!(
-                "SELECT idea_id FROM votes WHERE user_id = $1",
-                user_id
-            )
-            .fetch_all(crate::database::get_db())
-            .await?;
+            let votes = sqlx::query!("SELECT idea_id FROM votes WHERE user_id = $1", user_id)
+                .fetch_all(crate::database::get_db())
+                .await?;
             Ok(votes.into_iter().map(|v| v.idea_id).collect())
         }
     }

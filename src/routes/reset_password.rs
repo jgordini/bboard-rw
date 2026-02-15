@@ -34,8 +34,9 @@ fn get_email_creds() -> Result<&'static EmailCredentials, ServerFnError> {
             .map_err(|e| ServerFnError::new(format!("MAILER_EMAIL is not configured: {e}")))?,
         passwd: env::var("MAILER_PASSWD")
             .map_err(|e| ServerFnError::new(format!("MAILER_PASSWD is not configured: {e}")))?,
-        smtp_server: env::var("MAILER_SMTP_SERVER")
-            .map_err(|e| ServerFnError::new(format!("MAILER_SMTP_SERVER is not configured: {e}")))?,
+        smtp_server: env::var("MAILER_SMTP_SERVER").map_err(|e| {
+            ServerFnError::new(format!("MAILER_SMTP_SERVER is not configured: {e}"))
+        })?,
     };
 
     let _ = EMAIL_CREDS.set(creds);
@@ -142,7 +143,10 @@ pub async fn reset_password_1(email: String) -> Result<String, ServerFnError> {
         {
             Ok(client) => client,
             Err(error) => {
-                tracing::error!(?error, "failed to connect to smtp server for password reset");
+                tracing::error!(
+                    ?error,
+                    "failed to connect to smtp server for password reset"
+                );
                 return Ok(String::from("Check your email"));
             }
         };

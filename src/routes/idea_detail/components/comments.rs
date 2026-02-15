@@ -34,7 +34,7 @@ pub(super) fn CommentsSection(
                     }
                 }
             >
-                <article class="sidebar-card comment-form-card">
+                <article class="sidebar-card comment-form-card callout callout-secondary">
                     <header class="sidebar-card-header">
                         <h3 class="sidebar-card-title">"Add a Comment"</h3>
                     </header>
@@ -148,7 +148,7 @@ fn CommentItem(
                         >
                             "Cancel Edit"
                         </button>
-                        <button type="submit" class="submit-btn">"Save"</button>
+                        <button type="submit" class="submit-btn btn btn-primary">"Save"</button>
                     </div>
                 </form>
             </Show>
@@ -162,7 +162,7 @@ fn CommentItem(
                                 <Show when=move || !is_editing.get()>
                                     <button
                                         type="button"
-                                        class="btn-pin"
+                                        class="btn-pin btn btn-secondary"
                                         on:click=move |_| {
                                             spawn_server_action_refetch_resource(
                                                 toggle_comment_pin(comment_id),
@@ -174,7 +174,7 @@ fn CommentItem(
                                     </button>
                                     <button
                                         type="button"
-                                        class="btn-edit"
+                                        class="btn-edit btn btn-secondary"
                                         on:click=move |_| {
                                             edit_error.set(None);
                                             is_editing.set(true);
@@ -184,7 +184,7 @@ fn CommentItem(
                                     </button>
                                     <button
                                         type="button"
-                                        class="btn-delete"
+                                        class="btn-delete btn btn-danger"
                                         on:click=move |_| {
                                             spawn_server_action_refetch_resource(
                                                 delete_comment_mod(comment_id),
@@ -224,7 +224,10 @@ fn CommentForm(
             return;
         }
         let content_clone = content_value.clone();
-        spawn_server_action_refetch_resource(create_comment(idea_id, content_clone), comments_resource);
+        spawn_server_action_refetch_resource(
+            create_comment(idea_id, content_clone),
+            comments_resource,
+        );
         content.set(String::new());
     };
 
@@ -246,7 +249,7 @@ fn CommentForm(
                 </span>
                 <button
                     type="submit"
-                    class="submit-btn"
+                    class="submit-btn btn btn-primary"
                     disabled=move || content.get().trim().is_empty()
                 >
                     "Post Comment"
