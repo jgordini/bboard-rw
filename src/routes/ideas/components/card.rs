@@ -4,7 +4,7 @@ use leptos::prelude::*;
 
 use crate::auth::UserSession;
 use crate::models::IdeaWithAuthor;
-use crate::routes::async_helpers::spawn_server_action_ok;
+use crate::routes::async_helpers::spawn_server_action;
 use crate::routes::view_helpers::{format_relative_time, is_user_logged_in, stage_badge_color};
 
 use super::super::toggle_vote;
@@ -15,7 +15,6 @@ pub(super) fn IdeaCard(
     rank: usize,
     user_resource: Resource<Result<Option<UserSession>, ServerFnError>>,
     voted_ideas: RwSignal<Vec<i32>>,
-    ideas_resource: Resource<Result<Vec<IdeaWithAuthor>, ServerFnError>>,
     comment_counts_resource: Resource<Result<HashMap<i32, i64>, ServerFnError>>,
 ) -> impl IntoView {
     let idea_id = idea_with_author.idea.id;
@@ -56,9 +55,35 @@ pub(super) fn IdeaCard(
                 v.push(idea_id);
             }
         });
-        spawn_server_action_ok(toggle_vote(idea_id), move |_now_voted| {
-            // Server confirmed — no refetch needed
-        });
+        spawn_server_action(
+            toggle_vote(idea_id),
+            move |now_voted| {
+                // Reconcile with server truth
+                voted_ideas.update(|v| {
+                    if now_voted {
+                        if !v.contains(&idea_id) {
+                            v.push(idea_id);
+                        }
+                    } else {
+                        v.retain(|&id| id != idea_id);
+                    }
+                });
+            },
+            move |_err| {
+                // Rollback on failure
+                if was_voted {
+                    vote_count.update(|c| *c += 1);
+                    voted_ideas.update(|v| {
+                        if !v.contains(&idea_id) {
+                            v.push(idea_id);
+                        }
+                    });
+                } else {
+                    vote_count.update(|c| *c -= 1);
+                    voted_ideas.update(|v| v.retain(|&id| id != idea_id));
+                }
+            },
+        );
     };
 
     let relative_time = format_relative_time(&created_at);

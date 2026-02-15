@@ -131,7 +131,6 @@ pub fn IdeasBoard() -> impl IntoView {
                                                                         rank=rank
                                                                         user_resource=user_resource
                                                                         voted_ideas=voted_ideas
-                                                                        ideas_resource=ideas_resource
                                                                         comment_counts_resource=comment_counts_resource
                                                                     />
                                                                 }

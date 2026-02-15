@@ -2501,7 +2501,7 @@ body.alt-linear-theme {
   .admin-page .admin-header.admin-linear-header {
     max-width: none;
     margin: 0;
-    padding: 1.35rem calc((100% - 72rem) / 2 + 1rem) 1.45rem;
+    padding: 1.35rem max(1rem, calc((100% - 72rem) / 2 + 1rem)) 1.45rem;
     border-bottom: none;
     border-radius: 0;
     border: 1px solid rgba(255, 255, 255, 0.18);
