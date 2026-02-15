@@ -60,7 +60,7 @@ pub(super) fn IdeaCard(
     let stage_color = stage_badge_color(&stage);
 
     view! {
-        <div class="digg-item uk-panel-box" class:pinned=is_pinned>
+        <div class="digg-item uk-panel-box" class:pinned=is_pinned class:voted=has_voted>
             <div class="digg-rank">{rank}</div>
             <div class="digg-vote-box" class:voted=has_voted>
                 <span class="digg-arrow" aria-hidden="true">"▲"</span>
