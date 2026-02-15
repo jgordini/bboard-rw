@@ -37,10 +37,13 @@ pub(super) fn IdeaCard(
             .unwrap_or(0)
     };
 
+    let is_toggling = RwSignal::new(false);
+
     let handle_vote = move |_| {
-        if !is_logged_in() {
+        if !is_logged_in() || is_toggling.get() {
             return;
         }
+        is_toggling.set(true);
         // Optimistic update: adjust count immediately
         let was_voted = voted_ideas.get().contains(&idea_id);
         if was_voted {
@@ -58,18 +61,29 @@ pub(super) fn IdeaCard(
         spawn_server_action(
             toggle_vote(idea_id),
             move |now_voted| {
+                is_toggling.set(false);
                 // Reconcile with server truth
-                voted_ideas.update(|v| {
-                    if now_voted {
-                        if !v.contains(&idea_id) {
-                            v.push(idea_id);
+                let locally_voted = voted_ideas.get().contains(&idea_id);
+                if now_voted != locally_voted {
+                    voted_ideas.update(|v| {
+                        if now_voted {
+                            if !v.contains(&idea_id) {
+                                v.push(idea_id);
+                            }
+                        } else {
+                            v.retain(|&id| id != idea_id);
                         }
+                    });
+                    // Fix count if local state diverged
+                    if now_voted {
+                        vote_count.update(|c| *c += 1);
                     } else {
-                        v.retain(|&id| id != idea_id);
+                        vote_count.update(|c| *c -= 1);
                     }
-                });
+                }
             },
             move |_err| {
+                is_toggling.set(false);
                 // Rollback on failure
                 if was_voted {
                     vote_count.update(|c| *c += 1);
@@ -97,7 +111,7 @@ pub(super) fn IdeaCard(
                 <span class="digg-count">{vote_count}</span>
                 <button
                     class="digg-btn btn"
-                    disabled=move || !is_logged_in()
+                    disabled=move || !is_logged_in() || is_toggling.get()
                     on:click=handle_vote
                     title=move || if !is_logged_in() { "Login to spark" } else if has_voted() { "Remove spark" } else { "Spark this idea" }
                 >
