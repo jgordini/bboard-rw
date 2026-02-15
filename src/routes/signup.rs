@@ -2,17 +2,18 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
 
-use crate::auth::{AuthRefresh, validate_signup, SignupAction, SignupResponse, SignupSignal};
+use crate::auth::{SignupAction, SignupResponse, SignupSignal, bump_auth_refresh, validate_signup};
+use crate::routes::paths;
 
 #[component]
-pub fn Signup(signup: SignupSignal) -> impl IntoView {
+pub fn Signup() -> impl IntoView {
+    let signup = SignupSignal::new();
     let result_of_call = signup.value();
-    let auth_refresh = expect_context::<AuthRefresh>().0;
 
     // When signup succeeds, bump auth refresh so nav updates without reload
     Effect::new(move |_| {
         if let Some(Ok(SignupResponse::Success)) = result_of_call.get() {
-            auth_refresh.update(|v| *v += 1);
+            bump_auth_refresh();
         }
     });
 
@@ -44,7 +45,7 @@ pub fn Signup(signup: SignupSignal) -> impl IntoView {
                     <div class="col-md-6 offset-md-3 col-xs-12">
                         <h1 class="text-xs-center">"Sign up"</h1>
                         <p class="text-xs-center">
-                            <A href="/login">"Have an account?"</A>
+                            <A href=paths::LOGIN>"Have an account?"</A>
                         </p>
 
                         <p class="error-messages text-xs-center">

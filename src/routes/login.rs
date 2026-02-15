@@ -3,18 +3,19 @@ use leptos_meta::Title;
 use leptos_router::components::A;
 use leptos_router::hooks::use_query_map;
 
-use crate::auth::{AuthRefresh, LoginMessages, LoginSignal};
+use crate::auth::{LoginMessages, LoginSignal, bump_auth_refresh};
+use crate::routes::paths;
 
 #[component]
-pub fn Login(login: LoginSignal) -> impl IntoView {
+pub fn Login() -> impl IntoView {
+    let login = LoginSignal::new();
     let result_of_call = login.value();
     let query = use_query_map();
-    let auth_refresh = expect_context::<AuthRefresh>().0;
 
     // When login succeeds, bump auth refresh so nav refetches user and shows Logout
     Effect::new(move |_| {
         if let Some(Ok(LoginMessages::Successful)) = result_of_call.get() {
-            auth_refresh.update(|v| *v += 1);
+            bump_auth_refresh();
         }
     });
 
@@ -57,7 +58,7 @@ pub fn Login(login: LoginSignal) -> impl IntoView {
                     <div class="col-md-6 offset-md-3 col-xs-12">
                         <h1 class="text-xs-center">"Login"</h1>
 
-                        <a href="/auth/cas/login" class="btn btn-lg btn-secondary pull-xs-right">
+                        <a href=paths::CAS_LOGIN class="btn btn-lg btn-secondary pull-xs-right">
                             "Login with BlazerID"
                         </a>
 
@@ -76,7 +77,7 @@ pub fn Login(login: LoginSignal) -> impl IntoView {
                                 <input id="login-password" name="password" class="form-control form-control-lg" type="password"
                                     placeholder="Password…" autocomplete="current-password" />
                             </fieldset>
-                            <A href="/reset_password">Reset password</A>
+                            <A href=paths::RESET_PASSWORD>Reset password</A>
                             <button class="btn btn-lg btn-primary pull-xs-right">"Sign in"</button>
                         </ActionForm>
                     </div>
