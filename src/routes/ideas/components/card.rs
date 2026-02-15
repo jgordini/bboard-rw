@@ -69,9 +69,9 @@ pub(super) fn IdeaCard(
                     class="digg-btn btn"
                     disabled=move || !is_logged_in()
                     on:click=handle_vote
-                    title=move || if !is_logged_in() { "Login to vote" } else if has_voted() { "Click to remove vote" } else { "Vote for this idea" }
+                    title=move || if !is_logged_in() { "Login to spark" } else if has_voted() { "Remove spark" } else { "Spark this idea" }
                 >
-                    {move || if has_voted() { "unvote" } else { "vote" }}
+                    {move || if has_voted() { "sparked" } else { "spark" }}
                 </button>
             </div>
             <a class="digg-content" href=format!("/ideas/{}", idea_id)>

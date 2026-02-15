@@ -46,7 +46,7 @@ pub(super) fn IdeaDetailCard(
                 <div class="detail-vote-box" class:voted=move || has_voted.get()>
                     <span class="detail-vote-arrow">"▲"</span>
                     <span class="detail-vote-count">{idea_vote_count}</span>
-                    <Suspense fallback=|| view! { <span class="detail-vote-label">"votes"</span> }>
+                    <Suspense fallback=|| view! { <span class="detail-vote-label">"sparks"</span> }>
                         {move || user_resource.get().map(|ur| match ur {
                             Ok(Some(_)) => {
                                 view! {
@@ -59,14 +59,14 @@ pub(super) fn IdeaDetailCard(
                                                 idea_resource.refetch();
                                             });
                                         }
-                                        title=move || if has_voted.get() { "Click to remove vote" } else { "Vote for this idea" }
+                                        title=move || if has_voted.get() { "Remove spark" } else { "Spark this idea" }
                                     >
-                                        {move || if has_voted.get() { "unvote" } else { "vote" }}
+                                        {move || if has_voted.get() { "sparked" } else { "spark" }}
                                     </button>
                                 }
                                     .into_any()
                             }
-                            _ => view! { <span class="detail-vote-label">"votes"</span> }.into_any(),
+                            _ => view! { <span class="detail-vote-label">"sparks"</span> }.into_any(),
                         })}
                     </Suspense>
                 </div>

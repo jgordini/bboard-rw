@@ -16,7 +16,7 @@ pub(super) fn OverviewTab(stats: Resource<Result<AdminStats, ServerFnError>>) ->
                                 <span class="stat-number">{stats.total_ideas}</span>
                             </div>
                             <div class="stat-card uk-panel-box callout callout-primary">
-                                <h3>"Total Votes"</h3>
+                                <h3>"Total Sparks"</h3>
                                 <span class="stat-number">{stats.total_votes}</span>
                             </div>
                             <div class="stat-card uk-panel-box callout callout-secondary">

@@ -333,7 +333,7 @@ async fn build_ideas_csv() -> Result<String, sqlx::Error> {
     .await?;
 
     let mut csv = String::from(
-        "id,user_id,author_name,author_email,title,content,tags,stage,is_public,is_off_topic,comments_enabled,vote_count,pinned_at,created_at\n",
+        "id,user_id,author_name,author_email,title,content,tags,stage,is_public,is_off_topic,comments_enabled,spark_count,pinned_at,created_at\n",
     );
 
     for row in rows {
