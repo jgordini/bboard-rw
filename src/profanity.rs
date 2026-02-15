@@ -38,6 +38,7 @@ fn normalize_text(text: &str) -> String {
         .replace('$', "s")
         .replace('!', "i")
         .replace('+', "t")
+        .replace('v', "u")
         .replace(' ', "")
 }
 
