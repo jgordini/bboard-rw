@@ -8,6 +8,8 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@playwright/test": "^1.36.0"
+    "@playwright/test": "^1.36.0",
+    "stylelint": "^17.3.0",
+    "stylelint-config-standard-scss": "^17.0.0"
   }
 }
