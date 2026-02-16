@@ -294,7 +294,7 @@ a {
 }
 
 .spark-item {
-  animation: slideIntoPlace 0.25s ease-out;
+  animation: slideIntoPlace 0.5s ease-out;
 }
 
 .spark-item {
@@ -304,7 +304,7 @@ a {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   margin-bottom: 0.5rem;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.15s, opacity 0.2s ease;
+  transition: transform 0.5s ease, box-shadow 0.5s ease, border-color 0.2s, opacity 0.3s ease;
 
   &:hover {
     border-color: var(--gray-200);
