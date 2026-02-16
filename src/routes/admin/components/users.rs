@@ -40,7 +40,7 @@ pub(super) fn UsersTab() -> impl IntoView {
                 {move || users.get().map(|users_result| match users_result {
                     Ok(users_list) => {
                         view! {
-                            <table class="users-table">
+                            <table class="users-table table-primary table-striped">
                                 <thead>
                                     <tr>
                                         <th>"ID"</th>
@@ -95,7 +95,7 @@ pub(super) fn UsersTab() -> impl IntoView {
                                                                 view! {
                                                                     <button
                                                                         type="button"
-                                                                        class="btn-danger"
+                                                                        class="btn btn-danger"
                                                                         on:click=move |_| {
                                                                             if confirm_action("Permanently delete this user? This cannot be undone.") {
                                                                                 handle_delete(user_id);

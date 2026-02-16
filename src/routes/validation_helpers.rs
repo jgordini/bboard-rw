@@ -152,7 +152,7 @@ mod tests {
     #[test]
     fn idea_update_returns_tag_error_before_title_content_error() {
         let long_tags = "t".repeat(201);
-        // Both tags and title are invalid — tag error should win.
+        // Both tags and title are invalid -- tag error should win.
         assert_error_contains(
             validate_idea_update_order("", "", &long_tags),
             "Tags cannot exceed 200 characters",

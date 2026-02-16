@@ -1,4 +1,8 @@
 use crate::models::{Idea, IdeaWithAuthor};
+#[cfg(feature = "ssr")]
+use crate::routes::error_helpers::server_fn_error_with_log;
+#[cfg(feature = "ssr")]
+use crate::routes::validation_helpers::validate_idea_title_and_content;
 use leptos::prelude::*;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -19,7 +23,7 @@ pub async fn create_idea_auth(
     use crate::auth::require_auth;
     let user = require_auth().await?;
 
-    crate::routes::validation_helpers::validate_idea_title_and_content(&title, &content)?;
+    validate_idea_title_and_content(&title, &content)?;
 
     Idea::create(
         user.id,
@@ -28,23 +32,13 @@ pub async fn create_idea_auth(
         tags.trim().to_string(),
     )
     .await
-    .map_err(|e| {
-        crate::routes::error_helpers::server_fn_error_with_log(
-            "Failed to create idea",
-            e,
-            "Failed to create idea",
-        )
-    })
+    .map_err(|e| server_fn_error_with_log("Failed to create idea", e, "Failed to create idea"))
 }
 
 #[server]
 pub async fn get_ideas_with_authors() -> Result<Vec<IdeaWithAuthor>, ServerFnError> {
     Idea::get_all().await.map_err(|e| {
-        crate::routes::error_helpers::server_fn_error_with_log(
-            "Failed to fetch ideas",
-            e,
-            "Failed to fetch ideas",
-        )
+        server_fn_error_with_log("Failed to fetch ideas", e, "Failed to fetch ideas")
     })
 }
 
@@ -55,11 +49,7 @@ pub async fn toggle_vote(idea_id: i32) -> Result<bool, ServerFnError> {
 
     let user = require_auth().await?;
     Vote::toggle(user.id, idea_id).await.map_err(|e| {
-        crate::routes::error_helpers::server_fn_error_with_log(
-            "Failed to toggle vote",
-            e,
-            "Failed to toggle vote",
-        )
+        server_fn_error_with_log("Failed to toggle vote", e, "Failed to toggle vote")
     })
 }
 
@@ -70,18 +60,14 @@ pub async fn check_user_votes() -> Result<Vec<i32>, ServerFnError> {
 
     let user = require_auth().await?;
     Vote::get_voted_ideas(user.id).await.map_err(|e| {
-        crate::routes::error_helpers::server_fn_error_with_log(
-            "Failed to check votes",
-            e,
-            "Failed to check votes",
-        )
+        server_fn_error_with_log("Failed to check votes", e, "Failed to check votes")
     })
 }
 
 #[server]
 pub async fn get_idea_statistics() -> Result<(i64, i64), ServerFnError> {
     Idea::get_statistics().await.map_err(|e| {
-        crate::routes::error_helpers::server_fn_error_with_log(
+        server_fn_error_with_log(
             "Failed to fetch statistics",
             e,
             "Failed to fetch statistics",
@@ -96,7 +82,7 @@ pub async fn get_comment_counts() -> Result<HashMap<i32, i64>, ServerFnError> {
         .await
         .map(|counts| counts.into_iter().collect())
         .map_err(|e| {
-            crate::routes::error_helpers::server_fn_error_with_log(
+            server_fn_error_with_log(
                 "Failed to fetch comment counts",
                 e,
                 "Failed to fetch comment counts",

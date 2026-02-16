@@ -38,6 +38,7 @@ fn normalize_text(text: &str) -> String {
         .replace('$', "s")
         .replace('!', "i")
         .replace('+', "t")
+        .replace('v', "u")
         .replace(' ', "")
 }
 
@@ -81,6 +82,6 @@ mod tests {
     #[test]
     fn test_number_substitution() {
         assert!(contains_profanity("sh1t"));
-        assert!(contains_profanity("fvck")); // Won't catch this specific one
+        assert!(contains_profanity("fvck"));
     }
 }

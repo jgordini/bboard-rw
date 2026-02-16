@@ -6,8 +6,8 @@ use crate::auth::get_user;
 use crate::models::IdeaWithAuthor;
 
 use super::super::{
-    SortMode, check_user_votes, get_comment_counts, get_idea_statistics, get_ideas_with_authors,
-    sort_ideas,
+    check_user_votes, get_comment_counts, get_idea_statistics, get_ideas_with_authors, sort_ideas,
+    SortMode,
 };
 use super::card::IdeaCard;
 use super::submission::IdeaSubmissionDialog;
@@ -38,16 +38,19 @@ pub fn IdeasBoard() -> impl IntoView {
     });
 
     view! {
-        <Title text="Spark"/>
-        <div class="ideas-page">
-            <div class="header-banner">
+        <Title text="UAB IT Idea Board"/>
+        <div class="ideas-page ideas-page-linear">
+            <div class="header-banner linear-hero-banner">
                 <div class="container">
-                    <div class="header-content">
+                    <div class="header-content linear-hero-grid">
                         <div>
+                            <span class="hero-eyebrow">"UAB IT Innovation Hub"</span>
                             <h1 class="logo-font">"Spark"</h1>
                             <p>"Share your ideas to improve UAB IT services"</p>
                         </div>
-                        <div class="header-actions">
+                        <div class="header-right">
+                            <img src="/spark-logo.png" alt="Spark logo" class="header-logo"/>
+                            <div class="header-actions">
                             <Suspense fallback=|| ()>
                                 {move || user_resource.get().map(|user_result| {
                                     match user_result {
@@ -68,22 +71,23 @@ pub fn IdeasBoard() -> impl IntoView {
                             </Suspense>
                         </div>
                     </div>
+                    </div>
                 </div>
             </div>
 
             <div class="container page">
-                <div class="digg-layout">
+                <div class="spark-layout">
                     <div class="main-column">
                         <div class="sort-tabs">
                             <button
-                                class="sort-tab"
+                                class="sort-tab btn btn-secondary"
                                 class:active=move || sort_mode.get() == SortMode::Popular
                                 on:click=move |_| sort_mode.set(SortMode::Popular)
                             >
                                 "Popular"
                             </button>
                             <button
-                                class="sort-tab"
+                                class="sort-tab btn btn-secondary"
                                 class:active=move || sort_mode.get() == SortMode::Recent
                                 on:click=move |_| sort_mode.set(SortMode::Recent)
                             >
@@ -119,7 +123,7 @@ pub fn IdeasBoard() -> impl IntoView {
                                                     .map(|(i, idea)| (i + 1, idea))
                                                     .collect();
                                                 view! {
-                                                    <div class="digg-list">
+                                                    <div class="spark-list">
                                                         <For
                                                             each=move || ranked.clone()
                                                             key=|(_, iwa)| iwa.idea.id
@@ -130,8 +134,8 @@ pub fn IdeasBoard() -> impl IntoView {
                                                                         rank=rank
                                                                         user_resource=user_resource
                                                                         voted_ideas=voted_ideas
-                                                                        ideas_resource=ideas_resource
                                                                         comment_counts_resource=comment_counts_resource
+                                                                        ideas_resource=ideas_resource
                                                                     />
                                                                 }
                                                             }
@@ -152,7 +156,7 @@ pub fn IdeasBoard() -> impl IntoView {
                     </div>
 
                     <div class="sidebar">
-                        <article class="sidebar-card">
+                        <article class="sidebar-card callout callout-secondary">
                             <header class="sidebar-card-header">
                                 <h3 class="sidebar-card-title">"Search Ideas"</h3>
                             </header>
@@ -182,7 +186,7 @@ pub fn IdeasBoard() -> impl IntoView {
                                 stats_resource.get().map(|stats| {
                                     match stats {
                                         Ok((ideas_count, votes_count)) => view! {
-                                            <article class="sidebar-card">
+                                            <article class="sidebar-card callout callout-primary">
                                                 <header class="sidebar-card-header">
                                                     <h3 class="sidebar-card-title">"Community"</h3>
                                                 </header>

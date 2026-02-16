@@ -4,8 +4,8 @@ use crate::routes::async_helpers::spawn_server_action_refetch_resource;
 use crate::routes::view_helpers::confirm_action;
 
 use super::super::{
-    FlaggedItemDetail, clear_flags_action, delete_idea_action, get_flagged_content,
-    mark_idea_off_topic_action,
+    clear_flags_action, delete_idea_action, get_flagged_content, mark_idea_off_topic_action,
+    FlaggedItemDetail,
 };
 
 #[component]
@@ -55,7 +55,7 @@ pub(super) fn FlagsTab() -> impl IntoView {
                                         let content_preview = item.content_preview.clone();
                                         let flag_count = item.flag_count;
                                         view! {
-                                            <div class="flagged-item">
+                                            <div class="flagged-item callout callout-secondary">
                                                 <div class="flagged-info">
                                                     <span class="flag-badge">{flag_count}" flags"</span>
                                                     <span class="content-type">{item_type_display}</span>
@@ -63,7 +63,7 @@ pub(super) fn FlagsTab() -> impl IntoView {
                                                 </div>
                                                 <div class="flagged-actions">
                                                     <button
-                                                        class="btn-secondary"
+                                                        class="btn btn-secondary"
                                                         on:click=move |_| handle_clear_flags(target_type.clone(), target_id)
                                                     >"Dismiss Flags"</button>
                                                     {move || {
@@ -72,11 +72,11 @@ pub(super) fn FlagsTab() -> impl IntoView {
                                                             view! {
                                                                 <>
                                                                     <button
-                                                                        class="btn-warning"
+                                                                        class="btn btn-warning"
                                                                         on:click=move |_| handle_mark_off_topic(target_id)
                                                                     >"Mark Off-Topic"</button>
                                                                     <button
-                                                                        class="btn-danger"
+                                                                        class="btn btn-danger"
                                                                         on:click=move |_| {
                                                                             if confirm_action("Delete this idea? This cannot be undone.") {
                                                                                 handle_delete(target_type_for_delete.clone(), target_id);

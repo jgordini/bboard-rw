@@ -5,6 +5,7 @@ pub use ideas::*;
 pub use login::Login;
 pub use reset_password::ResetPassword;
 pub use signup::Signup;
+pub mod paths;
 
 mod account;
 mod admin;

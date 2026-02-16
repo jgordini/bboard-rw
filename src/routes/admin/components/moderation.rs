@@ -38,7 +38,7 @@ pub(super) fn ModerationTab() -> impl IntoView {
                                     children=move |iwa: IdeaWithAuthor| {
                                         let idea_id = iwa.idea.id;
                                         view! {
-                                            <div class="off-topic-item">
+                                            <div class="off-topic-item callout callout-secondary">
                                                 <div class="idea-content">
                                                     <h3>{iwa.idea.title.clone()}</h3>
                                                     <p>{iwa.idea.content.clone()}</p>
@@ -46,11 +46,11 @@ pub(super) fn ModerationTab() -> impl IntoView {
                                                 </div>
                                                 <div class="moderation-actions">
                                                     <button
-                                                        class="btn-primary"
+                                                        class="btn btn-primary"
                                                         on:click=move |_| handle_restore(idea_id)
                                                     >"Restore"</button>
                                                     <button
-                                                        class="btn-danger"
+                                                        class="btn btn-danger"
                                                         on:click=move |_| {
                                                             if confirm_action("Permanently delete this idea? This cannot be undone.") {
                                                                 handle_delete(idea_id);

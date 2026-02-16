@@ -72,7 +72,7 @@ pub(super) fn IdeaSubmissionDialog(
     };
 
     view! {
-        <article class="sidebar-card">
+        <article class="sidebar-card callout callout-primary">
             <header class="sidebar-card-header">
                 <h3 class="sidebar-card-title">"Got an Idea?"</h3>
             </header>
@@ -80,10 +80,10 @@ pub(super) fn IdeaSubmissionDialog(
                 <p class="sidebar-intro">"Share your suggestions to improve UAB IT services."</p>
                 <Suspense fallback=move || view! { <p class="loading">"…"</p> }>
                     <Show when=is_logged_in fallback=move || view! {
-                        <A href="/login" attr:class="submit-btn dialog-trigger-btn">"Log in"</A>
+                        <A href="/login" attr:class="submit-btn dialog-trigger-btn btn btn-primary">"Log in"</A>
                     }>
                         <button
-                            class="submit-btn dialog-trigger-btn"
+                            class="submit-btn dialog-trigger-btn btn btn-primary"
                             on:click=move |_| is_open.set(true)
                         >
                             "Post Idea"
@@ -145,7 +145,7 @@ pub(super) fn IdeaSubmissionDialog(
                                         <div class="dialog-footer">
                                             <button
                                                 type="button"
-                                                class="btn-cancel"
+                                                class="btn-cancel btn btn-secondary"
                                                 on:click=move |_| {
                                                     is_open.set(false);
                                                     error_message.set(None);
@@ -156,7 +156,7 @@ pub(super) fn IdeaSubmissionDialog(
                                             </button>
                                             <button
                                                 type="submit"
-                                                class="submit-btn"
+                                                class="submit-btn btn btn-primary"
                                                 disabled=move || !can_submit()
                                             >
                                                 {move || if is_submitting.get() { "Submitting…" } else { "Submit Idea" }}

@@ -21,7 +21,7 @@ impl User {
         name: String,
         password: String,
     ) -> Result<Self, sqlx::Error> {
-        use bcrypt::{DEFAULT_COST, hash};
+        use bcrypt::{hash, DEFAULT_COST};
 
         let password_hash = hash(password, DEFAULT_COST)
             .map_err(|e| sqlx::Error::Protocol(format!("Password hashing failed: {}", e)))?;

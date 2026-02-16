@@ -4,11 +4,12 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
 
-use crate::auth::{AuthRefresh, get_user};
+use crate::auth::{get_user, use_auth_refresh};
+use crate::routes::paths;
 
 #[component]
 pub fn AccountPage() -> impl IntoView {
-    let auth_refresh = expect_context::<AuthRefresh>().0;
+    let auth_refresh = use_auth_refresh();
     let user_resource = Resource::new(
         move || auth_refresh.get(),
         move |_| async move { get_user().await },
@@ -27,7 +28,7 @@ pub fn AccountPage() -> impl IntoView {
                                     <div class="col-md-6 offset-md-3 col-xs-12">
                                         <p class="text-xs-center">"Logged in as " <strong>{user.name.clone()}</strong> " (" {user.email} ")"</p>
                                         <p class="text-xs-center">
-                                            <A href="/">"Back to Idea Board"</A>
+                                            <A href=paths::HOME>"Back to Idea Board"</A>
                                         </p>
                                     </div>
                                 </div>
@@ -39,9 +40,9 @@ pub fn AccountPage() -> impl IntoView {
                                     <div class="col-md-6 offset-md-3 col-xs-12">
                                         <p class="text-xs-center">"You are not logged in."</p>
                                         <p class="text-xs-center">
-                                            <A href="/login">"Log in"</A>
+                                            <A href=paths::LOGIN>"Log in"</A>
                                             " · "
-                                            <A href="/signup">"Sign up"</A>
+                                            <A href=paths::SIGNUP>"Sign up"</A>
                                         </p>
                                     </div>
                                 </div>

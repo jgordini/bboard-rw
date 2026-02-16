@@ -18,6 +18,32 @@ use std::time::Duration;
 #[derive(Clone, Copy)]
 pub struct AuthRefresh(pub RwSignal<u32>);
 
+impl AuthRefresh {
+    pub fn new() -> Self {
+        Self(RwSignal::new(0))
+    }
+
+    pub fn signal(self) -> RwSignal<u32> {
+        self.0
+    }
+
+    pub fn bump(self) {
+        self.0.update(|value| *value += 1);
+    }
+}
+
+pub fn provide_auth_refresh_context() {
+    provide_context(AuthRefresh::new());
+}
+
+pub fn use_auth_refresh() -> RwSignal<u32> {
+    expect_context::<AuthRefresh>().signal()
+}
+
+pub fn bump_auth_refresh() {
+    expect_context::<AuthRefresh>().bump();
+}
+
 // Session user info
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct UserSession {

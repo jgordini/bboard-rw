@@ -3,7 +3,7 @@
 #[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
-    if let Err(e) = realworld_leptos::setup::init_app(None).await {
+    if let Err(e) = uab_spark::setup::init_app(None).await {
         eprintln!("Fatal startup error: {e}");
         std::process::exit(1);
     }

@@ -1,11 +1,11 @@
+use crate::auth::{get_user, UserSession};
+#[cfg(feature = "ssr")]
+use crate::models::{Flag, Idea};
+use crate::models::{IdeaWithAuthor, User};
 use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
 
-use crate::auth::{UserSession, get_user};
-#[cfg(feature = "ssr")]
-use crate::models::{Flag, Idea};
-use crate::models::{IdeaWithAuthor, User};
 #[cfg(feature = "ssr")]
 use async_stream::try_stream;
 #[cfg(feature = "ssr")]
