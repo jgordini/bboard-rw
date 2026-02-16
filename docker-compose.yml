@@ -1,6 +1,6 @@
 services:
   web:
-    image: realworld-leptos:0.1.0
+    image: uab-spark:0.1.0
     build: .
     restart: unless-stopped
     environment:

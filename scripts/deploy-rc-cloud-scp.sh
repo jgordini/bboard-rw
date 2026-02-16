@@ -19,8 +19,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOYMENT_DIR="$(dirname "$SCRIPT_DIR")"
 REPO_ROOT="$DEPLOYMENT_DIR"
 REMOTE_DIR="/var/bboard-rw"
-IMAGE_NAME="realworld-leptos:0.1.0"
-IMAGE_TAR="realworld-leptos-0.1.0.tar"
+IMAGE_NAME="uab-spark:0.1.0"
+IMAGE_TAR="uab-spark-0.1.0.tar"
 
 RC_HOST="${RC_HOST:-$1}"
 # Default to cloud_key if not set (use RC_SSH_KEY="" to disable)

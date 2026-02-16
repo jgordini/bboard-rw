@@ -44,10 +44,10 @@ FROM debian:bookworm-slim AS runner
 
 WORKDIR /app
 
-COPY --from=builder /app/target/release/realworld-leptos /app/realworld-leptos
+COPY --from=builder /app/target/release/uab-spark /app/uab-spark
 COPY --from=builder /app/target/site /app/site
 
-ENV LEPTOS_OUTPUT_NAME="realworld-leptos"
+ENV LEPTOS_OUTPUT_NAME="uab-spark"
 ENV LEPTOS_SITE_ADDR="0.0.0.0:8080"
 ENV LEPTOS_SITE_ROOT="site"
 ENV LEPTOS_SITE_PKG_DIR="pkg"
@@ -55,4 +55,4 @@ ENV LEPTOS_SITE_PKG_DIR="pkg"
 EXPOSE 8080
 
 # Remember to set JWT_SECRET and DATABASE_URL environmental variables
-CMD ["/app/realworld-leptos"]
+CMD ["/app/uab-spark"]
