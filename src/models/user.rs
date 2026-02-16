@@ -16,8 +16,12 @@ pub struct User {
 #[cfg(feature = "ssr")]
 impl User {
     /// Create a new user with hashed password
-    pub async fn create(email: String, name: String, password: String) -> Result<Self, sqlx::Error> {
-        use bcrypt::{hash, DEFAULT_COST};
+    pub async fn create(
+        email: String,
+        name: String,
+        password: String,
+    ) -> Result<Self, sqlx::Error> {
+        use bcrypt::{DEFAULT_COST, hash};
 
         let password_hash = hash(password, DEFAULT_COST)
             .map_err(|e| sqlx::Error::Protocol(format!("Password hashing failed: {}", e)))?;
@@ -38,7 +42,10 @@ impl User {
     }
 
     /// Authenticate a user with email and password
-    pub async fn authenticate(email: String, password: String) -> Result<Option<Self>, sqlx::Error> {
+    pub async fn authenticate(
+        email: String,
+        password: String,
+    ) -> Result<Option<Self>, sqlx::Error> {
         use bcrypt::verify;
 
         // First, get the user with password hash
@@ -52,8 +59,9 @@ impl User {
         match result {
             Some(record) => {
                 // Verify password
-                let password_matches = verify(password, &record.password_hash)
-                    .map_err(|e| sqlx::Error::Protocol(format!("Password verification failed: {}", e)))?;
+                let password_matches = verify(password, &record.password_hash).map_err(|e| {
+                    sqlx::Error::Protocol(format!("Password verification failed: {}", e))
+                })?;
 
                 if password_matches {
                     Ok(Some(User {
@@ -104,7 +112,7 @@ impl User {
 
     /// Update a user's password hash by email.
     pub async fn set_password_by_email(email: &str, password: String) -> Result<(), sqlx::Error> {
-        use bcrypt::{hash, DEFAULT_COST};
+        use bcrypt::{DEFAULT_COST, hash};
 
         let password_hash = hash(password, DEFAULT_COST)
             .map_err(|e| sqlx::Error::Protocol(format!("Password hashing failed: {e}")))?;
@@ -129,15 +137,13 @@ impl User {
             return Err(sqlx::Error::RowNotFound);
         };
         if u.role >= 2 {
-            return Err(sqlx::Error::Protocol("Cannot change an admin's role".into()));
+            return Err(sqlx::Error::Protocol(
+                "Cannot change an admin's role".into(),
+            ));
         }
-        sqlx::query!(
-            "UPDATE users SET role = $1 WHERE id = $2",
-            role,
-            id
-        )
-        .execute(crate::database::get_db())
-        .await?;
+        sqlx::query!("UPDATE users SET role = $1 WHERE id = $2", role, id)
+            .execute(crate::database::get_db())
+            .await?;
         Ok(())
     }
 
@@ -160,12 +166,10 @@ impl User {
     /// Creates admin if no admin exists
     pub async fn bootstrap_admin() -> Result<(), sqlx::Error> {
         // Check if any admin exists
-        let admin_count = sqlx::query_scalar!(
-            "SELECT COUNT(*) FROM users WHERE role = 2"
-        )
-        .fetch_one(crate::database::get_db())
-        .await?
-        .unwrap_or(0);
+        let admin_count = sqlx::query_scalar!("SELECT COUNT(*) FROM users WHERE role = 2")
+            .fetch_one(crate::database::get_db())
+            .await?
+            .unwrap_or(0);
 
         if admin_count > 0 {
             return Ok(()); // Admin already exists
@@ -173,15 +177,18 @@ impl User {
 
         // Get credentials from environment
         let email = std::env::var("INITIAL_ADMIN_EMAIL").unwrap_or_else(|_| "admin".to_string());
-        let password = std::env::var("INITIAL_ADMIN_PASSWORD").unwrap_or_else(|_| "admin".to_string());
+        let password =
+            std::env::var("INITIAL_ADMIN_PASSWORD").unwrap_or_else(|_| "admin".to_string());
 
         // Warn if using default credentials
         if email == "admin" && password == "admin" {
-            eprintln!("⚠️  WARNING: Using default admin credentials (admin/admin). Please change these in production!");
+            eprintln!(
+                "⚠️  WARNING: Using default admin credentials (admin/admin). Please change these in production!"
+            );
         }
 
         // Create admin user
-        use bcrypt::{hash, DEFAULT_COST};
+        use bcrypt::{DEFAULT_COST, hash};
         let password_hash = hash(password, DEFAULT_COST)
             .map_err(|e| sqlx::Error::Protocol(format!("Password hashing failed: {}", e)))?;
 
@@ -211,5 +218,4 @@ impl User {
         .fetch_all(crate::database::get_db())
         .await
     }
-
 }

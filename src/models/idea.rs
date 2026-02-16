@@ -210,7 +210,12 @@ impl Idea {
     }
 
     /// Create a new idea
-    pub async fn create(user_id: i32, title: String, content: String, tags: String) -> Result<Self, sqlx::Error> {
+    pub async fn create(
+        user_id: i32,
+        title: String,
+        content: String,
+        tags: String,
+    ) -> Result<Self, sqlx::Error> {
         let tags_trimmed = tags.trim().to_string();
         sqlx::query_as!(
             Idea,
@@ -230,7 +235,12 @@ impl Idea {
     }
 
     /// Update idea content (author only)
-    pub async fn update_content(id: i32, user_id: i32, title: String, content: String) -> Result<bool, sqlx::Error> {
+    pub async fn update_content(
+        id: i32,
+        user_id: i32,
+        title: String,
+        content: String,
+    ) -> Result<bool, sqlx::Error> {
         let result = sqlx::query!(
             "UPDATE ideas SET title = $1, content = $2 WHERE id = $3 AND user_id = $4",
             title,
@@ -245,7 +255,12 @@ impl Idea {
     }
 
     /// Update idea content and tags (moderator/admin)
-    pub async fn update_content_mod(id: i32, title: String, content: String, tags: String) -> Result<bool, sqlx::Error> {
+    pub async fn update_content_mod(
+        id: i32,
+        title: String,
+        content: String,
+        tags: String,
+    ) -> Result<bool, sqlx::Error> {
         let tags_trimmed = tags.trim().to_string();
         let result = sqlx::query!(
             "UPDATE ideas SET title = $1, content = $2, tags = $3 WHERE id = $4",
@@ -266,13 +281,9 @@ impl Idea {
             return Err(sqlx::Error::Protocol(format!("Invalid stage: {}", stage)));
         }
 
-        sqlx::query!(
-            "UPDATE ideas SET stage = $1 WHERE id = $2",
-            stage,
-            id
-        )
-        .execute(crate::database::get_db())
-        .await?;
+        sqlx::query!("UPDATE ideas SET stage = $1 WHERE id = $2", stage, id)
+            .execute(crate::database::get_db())
+            .await?;
         Ok(())
     }
 

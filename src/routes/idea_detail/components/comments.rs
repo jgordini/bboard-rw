@@ -228,7 +228,10 @@ fn CommentForm(
             return;
         }
         let content_clone = content_value.clone();
-        spawn_server_action_refetch_resource(create_comment(idea_id, content_clone), comments_resource);
+        spawn_server_action_refetch_resource(
+            create_comment(idea_id, content_clone),
+            comments_resource,
+        );
         content.set(String::new());
     };
 

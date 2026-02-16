@@ -4,7 +4,7 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
 
-use crate::auth::{get_user, AuthRefresh};
+use crate::auth::{AuthRefresh, get_user};
 
 #[component]
 pub fn AccountPage() -> impl IntoView {

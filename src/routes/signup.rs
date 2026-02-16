@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
 
-use crate::auth::{AuthRefresh, validate_signup, SignupAction, SignupResponse, SignupSignal};
+use crate::auth::{AuthRefresh, SignupAction, SignupResponse, SignupSignal, validate_signup};
 
 #[component]
 pub fn Signup(signup: SignupSignal) -> impl IntoView {

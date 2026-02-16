@@ -13,11 +13,17 @@ pub(super) fn FlagsTab() -> impl IntoView {
     let flagged_items = Resource::new(|| (), |_| async { get_flagged_content().await });
 
     let handle_clear_flags = move |target_type: String, target_id: i32| {
-        spawn_server_action_refetch_resource(clear_flags_action(target_type, target_id), flagged_items);
+        spawn_server_action_refetch_resource(
+            clear_flags_action(target_type, target_id),
+            flagged_items,
+        );
     };
 
     let handle_mark_off_topic = move |idea_id: i32| {
-        spawn_server_action_refetch_resource(mark_idea_off_topic_action(idea_id, true), flagged_items);
+        spawn_server_action_refetch_resource(
+            mark_idea_off_topic_action(idea_id, true),
+            flagged_items,
+        );
     };
 
     let handle_delete = move |target_type: String, target_id: i32| {

@@ -21,7 +21,11 @@ mod inner {
 
     impl Flag {
         /// Create a flag for an idea or comment
-        pub async fn create(user_id: i32, target_type: &str, target_id: i32) -> Result<(), sqlx::Error> {
+        pub async fn create(
+            user_id: i32,
+            target_type: &str,
+            target_id: i32,
+        ) -> Result<(), sqlx::Error> {
             sqlx::query!(
                 r#"
                 INSERT INTO flags (user_id, target_type, target_id)

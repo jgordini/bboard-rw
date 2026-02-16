@@ -5,7 +5,7 @@ use crate::models::User;
 use crate::routes::async_helpers::spawn_server_action;
 use crate::routes::view_helpers::confirm_action;
 
-use super::super::{delete_user_action, role_name, update_user_role_action, get_all_users_admin};
+use super::super::{delete_user_action, get_all_users_admin, role_name, update_user_role_action};
 
 fn show_admin_error(error: ServerFnError) {
     if let Some(w) = window() {

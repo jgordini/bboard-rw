@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "ssr")]
 use axum::{
     extract::Query,
-    http::{header::SET_COOKIE, HeaderValue},
+    http::{HeaderValue, header::SET_COOKIE},
     response::{IntoResponse, Redirect, Response},
 };
 
@@ -154,13 +154,10 @@ async fn validate_cas_ticket(ticket: &str, service: &str) -> Result<CasUserInfo,
         .ok_or_else(|| ServerFnError::new("CAS response missing user"))?;
     let email = ensure_email(
         &username,
-        first_tag(
-            &body,
-            &["mail", "email", "eduPersonPrincipalName", "user"],
-        ),
+        first_tag(&body, &["mail", "email", "eduPersonPrincipalName", "user"]),
     );
-    let display_name = first_tag(&body, &["displayName", "cn", "name"])
-        .unwrap_or_else(|| username.clone());
+    let display_name =
+        first_tag(&body, &["displayName", "cn", "name"]).unwrap_or_else(|| username.clone());
 
     Ok(CasUserInfo {
         username,
@@ -170,7 +167,9 @@ async fn validate_cas_ticket(ticket: &str, service: &str) -> Result<CasUserInfo,
 }
 
 #[cfg(feature = "ssr")]
-async fn get_or_create_cas_user(cas_user: &CasUserInfo) -> Result<crate::models::User, ServerFnError> {
+async fn get_or_create_cas_user(
+    cas_user: &CasUserInfo,
+) -> Result<crate::models::User, ServerFnError> {
     use crate::models::User;
 
     if let Some(existing) = User::get_by_email(&cas_user.email)
@@ -202,7 +201,9 @@ async fn get_or_create_cas_user(cas_user: &CasUserInfo) -> Result<crate::models:
                 .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?
                 .ok_or_else(|| ServerFnError::new("CAS user lookup failed after create race"))
         }
-        Err(e) => Err(ServerFnError::new(format!("Failed to create CAS user: {e}"))),
+        Err(e) => Err(ServerFnError::new(format!(
+            "Failed to create CAS user: {e}"
+        ))),
     }
 }
 
@@ -356,7 +357,11 @@ pub fn validate_signup(name: String, email: String, password: String) -> Result<
 }
 
 #[server]
-pub async fn signup(email: String, name: String, password: String) -> Result<SignupResponse, ServerFnError> {
+pub async fn signup(
+    email: String,
+    name: String,
+    password: String,
+) -> Result<SignupResponse, ServerFnError> {
     use crate::models::User;
 
     // Validate input
@@ -370,15 +375,15 @@ pub async fn signup(email: String, name: String, password: String) -> Result<Sig
         .map_err(|e| ServerFnError::new(format!("Database error: {}", e)))?;
 
     if existing_user.is_some() {
-        return Ok(SignupResponse::CreateUserError("Email already registered".to_string()));
+        return Ok(SignupResponse::CreateUserError(
+            "Email already registered".to_string(),
+        ));
     }
 
     // Create user
     let user = User::create(email.clone(), name.clone(), password)
         .await
-        .map_err(|e| {
-            ServerFnError::new(format!("Failed to create user: {}", e))
-        })?;
+        .map_err(|e| ServerFnError::new(format!("Failed to create user: {}", e)))?;
 
     // Auto-login: Create session
     let session = UserSession {

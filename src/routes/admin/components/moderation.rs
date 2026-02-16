@@ -11,7 +11,10 @@ pub(super) fn ModerationTab() -> impl IntoView {
     let off_topic_ideas = Resource::new(|| (), |_| async { get_off_topic_ideas().await });
 
     let handle_restore = move |idea_id: i32| {
-        spawn_server_action_refetch_resource(mark_idea_off_topic_action(idea_id, false), off_topic_ideas);
+        spawn_server_action_refetch_resource(
+            mark_idea_off_topic_action(idea_id, false),
+            off_topic_ideas,
+        );
     };
 
     let handle_delete = move |idea_id: i32| {

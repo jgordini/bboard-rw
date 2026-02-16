@@ -5,12 +5,12 @@ use leptos_router::components::A;
 use crate::auth::get_user;
 use crate::models::IdeaWithAuthor;
 
-use super::card::IdeaCard;
-use super::submission::IdeaSubmissionDialog;
 use super::super::{
     SortMode, check_user_votes, get_comment_counts, get_idea_statistics, get_ideas_with_authors,
     sort_ideas,
 };
+use super::card::IdeaCard;
+use super::submission::IdeaSubmissionDialog;
 
 #[component]
 pub fn IdeasBoard() -> impl IntoView {

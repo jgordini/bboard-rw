@@ -1,10 +1,12 @@
 use leptos::prelude::*;
-use leptos_meta::{provide_meta_context, MetaTags, Stylesheet};
+use leptos_meta::{MetaTags, Stylesheet, provide_meta_context};
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
 
-use crate::auth::{get_user, Logout, LoginSignal, SignupSignal};
-use crate::routes::{IdeasPage, AdminPage, IdeaDetailPage, Login, Signup, AccountPage, ResetPassword};
+use crate::auth::{LoginSignal, Logout, SignupSignal, get_user};
+use crate::routes::{
+    AccountPage, AdminPage, IdeaDetailPage, IdeasPage, Login, ResetPassword, Signup,
+};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
