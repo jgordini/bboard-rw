@@ -34,8 +34,9 @@ fn get_email_creds() -> Result<&'static EmailCredentials, ServerFnError> {
             .map_err(|e| ServerFnError::new(format!("MAILER_EMAIL is not configured: {e}")))?,
         passwd: env::var("MAILER_PASSWD")
             .map_err(|e| ServerFnError::new(format!("MAILER_PASSWD is not configured: {e}")))?,
-        smtp_server: env::var("MAILER_SMTP_SERVER")
-            .map_err(|e| ServerFnError::new(format!("MAILER_SMTP_SERVER is not configured: {e}")))?,
+        smtp_server: env::var("MAILER_SMTP_SERVER").map_err(|e| {
+            ServerFnError::new(format!("MAILER_SMTP_SERVER is not configured: {e}"))
+        })?,
     };
 
     let _ = EMAIL_CREDS.set(creds);
@@ -142,7 +143,10 @@ pub async fn reset_password_1(email: String) -> Result<String, ServerFnError> {
         {
             Ok(client) => client,
             Err(error) => {
-                tracing::error!(?error, "failed to connect to smtp server for password reset");
+                tracing::error!(
+                    ?error,
+                    "failed to connect to smtp server for password reset"
+                );
                 return Ok(String::from("Check your email"));
             }
         };
@@ -305,5 +309,35 @@ fn ConfirmPassword(token: String) -> impl IntoView {
                 <button class="btn btn-lg btn-primary pull-xs-right">"Reset Password"</button>
             </ActionForm>
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::action_status_message;
+    use leptos::prelude::ServerFnError;
+
+    #[test]
+    fn action_status_message_returns_server_message_on_success() {
+        let message = action_status_message(
+            || Some(Ok(String::from("Check your email"))),
+            "reset-password status read",
+        );
+        assert_eq!(message, "Check your email");
+    }
+
+    #[test]
+    fn action_status_message_returns_fallback_on_error() {
+        let message = action_status_message(
+            || Some(Err(ServerFnError::new("network timeout"))),
+            "reset-password status read",
+        );
+        assert_eq!(message, "There was a problem, try again later");
+    }
+
+    #[test]
+    fn action_status_message_is_empty_before_action_completes() {
+        let message = action_status_message(|| None, "reset-password status read");
+        assert_eq!(message, "");
     }
 }

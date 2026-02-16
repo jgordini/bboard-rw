@@ -32,11 +32,41 @@ pub fn stage_badge_color(stage: &str) -> &'static str {
 pub fn is_user_logged_in(
     user_resource: &Resource<Result<Option<UserSession>, ServerFnError>>,
 ) -> bool {
-    matches!(user_resource.get(), Some(Ok(Some(_))))
+    user_session_state_is_logged_in(user_resource.get())
 }
 
 pub fn confirm_action(message: &str) -> bool {
     web_sys::window()
         .and_then(|window| window.confirm_with_message(message).ok())
         .unwrap_or(false)
+}
+
+fn user_session_state_is_logged_in(
+    state: Option<Result<Option<UserSession>, ServerFnError>>,
+) -> bool {
+    matches!(state, Some(Ok(Some(_))))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::user_session_state_is_logged_in;
+    use crate::auth::UserSession;
+    use leptos::prelude::ServerFnError;
+
+    #[test]
+    fn logged_in_state_is_true_only_for_present_user_session() {
+        assert!(!user_session_state_is_logged_in(None));
+        assert!(!user_session_state_is_logged_in(Some(Err(
+            ServerFnError::new("network failure")
+        ))));
+        assert!(!user_session_state_is_logged_in(Some(Ok(None))));
+        assert!(user_session_state_is_logged_in(Some(Ok(Some(
+            UserSession {
+                id: 7,
+                email: "user@example.com".to_string(),
+                name: "user".to_string(),
+                role: 0,
+            }
+        )))));
+    }
 }

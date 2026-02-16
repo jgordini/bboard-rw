@@ -10,10 +10,14 @@ pub struct ArticleResult {
     pub(super) logged_user: Option<crate::models::User>,
 }
 
-fn comment_server_error(operation: &str, error: impl std::fmt::Debug) -> ServerFnError {
+fn comment_server_error(
+    operation: &str,
+    client_message: &'static str,
+    error: impl std::fmt::Debug,
+) -> ServerFnError {
     let err = format!("Error while {operation}: {error:?}");
     tracing::error!("{err}");
-    ServerFnError::ServerError("Could not post a comment, try again later".into())
+    ServerFnError::ServerError(client_message.into())
 }
 
 #[server(GetArticleAction, "/api", "GetJson")]
@@ -120,7 +124,9 @@ pub async fn post_comment(slug: String, body: String) -> Result<(), ServerFnErro
     crate::models::Comment::insert(slug, logged_user, body)
         .await
         .map(|_| ())
-        .map_err(|x| comment_server_error("posting a comment", x))
+        .map_err(|x| {
+            comment_server_error("posting a comment", "Could not post comment, try again later", x)
+        })
 }
 
 #[server(GetCommentsAction, "/api", "GetJson")]
@@ -128,7 +134,9 @@ pub async fn post_comment(slug: String, body: String) -> Result<(), ServerFnErro
 pub async fn get_comments(slug: String) -> Result<Vec<crate::models::Comment>, ServerFnError> {
     crate::models::Comment::get_all(slug)
         .await
-        .map_err(|x| comment_server_error("getting comments", x))
+        .map_err(|x| {
+            comment_server_error("getting comments", "Could not load comments, try again later", x)
+        })
 }
 
 #[server(DeleteCommentsAction, "/api")]
@@ -141,7 +149,9 @@ pub async fn delete_comment(id: i32) -> Result<(), ServerFnError> {
     crate::models::Comment::delete(id, logged_user)
         .await
         .map(|_| ())
-        .map_err(|x| comment_server_error("deleting a comment", x))
+        .map_err(|x| {
+            comment_server_error("deleting a comment", "Could not delete comment, try again later", x)
+        })
 }
 
 #[component]
@@ -241,5 +251,57 @@ fn Comment(
                 </Show>
             </div>
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::comment_server_error;
+    use leptos::prelude::ServerFnError;
+
+    fn extract_server_error_message(error: ServerFnError) -> String {
+        match error {
+            ServerFnError::ServerError(message) => message,
+            _ => panic!("expected ServerFnError::ServerError"),
+        }
+    }
+
+    #[test]
+    fn comment_server_error_uses_post_message() {
+        let err = comment_server_error(
+            "posting a comment",
+            "Could not post comment, try again later",
+            "db down",
+        );
+        assert_eq!(
+            extract_server_error_message(err),
+            "Could not post comment, try again later"
+        );
+    }
+
+    #[test]
+    fn comment_server_error_uses_get_message() {
+        let err = comment_server_error(
+            "getting comments",
+            "Could not load comments, try again later",
+            "db down",
+        );
+        assert_eq!(
+            extract_server_error_message(err),
+            "Could not load comments, try again later"
+        );
+    }
+
+    #[test]
+    fn comment_server_error_uses_delete_message() {
+        let err = comment_server_error(
+            "deleting a comment",
+            "Could not delete comment, try again later",
+            "db down",
+        );
+        assert_eq!(
+            extract_server_error_message(err),
+            "Could not delete comment, try again later"
+        );
     }
 }
