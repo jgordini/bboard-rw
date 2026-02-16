@@ -1,15 +1,9 @@
+use crate::auth::{AuthRefresh, get_user};
+use crate::models::{Comment, CommentWithAuthor, Idea};
+use crate::routes::ideas::check_user_votes;
 use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
-use crate::auth::{get_user, AuthRefresh};
-use crate::models::{Idea, CommentWithAuthor, Comment};
-#[cfg(feature = "ssr")]
-use crate::routes::error_helpers::server_fn_error_with_log;
-use crate::routes::ideas::check_user_votes;
-#[cfg(feature = "ssr")]
-use crate::routes::validation_helpers::{
-    validate_comment_content, validate_idea_tags, validate_idea_title_and_content,
-};
 
 mod components;
 use components::IdeaDetailLoaded;
@@ -20,16 +14,20 @@ pub async fn get_idea(id: i32) -> Result<Idea, ServerFnError> {
         .await
         .map_err(|e| {
             let context = format!("Failed to fetch idea {id}");
-            server_fn_error_with_log(&context, e, "Idea not found")
+            crate::routes::error_helpers::server_fn_error_with_log(&context, e, "Idea not found")
         })?
         .ok_or_else(|| ServerFnError::new("Idea not found"))
 }
 
 #[server]
 pub async fn get_comments(idea_id: i32) -> Result<Vec<CommentWithAuthor>, ServerFnError> {
-    Comment::get_by_idea_id(idea_id, false)
-        .await
-        .map_err(|e| server_fn_error_with_log("Failed to fetch comments", e, "Failed to fetch comments"))
+    Comment::get_by_idea_id(idea_id, false).await.map_err(|e| {
+        crate::routes::error_helpers::server_fn_error_with_log(
+            "Failed to fetch comments",
+            e,
+            "Failed to fetch comments",
+        )
+    })
 }
 
 #[server]
@@ -40,30 +38,58 @@ pub async fn create_comment(idea_id: i32, content: String) -> Result<Comment, Se
     // Check if comments are enabled on this idea
     let idea = Idea::get_by_id(idea_id)
         .await
-        .map_err(|e| server_fn_error_with_log("Failed to fetch idea", e, "Failed to fetch idea"))?
+        .map_err(|e| {
+            crate::routes::error_helpers::server_fn_error_with_log(
+                "Failed to fetch idea",
+                e,
+                "Failed to fetch idea",
+            )
+        })?
         .ok_or_else(|| ServerFnError::new("Idea not found"))?;
 
     if !idea.comments_enabled {
         return Err(ServerFnError::new("Comments are locked on this idea"));
     }
 
-    validate_comment_content(&content)?;
+    crate::routes::validation_helpers::validate_comment_content(&content)?;
     Comment::create(user.id, idea_id, content.trim().to_string())
         .await
-        .map_err(|e| server_fn_error_with_log("Failed to create comment", e, "Failed to create comment"))
+        .map_err(|e| {
+            crate::routes::error_helpers::server_fn_error_with_log(
+                "Failed to create comment",
+                e,
+                "Failed to create comment",
+            )
+        })
 }
 
 #[server]
-pub async fn update_idea_content_mod(idea_id: i32, title: String, content: String, tags: String) -> Result<(), ServerFnError> {
+pub async fn update_idea_content_mod(
+    idea_id: i32,
+    title: String,
+    content: String,
+    tags: String,
+) -> Result<(), ServerFnError> {
     use crate::auth::require_moderator;
     require_moderator().await?;
 
-    validate_idea_tags(&tags)?;
-    validate_idea_title_and_content(&title, &content)?;
+    crate::routes::validation_helpers::validate_idea_tags(&tags)?;
+    crate::routes::validation_helpers::validate_idea_title_and_content(&title, &content)?;
 
-    let updated = Idea::update_content_mod(idea_id, title.trim().to_string(), content.trim().to_string(), tags.trim().to_string())
-        .await
-        .map_err(|e| server_fn_error_with_log("Failed to update idea", e, "Failed to update idea"))?;
+    let updated = Idea::update_content_mod(
+        idea_id,
+        title.trim().to_string(),
+        content.trim().to_string(),
+        tags.trim().to_string(),
+    )
+    .await
+    .map_err(|e| {
+        crate::routes::error_helpers::server_fn_error_with_log(
+            "Failed to update idea",
+            e,
+            "Failed to update idea",
+        )
+    })?;
 
     if !updated {
         return Err(ServerFnError::new("Idea not found"));
@@ -77,11 +103,17 @@ pub async fn update_comment_mod(comment_id: i32, content: String) -> Result<(), 
     use crate::auth::require_moderator;
     require_moderator().await?;
 
-    validate_comment_content(&content)?;
+    crate::routes::validation_helpers::validate_comment_content(&content)?;
 
     let updated = Comment::update_content_mod(comment_id, content.trim().to_string())
         .await
-        .map_err(|e| server_fn_error_with_log("Failed to update comment", e, "Failed to update comment"))?;
+        .map_err(|e| {
+            crate::routes::error_helpers::server_fn_error_with_log(
+                "Failed to update comment",
+                e,
+                "Failed to update comment",
+            )
+        })?;
 
     if !updated {
         return Err(ServerFnError::new("Comment not found"));
@@ -95,9 +127,13 @@ pub async fn delete_comment_mod(comment_id: i32) -> Result<(), ServerFnError> {
     use crate::auth::require_moderator;
     require_moderator().await?;
 
-    Comment::soft_delete(comment_id)
-        .await
-        .map_err(|e| server_fn_error_with_log("Failed to delete comment", e, "Failed to delete comment"))
+    Comment::soft_delete(comment_id).await.map_err(|e| {
+        crate::routes::error_helpers::server_fn_error_with_log(
+            "Failed to delete comment",
+            e,
+            "Failed to delete comment",
+        )
+    })
 }
 
 #[server]
@@ -105,11 +141,13 @@ pub async fn toggle_comment_pin(comment_id: i32) -> Result<bool, ServerFnError> 
     use crate::auth::require_moderator;
     require_moderator().await?;
 
-    Comment::toggle_pin(comment_id)
-        .await
-        .map_err(|e| {
-            server_fn_error_with_log("Failed to toggle comment pin", e, "Failed to toggle comment pin")
-        })
+    Comment::toggle_pin(comment_id).await.map_err(|e| {
+        crate::routes::error_helpers::server_fn_error_with_log(
+            "Failed to toggle comment pin",
+            e,
+            "Failed to toggle comment pin",
+        )
+    })
 }
 
 #[server]
@@ -117,9 +155,13 @@ pub async fn toggle_idea_comments(idea_id: i32) -> Result<bool, ServerFnError> {
     use crate::auth::require_moderator;
     require_moderator().await?;
 
-    Idea::toggle_comments(idea_id)
-        .await
-        .map_err(|e| server_fn_error_with_log("Failed to toggle comments", e, "Failed to toggle comments"))
+    Idea::toggle_comments(idea_id).await.map_err(|e| {
+        crate::routes::error_helpers::server_fn_error_with_log(
+            "Failed to toggle comments",
+            e,
+            "Failed to toggle comments",
+        )
+    })
 }
 
 /// Individual idea detail page with comments
@@ -127,7 +169,9 @@ pub async fn toggle_idea_comments(idea_id: i32) -> Result<bool, ServerFnError> {
 pub fn IdeaDetailPage() -> impl IntoView {
     let params = use_params_map();
     let idea_id = move || {
-        params.read().get("id")
+        params
+            .read()
+            .get("id")
             .and_then(|id| id.parse::<i32>().ok())
             .unwrap_or(0)
     };

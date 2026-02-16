@@ -1,11 +1,7 @@
+use crate::models::{Idea, IdeaWithAuthor};
+use leptos::prelude::*;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use leptos::prelude::*;
-use crate::models::{Idea, IdeaWithAuthor};
-#[cfg(feature = "ssr")]
-use crate::routes::error_helpers::server_fn_error_with_log;
-#[cfg(feature = "ssr")]
-use crate::routes::validation_helpers::validate_idea_title_and_content;
 
 mod components;
 use components::IdeasBoard;
@@ -15,22 +11,41 @@ use components::IdeasBoard;
 // ============================================================================
 
 #[server]
-pub async fn create_idea_auth(title: String, content: String, tags: String) -> Result<Idea, ServerFnError> {
+pub async fn create_idea_auth(
+    title: String,
+    content: String,
+    tags: String,
+) -> Result<Idea, ServerFnError> {
     use crate::auth::require_auth;
     let user = require_auth().await?;
 
-    validate_idea_title_and_content(&title, &content)?;
+    crate::routes::validation_helpers::validate_idea_title_and_content(&title, &content)?;
 
-    Idea::create(user.id, title.trim().to_string(), content.trim().to_string(), tags.trim().to_string())
-        .await
-        .map_err(|e| server_fn_error_with_log("Failed to create idea", e, "Failed to create idea"))
+    Idea::create(
+        user.id,
+        title.trim().to_string(),
+        content.trim().to_string(),
+        tags.trim().to_string(),
+    )
+    .await
+    .map_err(|e| {
+        crate::routes::error_helpers::server_fn_error_with_log(
+            "Failed to create idea",
+            e,
+            "Failed to create idea",
+        )
+    })
 }
 
 #[server]
 pub async fn get_ideas_with_authors() -> Result<Vec<IdeaWithAuthor>, ServerFnError> {
-    Idea::get_all()
-        .await
-        .map_err(|e| server_fn_error_with_log("Failed to fetch ideas", e, "Failed to fetch ideas"))
+    Idea::get_all().await.map_err(|e| {
+        crate::routes::error_helpers::server_fn_error_with_log(
+            "Failed to fetch ideas",
+            e,
+            "Failed to fetch ideas",
+        )
+    })
 }
 
 #[server]
@@ -39,9 +54,13 @@ pub async fn toggle_vote(idea_id: i32) -> Result<bool, ServerFnError> {
     use crate::models::Vote;
 
     let user = require_auth().await?;
-    Vote::toggle(user.id, idea_id)
-        .await
-        .map_err(|e| server_fn_error_with_log("Failed to toggle vote", e, "Failed to toggle vote"))
+    Vote::toggle(user.id, idea_id).await.map_err(|e| {
+        crate::routes::error_helpers::server_fn_error_with_log(
+            "Failed to toggle vote",
+            e,
+            "Failed to toggle vote",
+        )
+    })
 }
 
 #[server]
@@ -50,18 +69,24 @@ pub async fn check_user_votes() -> Result<Vec<i32>, ServerFnError> {
     use crate::models::Vote;
 
     let user = require_auth().await?;
-    Vote::get_voted_ideas(user.id)
-        .await
-        .map_err(|e| server_fn_error_with_log("Failed to check votes", e, "Failed to check votes"))
+    Vote::get_voted_ideas(user.id).await.map_err(|e| {
+        crate::routes::error_helpers::server_fn_error_with_log(
+            "Failed to check votes",
+            e,
+            "Failed to check votes",
+        )
+    })
 }
 
 #[server]
 pub async fn get_idea_statistics() -> Result<(i64, i64), ServerFnError> {
-    Idea::get_statistics()
-        .await
-        .map_err(|e| {
-            server_fn_error_with_log("Failed to fetch statistics", e, "Failed to fetch statistics")
-        })
+    Idea::get_statistics().await.map_err(|e| {
+        crate::routes::error_helpers::server_fn_error_with_log(
+            "Failed to fetch statistics",
+            e,
+            "Failed to fetch statistics",
+        )
+    })
 }
 
 #[server]
@@ -71,7 +96,11 @@ pub async fn get_comment_counts() -> Result<HashMap<i32, i64>, ServerFnError> {
         .await
         .map(|counts| counts.into_iter().collect())
         .map_err(|e| {
-            server_fn_error_with_log("Failed to fetch comment counts", e, "Failed to fetch comment counts")
+            crate::routes::error_helpers::server_fn_error_with_log(
+                "Failed to fetch comment counts",
+                e,
+                "Failed to fetch comment counts",
+            )
         })
 }
 
@@ -115,7 +144,8 @@ pub(super) fn sort_ideas(ideas: &mut [IdeaWithAuthor], mode: SortMode) {
         SortMode::Popular => compare_pinned_first(a, b)
             .then_with(|| b.idea.vote_count.cmp(&a.idea.vote_count))
             .then_with(|| b.idea.created_at.cmp(&a.idea.created_at)),
-        SortMode::Recent => compare_pinned_first(a, b)
-            .then_with(|| b.idea.created_at.cmp(&a.idea.created_at)),
+        SortMode::Recent => {
+            compare_pinned_first(a, b).then_with(|| b.idea.created_at.cmp(&a.idea.created_at))
+        }
     });
 }
