@@ -110,13 +110,13 @@ impl User {
         .await
     }
 
-    /// Get user by CAS subject identifier.
+    /// Get user by CAS subject identifier (case-insensitive).
     pub async fn get_by_cas_subject(cas_subject: &str) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as::<_, User>(
             r#"
             SELECT id, email, name, NULL::VARCHAR as password_hash, role, created_on
             FROM users
-            WHERE cas_subject = $1
+            WHERE LOWER(cas_subject) = LOWER($1)
             "#,
         )
         .bind(cas_subject)
@@ -149,6 +149,20 @@ impl User {
         .bind(cas_subject)
         .fetch_one(crate::database::get_db())
         .await
+    }
+
+    /// Link an existing user to a CAS subject identifier.
+    /// Only succeeds if the user currently has no CAS subject set.
+    pub async fn link_cas_subject(user_id: i32, cas_subject: &str) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query(
+            "UPDATE users SET cas_subject = $1 WHERE id = $2 AND cas_subject IS NULL",
+        )
+        .bind(cas_subject)
+        .bind(user_id)
+        .execute(crate::database::get_db())
+        .await?;
+
+        Ok(result.rows_affected() > 0)
     }
 
     /// Update a user's password hash by email.

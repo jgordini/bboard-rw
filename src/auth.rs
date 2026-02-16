@@ -158,8 +158,26 @@ fn parse_cas_user_info(body: &str) -> Result<CasUserInfo, ServerFnError> {
 
     let username = find_descendant_text(success, &["user"])
         .ok_or_else(|| ServerFnError::new("CAS response missing user"))?;
-    let subject = find_descendant_text(success, &["eduPersonPrincipalName", "uid", "user"])
-        .ok_or_else(|| ServerFnError::new("CAS response missing subject"))?;
+
+    // Use eduPersonPrincipalName as the canonical CAS subject identifier.
+    // Fall back to uid/user only when the canonical attribute is absent,
+    // and normalize to lowercase for consistent lookups.
+    let subject = if let Some(eppn) = find_descendant_text(success, &["eduPersonPrincipalName"]) {
+        eppn.to_lowercase()
+    } else if let Some(uid) = find_descendant_text(success, &["uid"]) {
+        tracing::warn!(
+            uid = uid,
+            "CAS response missing eduPersonPrincipalName, falling back to uid"
+        );
+        uid.to_lowercase()
+    } else {
+        tracing::warn!(
+            user = username,
+            "CAS response missing eduPersonPrincipalName and uid, falling back to user"
+        );
+        username.to_lowercase()
+    };
+
     let email = ensure_email(&username, find_descendant_text(success, &["mail", "email"]));
     let display_name = find_descendant_text(success, &["displayName", "cn", "name"])
         .unwrap_or_else(|| username.clone());
@@ -242,10 +260,28 @@ async fn get_or_create_cas_user(
     if let Some(existing) = User::get_by_email(&cas_user.email).await.map_err(|e| {
         CasProvisionError::Server(ServerFnError::new(format!("Database error: {e}")))
     })? {
+        // Legacy CAS user: existing account with matching email but no cas_subject.
+        // CAS has already authenticated identity, so auto-linking is safe.
+        let linked = User::link_cas_subject(existing.id, &cas_user.subject)
+            .await
+            .map_err(|e| {
+                CasProvisionError::Server(ServerFnError::new(format!("Database error: {e}")))
+            })?;
+
+        if linked {
+            tracing::info!(
+                email = existing.email,
+                cas_subject = cas_user.subject,
+                "auto-linked CAS subject to existing user"
+            );
+            return Ok(existing);
+        }
+
+        // User already has a different cas_subject — genuine conflict.
         tracing::warn!(
             email = existing.email,
             cas_subject = cas_user.subject,
-            "refusing to auto-link CAS account to an existing email-only user"
+            "refusing to link CAS account: user already has a different CAS subject"
         );
         return Err(CasProvisionError::LinkRequired);
     }
@@ -622,5 +658,73 @@ mod tests {
 
         let info = parse_cas_user_info(body).expect("CAS success XML should parse");
         assert_eq!(info.email, "blazerid@uab.edu");
+    }
+
+    #[test]
+    fn normalizes_subject_to_lowercase() {
+        let body = r#"
+<cas:serviceResponse xmlns:cas="http://www.yale.edu/tp/cas">
+  <cas:authenticationSuccess>
+    <cas:user>BlazerID</cas:user>
+    <cas:attributes>
+      <cas:eduPersonPrincipalName>BlazerID@UAB.EDU</cas:eduPersonPrincipalName>
+    </cas:attributes>
+  </cas:authenticationSuccess>
+</cas:serviceResponse>
+"#;
+
+        let info = parse_cas_user_info(body).expect("CAS success XML should parse");
+        assert_eq!(info.subject, "blazerid@uab.edu");
+    }
+
+    #[test]
+    fn subject_falls_back_to_uid_when_eppn_missing() {
+        let body = r#"
+<cas:serviceResponse xmlns:cas="http://www.yale.edu/tp/cas">
+  <cas:authenticationSuccess>
+    <cas:user>blazerid</cas:user>
+    <cas:attributes>
+      <cas:uid>BlazerUID</cas:uid>
+      <cas:mail>blazerid@uab.edu</cas:mail>
+    </cas:attributes>
+  </cas:authenticationSuccess>
+</cas:serviceResponse>
+"#;
+
+        let info = parse_cas_user_info(body).expect("CAS success XML should parse");
+        assert_eq!(info.subject, "blazeruid");
+    }
+
+    #[test]
+    fn subject_falls_back_to_user_when_eppn_and_uid_missing() {
+        let body = r#"
+<cas:serviceResponse xmlns:cas="http://www.yale.edu/tp/cas">
+  <cas:authenticationSuccess>
+    <cas:user>BlazerID</cas:user>
+  </cas:authenticationSuccess>
+</cas:serviceResponse>
+"#;
+
+        let info = parse_cas_user_info(body).expect("CAS success XML should parse");
+        assert_eq!(info.subject, "blazerid");
+    }
+
+    #[test]
+    fn subject_prefers_eppn_over_uid_and_user() {
+        let body = r#"
+<cas:serviceResponse xmlns:cas="http://www.yale.edu/tp/cas">
+  <cas:authenticationSuccess>
+    <cas:user>localuser</cas:user>
+    <cas:attributes>
+      <cas:uid>uidvalue</cas:uid>
+      <cas:eduPersonPrincipalName>canonical@uab.edu</cas:eduPersonPrincipalName>
+    </cas:attributes>
+  </cas:authenticationSuccess>
+</cas:serviceResponse>
+"#;
+
+        let info = parse_cas_user_info(body).expect("CAS success XML should parse");
+        assert_eq!(info.subject, "canonical@uab.edu");
+        assert_eq!(info.username, "localuser");
     }
 }
