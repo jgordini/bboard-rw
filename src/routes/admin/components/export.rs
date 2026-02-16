@@ -45,50 +45,108 @@ fn completion_status(dataset: &str, result: Result<(), &'static str>) -> ExportS
 
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen(inline_js = r#"
-export function downloadCsv(url) {
-  const link = document.createElement('a');
-  link.href = url;
-  link.setAttribute('download', '');
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+export function fetchAndDownloadCsv(url, filename, onSuccess, onError) {
+  fetch(url, { credentials: 'same-origin' })
+    .then(response => {
+      if (!response.ok) throw new Error(response.status.toString());
+      return response.blob();
+    })
+    .then(blob => {
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(blobUrl);
+      onSuccess();
+    })
+    .catch(() => onError());
 }
 "#)]
 extern "C" {
-    #[wasm_bindgen::prelude::wasm_bindgen(js_name = downloadCsv)]
-    fn download_csv(url: &str);
+    #[wasm_bindgen::prelude::wasm_bindgen(js_name = fetchAndDownloadCsv)]
+    fn fetch_and_download_csv(
+        url: &str,
+        filename: &str,
+        on_success: &js_sys::Function,
+        on_error: &js_sys::Function,
+    );
 }
 
-fn trigger_csv_download(url: &str) -> Result<(), &'static str> {
+fn run_export(
+    dataset: &'static str,
+    url: &'static str,
+    filename: &'static str,
+    export_status: RwSignal<ExportStatus>,
+    is_exporting: RwSignal<bool>,
+) {
+    if is_exporting.get_untracked() {
+        return;
+    }
+
+    is_exporting.set(true);
+    export_status.set(preparing_status(dataset));
+
     #[cfg(feature = "hydrate")]
     {
-        download_csv(url);
-        Ok(())
+        use wasm_bindgen::prelude::Closure;
+        use wasm_bindgen::JsCast;
+
+        let on_success: Closure<dyn FnMut()> = Closure::once(move || {
+            export_status.set(completion_status(dataset, Ok(())));
+            is_exporting.set(false);
+        });
+        let on_error: Closure<dyn FnMut()> = Closure::once(move || {
+            export_status.set(completion_status(dataset, Err("request failed")));
+            is_exporting.set(false);
+        });
+        fetch_and_download_csv(
+            url,
+            filename,
+            on_success.as_ref().unchecked_ref(),
+            on_error.as_ref().unchecked_ref(),
+        );
+        // Leak closures so they survive until the JS callbacks fire
+        on_success.forget();
+        on_error.forget();
     }
 
     #[cfg(not(feature = "hydrate"))]
     {
-        let _ = url;
-        Err("CSV export is only available in a browser session.")
+        let _ = (url, filename);
+        export_status.set(completion_status(
+            dataset,
+            Err("CSV export is only available in a browser session."),
+        ));
+        is_exporting.set(false);
     }
-}
-
-fn run_export(dataset: &'static str, url: &'static str, export_status: RwSignal<ExportStatus>) {
-    export_status.set(preparing_status(dataset));
-    let result = trigger_csv_download(url);
-    export_status.set(completion_status(dataset, result));
 }
 
 #[component]
 pub(super) fn ExportTab() -> impl IntoView {
     let export_status = RwSignal::new(ExportStatus::Idle);
+    let is_exporting = RwSignal::new(false);
 
     let handle_export_ideas = move |_| {
-        run_export("Ideas", "/admin/export/ideas.csv", export_status);
+        run_export(
+            "Ideas",
+            "/admin/export/ideas.csv",
+            "ideas_export.csv",
+            export_status,
+            is_exporting,
+        );
     };
 
     let handle_export_comments = move |_| {
-        run_export("Comments", "/admin/export/comments.csv", export_status);
+        run_export(
+            "Comments",
+            "/admin/export/comments.csv",
+            "comments_export.csv",
+            export_status,
+            is_exporting,
+        );
     };
 
     view! {
@@ -103,6 +161,7 @@ pub(super) fn ExportTab() -> impl IntoView {
                     <button
                         type="button"
                         class="btn btn-primary admin-export-btn"
+                        disabled=move || is_exporting.get()
                         on:click=handle_export_ideas
                     >
                         "Export Ideas CSV"
@@ -110,6 +169,7 @@ pub(super) fn ExportTab() -> impl IntoView {
                     <button
                         type="button"
                         class="btn btn-primary admin-export-btn"
+                        disabled=move || is_exporting.get()
                         on:click=handle_export_comments
                     >
                         "Export Comments CSV"

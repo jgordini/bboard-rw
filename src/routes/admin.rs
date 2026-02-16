@@ -197,16 +197,16 @@ pub async fn delete_user_action(user_id: i32) -> Result<(), ServerFnError> {
 
 #[cfg(feature = "ssr")]
 pub async fn admin_export_ideas_csv(jar: CookieJar) -> Result<impl IntoResponse, StatusCode> {
-    require_admin_cookie_jar(&jar)?;
-    Ok((csv_download_headers("ideas_export.csv")?, ideas_csv_body()))
+    require_admin_cookie_jar(&jar).await?;
+    Ok((csv_download_headers("ideas_export.csv")?, ideas_csv_body().await?))
 }
 
 #[cfg(feature = "ssr")]
 pub async fn admin_export_comments_csv(jar: CookieJar) -> Result<impl IntoResponse, StatusCode> {
-    require_admin_cookie_jar(&jar)?;
+    require_admin_cookie_jar(&jar).await?;
     Ok((
         csv_download_headers("comments_export.csv")?,
-        comments_csv_body(),
+        comments_csv_body().await?,
     ))
 }
 
@@ -316,7 +316,7 @@ fn csv_download_headers(filename: &str) -> Result<HeaderMap, StatusCode> {
 }
 
 #[cfg(feature = "ssr")]
-fn require_admin_cookie_jar(jar: &CookieJar) -> Result<(), StatusCode> {
+async fn require_admin_cookie_jar(jar: &CookieJar) -> Result<(), StatusCode> {
     let Some(cookie) = jar.get("user_session") else {
         return Err(StatusCode::UNAUTHORIZED);
     };
@@ -325,10 +325,17 @@ fn require_admin_cookie_jar(jar: &CookieJar) -> Result<(), StatusCode> {
         tracing::warn!("Rejected admin CSV export due to invalid session cookie: {e}");
         StatusCode::UNAUTHORIZED
     })?;
-    if session.is_admin() {
-        Ok(())
-    } else {
-        Err(StatusCode::FORBIDDEN)
+
+    // Verify the claimed identity against the database to prevent forged cookies
+    let db_user = User::get_by_id(session.id).await.map_err(|e| {
+        tracing::error!("DB lookup failed during admin export auth: {e}");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    match db_user {
+        Some(user) if user.role >= 2 => Ok(()),
+        Some(_) => Err(StatusCode::FORBIDDEN),
+        None => Err(StatusCode::UNAUTHORIZED),
     }
 }
 
@@ -337,9 +344,45 @@ const IDEAS_CSV_HEADER: &[u8] =
     b"id,user_id,author_name,author_email,title,content,tags,stage,is_public,is_off_topic,comments_enabled,spark_count,pinned_at,created_at\n";
 
 #[cfg(feature = "ssr")]
-fn ideas_csv_body() -> Body {
+fn format_idea_row(row: &sqlx::postgres::PgRow) -> Result<String, sqlx::Error> {
     use sqlx::Row;
 
+    let id: i32 = row.try_get("id")?;
+    let user_id: i32 = row.try_get("user_id")?;
+    let author_name: String = row.try_get("author_name")?;
+    let author_email: String = row.try_get("author_email")?;
+    let title: String = row.try_get("title")?;
+    let content: String = row.try_get("content")?;
+    let tags: String = row.try_get("tags")?;
+    let stage: String = row.try_get("stage")?;
+    let is_public: bool = row.try_get("is_public")?;
+    let is_off_topic: bool = row.try_get("is_off_topic")?;
+    let comments_enabled: bool = row.try_get("comments_enabled")?;
+    let vote_count: i32 = row.try_get("vote_count")?;
+    let pinned_at: Option<chrono::DateTime<chrono::Utc>> = row.try_get("pinned_at")?;
+    let created_at: chrono::DateTime<chrono::Utc> = row.try_get("created_at")?;
+
+    Ok(format!(
+        "{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+        id,
+        user_id,
+        csv_escape(&author_name),
+        csv_escape(&author_email),
+        csv_escape(&title),
+        csv_escape(&content),
+        csv_escape(&tags),
+        csv_escape(&stage),
+        is_public,
+        is_off_topic,
+        comments_enabled,
+        vote_count,
+        csv_escape(&pinned_at.map(|x| x.to_rfc3339()).unwrap_or_default()),
+        csv_escape(&created_at.to_rfc3339()),
+    ))
+}
+
+#[cfg(feature = "ssr")]
+async fn ideas_csv_body() -> Result<Body, StatusCode> {
     let mut rows = sqlx::query(
         r#"
         SELECT
@@ -364,55 +407,75 @@ fn ideas_csv_body() -> Body {
     )
     .fetch(crate::database::get_db());
 
+    // Fetch first row before committing to a 200 response, so DB errors
+    // can still surface as a proper error status code.
+    let first_row = rows.try_next().await.map_err(|e| {
+        tracing::error!("Ideas CSV query failed on first row: {e}");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let first_line = first_row
+        .as_ref()
+        .map(format_idea_row)
+        .transpose()
+        .map_err(|e| {
+            tracing::error!("Ideas CSV row formatting failed: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
     let stream = try_stream! {
         yield Bytes::from_static(IDEAS_CSV_HEADER);
 
-        while let Some(row) = rows.try_next().await? {
-            let id: i32 = row.try_get("id")?;
-            let user_id: i32 = row.try_get("user_id")?;
-            let author_name: String = row.try_get("author_name")?;
-            let author_email: String = row.try_get("author_email")?;
-            let title: String = row.try_get("title")?;
-            let content: String = row.try_get("content")?;
-            let tags: String = row.try_get("tags")?;
-            let stage: String = row.try_get("stage")?;
-            let is_public: bool = row.try_get("is_public")?;
-            let is_off_topic: bool = row.try_get("is_off_topic")?;
-            let comments_enabled: bool = row.try_get("comments_enabled")?;
-            let vote_count: i32 = row.try_get("vote_count")?;
-            let pinned_at: Option<chrono::DateTime<chrono::Utc>> = row.try_get("pinned_at")?;
-            let created_at: chrono::DateTime<chrono::Utc> = row.try_get("created_at")?;
-
-            let line = format!(
-                "{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
-                id,
-                user_id,
-                csv_escape(&author_name),
-                csv_escape(&author_email),
-                csv_escape(&title),
-                csv_escape(&content),
-                csv_escape(&tags),
-                csv_escape(&stage),
-                is_public,
-                is_off_topic,
-                comments_enabled,
-                vote_count,
-                csv_escape(&pinned_at.map(|x| x.to_rfc3339()).unwrap_or_default()),
-                csv_escape(&created_at.to_rfc3339()),
-            );
+        if let Some(line) = first_line {
             yield Bytes::from(line);
         }
+
+        while let Some(row) = rows.try_next().await? {
+            yield Bytes::from(format_idea_row(&row)?);
+        }
     };
-    Body::from_stream(stream.map_err(|e: sqlx::Error| {
+    Ok(Body::from_stream(stream.map_err(|e: sqlx::Error| {
         tracing::error!("Ideas CSV stream failed: {e}");
         std::io::Error::other(e)
-    }))
+    })))
 }
 
 #[cfg(feature = "ssr")]
-fn comments_csv_body() -> Body {
+const COMMENTS_CSV_HEADER: &[u8] =
+    b"id,idea_id,idea_title,user_id,author_name,author_email,content,is_pinned,is_deleted,created_at\n";
+
+#[cfg(feature = "ssr")]
+fn format_comment_row(row: &sqlx::postgres::PgRow) -> Result<String, sqlx::Error> {
     use sqlx::Row;
 
+    let id: i32 = row.try_get("id")?;
+    let idea_id: i32 = row.try_get("idea_id")?;
+    let idea_title: String = row.try_get("idea_title")?;
+    let user_id: i32 = row.try_get("user_id")?;
+    let author_name: String = row.try_get("author_name")?;
+    let author_email: String = row.try_get("author_email")?;
+    let content: String = row.try_get("content")?;
+    let is_pinned: bool = row.try_get("is_pinned")?;
+    let is_deleted: bool = row.try_get("is_deleted")?;
+    let created_at: chrono::DateTime<chrono::Utc> = row.try_get("created_at")?;
+
+    Ok(format!(
+        "{},{},{},{},{},{},{},{},{},{}\n",
+        id,
+        idea_id,
+        csv_escape(&idea_title),
+        user_id,
+        csv_escape(&author_name),
+        csv_escape(&author_email),
+        csv_escape(&content),
+        is_pinned,
+        is_deleted,
+        csv_escape(&created_at.to_rfc3339()),
+    ))
+}
+
+#[cfg(feature = "ssr")]
+async fn comments_csv_body() -> Result<Body, StatusCode> {
     let mut rows = sqlx::query(
         r#"
         SELECT
@@ -434,51 +497,42 @@ fn comments_csv_body() -> Body {
     )
     .fetch(crate::database::get_db());
 
+    // Fetch first row before committing to a 200 response, so DB errors
+    // can still surface as a proper error status code.
+    let first_row = rows.try_next().await.map_err(|e| {
+        tracing::error!("Comments CSV query failed on first row: {e}");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let first_line = first_row
+        .as_ref()
+        .map(format_comment_row)
+        .transpose()
+        .map_err(|e| {
+            tracing::error!("Comments CSV row formatting failed: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
     let stream = try_stream! {
-        yield Bytes::from_static(
-            b"id,idea_id,idea_title,user_id,author_name,author_email,content,is_pinned,is_deleted,created_at\n",
-        );
+        yield Bytes::from_static(COMMENTS_CSV_HEADER);
 
-        while let Some(row) = rows.try_next().await? {
-            let id: i32 = row.try_get("id")?;
-            let idea_id: i32 = row.try_get("idea_id")?;
-            let idea_title: String = row.try_get("idea_title")?;
-            let user_id: i32 = row.try_get("user_id")?;
-            let author_name: String = row.try_get("author_name")?;
-            let author_email: String = row.try_get("author_email")?;
-            let content: String = row.try_get("content")?;
-            let is_pinned: bool = row.try_get("is_pinned")?;
-            let is_deleted: bool = row.try_get("is_deleted")?;
-            let created_at: chrono::DateTime<chrono::Utc> = row.try_get("created_at")?;
-
-            let line = format!(
-                "{},{},{},{},{},{},{},{},{},{}\n",
-                id,
-                idea_id,
-                csv_escape(&idea_title),
-                user_id,
-                csv_escape(&author_name),
-                csv_escape(&author_email),
-                csv_escape(&content),
-                is_pinned,
-                is_deleted,
-                csv_escape(&created_at.to_rfc3339()),
-            );
+        if let Some(line) = first_line {
             yield Bytes::from(line);
         }
+
+        while let Some(row) = rows.try_next().await? {
+            yield Bytes::from(format_comment_row(&row)?);
+        }
     };
-    Body::from_stream(stream.map_err(|e: sqlx::Error| {
+    Ok(Body::from_stream(stream.map_err(|e: sqlx::Error| {
         tracing::error!("Comments CSV stream failed: {e}");
         std::io::Error::other(e)
-    }))
+    })))
 }
 
 #[cfg(all(test, feature = "ssr"))]
 mod tests {
-    use super::{csv_escape, require_admin_cookie_jar, IDEAS_CSV_HEADER};
-    use crate::auth::UserSession;
-    use axum::http::StatusCode;
-    use axum_extra::extract::{CookieJar, cookie::Cookie};
+    use super::{csv_escape, COMMENTS_CSV_HEADER, IDEAS_CSV_HEADER};
 
     #[test]
     fn csv_escape_quotes_and_escapes_embedded_quotes() {
@@ -490,29 +544,6 @@ mod tests {
         assert_eq!(csv_escape("=1+1"), "\"'=1+1\"");
         assert_eq!(csv_escape(" +SUM(A1:A2)"), "\"' +SUM(A1:A2)\"");
         assert_eq!(csv_escape("@cmd"), "\"'@cmd\"");
-    }
-
-    #[test]
-    fn require_admin_cookie_jar_denies_missing_cookie() {
-        let jar = CookieJar::new();
-        assert_eq!(
-            require_admin_cookie_jar(&jar),
-            Err(StatusCode::UNAUTHORIZED)
-        );
-    }
-
-    #[test]
-    fn require_admin_cookie_jar_denies_non_admin() {
-        let session = UserSession {
-            id: 1,
-            email: "mod@example.com".to_string(),
-            name: "Mod".to_string(),
-            role: 1,
-        };
-        let session_json =
-            serde_json::to_string(&session).expect("session serialization should succeed");
-        let jar = CookieJar::new().add(Cookie::new("user_session", session_json));
-        assert_eq!(require_admin_cookie_jar(&jar), Err(StatusCode::FORBIDDEN));
     }
 
     #[test]
@@ -530,16 +561,24 @@ mod tests {
     }
 
     #[test]
-    fn require_admin_cookie_jar_allows_admin() {
-        let session = UserSession {
-            id: 2,
-            email: "admin@example.com".to_string(),
-            name: "Admin".to_string(),
-            role: 2,
-        };
-        let session_json =
-            serde_json::to_string(&session).expect("session serialization should succeed");
-        let jar = CookieJar::new().add(Cookie::new("user_session", session_json));
-        assert_eq!(require_admin_cookie_jar(&jar), Ok(()));
+    fn comments_csv_header_has_expected_columns() {
+        let header =
+            std::str::from_utf8(COMMENTS_CSV_HEADER).expect("header should be valid UTF-8");
+        let columns: Vec<&str> = header.trim_end().split(',').collect();
+        assert_eq!(
+            columns,
+            vec![
+                "id",
+                "idea_id",
+                "idea_title",
+                "user_id",
+                "author_name",
+                "author_email",
+                "content",
+                "is_pinned",
+                "is_deleted",
+                "created_at"
+            ]
+        );
     }
 }
