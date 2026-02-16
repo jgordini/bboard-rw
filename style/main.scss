@@ -1925,92 +1925,94 @@ a {
   }
 }
 
-// Admin buttons
-.btn-primary {
-  padding: 0.5rem 1rem;
-  background: var(--uab-green);
-  color: var(--white);
-  border: none;
-  border-radius: var(--radius);
-  font-size: var(--font-small);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
+// Admin buttons — scoped to .admin-page to avoid overriding auth/conduit routes
+.admin-page {
+  .btn-primary {
+    padding: 0.5rem 1rem;
+    background: var(--uab-green);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius);
+    font-size: var(--font-small);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
 
-  &:hover {
-    background: var(--dragons-lair-green);
+    &:hover {
+      background: var(--dragons-lair-green);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-  }
-}
+  .btn-danger {
+    padding: 0.5rem 1rem;
+    background: var(--destructive);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius);
+    font-size: var(--font-small);
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
 
-.btn-danger {
-  padding: 0.5rem 1rem;
-  background: var(--destructive);
-  color: var(--white);
-  border: none;
-  border-radius: var(--radius);
-  font-size: var(--font-small);
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s;
+    &:hover {
+      opacity: 0.9;
+    }
 
-  &:hover {
-    opacity: 0.9;
-  }
+    &.confirm {
+      background: #b91c1c;
+      animation: pulse 1s infinite;
+    }
 
-  &.confirm {
-    background: #b91c1c;
-    animation: pulse 1s infinite;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-  }
-}
-
-.btn-warning {
-  padding: 0.5rem 1rem;
-  background: var(--uab-gold);
-  color: var(--dragons-lair-green);
-  border: none;
-  border-radius: var(--radius);
-  font-size: var(--font-small);
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    opacity: 0.9;
+    &:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
   }
 
-  &.confirm {
-    animation: pulse 1s infinite;
-  }
-}
+  .btn-warning {
+    padding: 0.5rem 1rem;
+    background: var(--uab-gold);
+    color: var(--dragons-lair-green);
+    border: none;
+    border-radius: var(--radius);
+    font-size: var(--font-small);
+    font-weight: 600;
+    cursor: pointer;
 
-.btn-secondary {
-  padding: 0.5rem 1rem;
-  background: var(--white);
-  color: var(--foreground);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: var(--font-small);
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
+    &:hover {
+      opacity: 0.9;
+    }
 
-  &:hover {
-    background: var(--gray-200);
-    border-color: var(--gray-200);
+    &.confirm {
+      animation: pulse 1s infinite;
+    }
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
+  .btn-secondary {
+    padding: 0.5rem 1rem;
+    background: var(--white);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: var(--font-small);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+
+    &:hover {
+      background: var(--gray-200);
+      border-color: var(--gray-200);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
   }
 }
 
@@ -2097,7 +2099,8 @@ a {
   }
 }
 
-.btn-delete {
+// Admin-specific destructive delete button (scoped to avoid overriding detail-page .btn-delete)
+.admin-page .btn-delete {
   padding: 0.5rem 1rem;
   background: transparent;
   color: var(--destructive);
