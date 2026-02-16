@@ -47,7 +47,7 @@ pub fn Signup(signup: SignupSignal) -> impl IntoView {
                             <A href="/login">"Have an account?"</A>
                         </p>
 
-                        <p class="error-messages text-xs-center">
+                        <p class="error-messages text-xs-center" aria-live="polite" aria-atomic="true">
                             {error_cb}
                         </p>
 

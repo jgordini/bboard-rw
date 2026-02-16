@@ -13,6 +13,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
             <head>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <meta name="theme-color" content="#1a5632"/>
                 <AutoReload options=options.clone() />
                 <HydrationScripts options/>
                 <link rel="shortcut icon" type="image/ico" href="/favicon.ico?v=20260214"/>
@@ -45,7 +46,7 @@ fn NavBar() -> impl IntoView {
         <nav class="navbar">
             <div class="container">
                 <a href="/" class="navbar-brand">
-                    <img src="/uab-logo.jpg" alt="UAB IT Idea Board" class="navbar-logo"/>
+                    <img src="/uab-logo.jpg" alt="UAB IT Idea Board" class="navbar-logo" width="100" height="40"/>
                 </a>
                 <ul class="nav navbar-nav pull-xs-right">
                     <li class="nav-item nav-item-auth">

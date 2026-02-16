@@ -247,14 +247,15 @@ fn AskForEmail() -> impl IntoView {
         <div class="col-md-6 offset-md-3 col-xs-12">
             <h1 class="text-xs-center">"Reset password"</h1>
 
-            <p class="text-xs-center">
+            <p class="text-xs-center" aria-live="polite">
                 {error}
             </p>
 
             <ActionForm action=reset>
                 <fieldset class="form-group">
-                    <input name="email" class="form-control form-control-lg" type="email"
-                        placeholder="Your Email" />
+                    <label for="reset-email" class="sr-only">"Email"</label>
+                    <input id="reset-email" name="email" class="form-control form-control-lg" type="email"
+                        placeholder="Your email…" autocomplete="email" />
                 </fieldset>
                 <button class="btn btn-lg btn-primary pull-xs-right">"Reset Password"</button>
             </ActionForm>
@@ -277,7 +278,7 @@ fn ConfirmPassword(token: String) -> impl IntoView {
         <div class="col-md-6 offset-md-3 col-xs-12">
             <h1 class="text-xs-center">"Reset password"</h1>
 
-            <p class="text-xs-center">
+            <p class="text-xs-center" aria-live="polite">
                 {error}
             </p>
 
@@ -291,11 +292,13 @@ fn ConfirmPassword(token: String) -> impl IntoView {
                 }
             }>
                 <fieldset class="form-group">
-                    <input name="password" class="form-control form-control-lg" type="password"
-                        placeholder="Your new password" />
+                    <label for="reset-password" class="sr-only">"New password"</label>
+                    <input id="reset-password" name="password" class="form-control form-control-lg" type="password"
+                        placeholder="Your new password…" autocomplete="new-password" />
 
-                    <input name="confirm" class="form-control form-control-lg" type="password"
-                        placeholder="Confirm your password" />
+                    <label for="reset-confirm" class="sr-only">"Confirm password"</label>
+                    <input id="reset-confirm" name="confirm" class="form-control form-control-lg" type="password"
+                        placeholder="Confirm your password…" autocomplete="new-password" />
 
                     <input name="token" type="hidden" value={token} />
                 </fieldset>

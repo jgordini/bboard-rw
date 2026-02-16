@@ -69,7 +69,9 @@ pub(super) fn UsersTab() -> impl IntoView {
                                                                 view! { <span>{role_name(current_role)}</span> }.into_any()
                                                             } else {
                                                                 view! {
+                                                                    <label for=format!("user-role-{}", user_id) class="sr-only">"Role"</label>
                                                                     <select
+                                                                        id=format!("user-role-{}", user_id)
                                                                         on:change=move |ev| {
                                                                             let val = event_target_value(&ev);
                                                                             if let Ok(role) = val.parse::<i16>() {

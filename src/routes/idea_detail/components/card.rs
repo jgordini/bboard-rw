@@ -44,7 +44,7 @@ pub(super) fn IdeaDetailCard(
         <article class="detail-card">
             <div class="detail-card-body">
                 <div class="detail-vote-box" class:voted=move || has_voted.get()>
-                    <span class="detail-vote-arrow">"▲"</span>
+                    <span class="detail-vote-arrow" aria-hidden="true">"▲"</span>
                     <span class="detail-vote-count">{idea_vote_count}</span>
                     <Suspense fallback=|| view! { <span class="detail-vote-label">"votes"</span> }>
                         {move || user_resource.get().map(|ur| match ur {

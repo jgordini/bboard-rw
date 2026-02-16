@@ -46,7 +46,7 @@ pub(super) fn ExportTab() -> impl IntoView {
 
         is_exporting.set(true);
         export_failed.set(false);
-        export_status.set("Preparing ideas CSV...".to_string());
+        export_status.set("Preparing ideas CSV\u{2026}".to_string());
 
         spawn_server_action(
             export_ideas_csv(),
@@ -71,7 +71,7 @@ pub(super) fn ExportTab() -> impl IntoView {
 
         is_exporting.set(true);
         export_failed.set(false);
-        export_status.set("Preparing comments CSV...".to_string());
+        export_status.set("Preparing comments CSV\u{2026}".to_string());
 
         spawn_server_action(
             export_comments_csv(),

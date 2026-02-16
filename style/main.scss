@@ -381,7 +381,7 @@ a {
   border: 1px solid var(--evergreen-20);
   border-radius: 3px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color 0.15s, border-color 0.15s;
   letter-spacing: 0.02em;
 
   &:hover:not(:disabled) {
@@ -587,7 +587,7 @@ a {
     color: var(--muted-foreground);
   }
 
-  &:focus {
+  &:focus-visible {
     outline: none;
     border-color: var(--ring);
     box-shadow: 0 0 0 2px var(--campus-green-10);
@@ -1092,12 +1092,6 @@ a {
       color: var(--muted-foreground);
     }
 
-    &:focus {
-      outline: none;
-      border-color: var(--ring);
-      box-shadow: 0 0 0 2px var(--campus-green-10);
-    }
-
     &:focus-visible {
       outline: none;
       border-color: var(--ring);
@@ -1293,7 +1287,7 @@ a {
   border: 1px solid var(--evergreen-20);
   border-radius: 3px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color 0.15s, border-color 0.15s;
   letter-spacing: 0.02em;
 
   &:hover:not(:disabled) {

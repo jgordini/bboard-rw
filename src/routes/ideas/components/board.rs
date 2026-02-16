@@ -157,10 +157,14 @@ pub fn IdeasBoard() -> impl IntoView {
                                 <h3 class="sidebar-card-title">"Search Ideas"</h3>
                             </header>
                             <div class="sidebar-card-body">
+                                <label for="idea-search" class="sr-only">"Search Ideas"</label>
                                 <input
+                                    id="idea-search"
                                     type="search"
+                                    name="search"
                                     class="search-input"
                                     placeholder="Search by title, content, tags…"
+                                    autocomplete="off"
                                     prop:value=move || search_query.get()
                                     on:input=move |ev| search_query.set(event_target_value(&ev))
                                 />

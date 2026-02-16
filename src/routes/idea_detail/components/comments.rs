@@ -6,7 +6,7 @@ use crate::models::CommentWithAuthor;
 use crate::routes::async_helpers::{
     spawn_server_action_refetch_resource, spawn_server_action_with_error,
 };
-use crate::routes::view_helpers::format_relative_time;
+use crate::routes::view_helpers::{confirm_action, format_relative_time};
 
 use super::super::{create_comment, delete_comment_mod, toggle_comment_pin, update_comment_mod};
 
@@ -131,7 +131,9 @@ fn CommentItem(
                             {move || edit_error.get().unwrap_or_default()}
                         </div>
                     </Show>
+                    <label for=format!("comment-edit-{}", comment_id) class="sr-only">"Edit comment"</label>
                     <textarea
+                        id=format!("comment-edit-{}", comment_id)
                         class="dialog-textarea"
                         maxlength=500
                         bind:value=edit_content
@@ -186,10 +188,12 @@ fn CommentItem(
                                         type="button"
                                         class="btn-delete"
                                         on:click=move |_| {
-                                            spawn_server_action_refetch_resource(
-                                                delete_comment_mod(comment_id),
-                                                comments_resource,
-                                            );
+                                            if confirm_action("Delete this comment? This cannot be undone.") {
+                                                spawn_server_action_refetch_resource(
+                                                    delete_comment_mod(comment_id),
+                                                    comments_resource,
+                                                );
+                                            }
                                         }
                                     >
                                         "Delete"
