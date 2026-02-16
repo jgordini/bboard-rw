@@ -16,6 +16,7 @@ pub(super) fn IdeaCard(
     user_resource: Resource<Result<Option<UserSession>, ServerFnError>>,
     voted_ideas: RwSignal<Vec<i32>>,
     comment_counts_resource: Resource<Result<HashMap<i32, i64>, ServerFnError>>,
+    ideas_resource: Resource<Result<Vec<IdeaWithAuthor>, ServerFnError>>,
 ) -> impl IntoView {
     let idea_id = idea_with_author.idea.id;
     let vote_count = RwSignal::new(idea_with_author.idea.vote_count);
@@ -62,6 +63,8 @@ pub(super) fn IdeaCard(
             toggle_vote(idea_id),
             move |now_voted| {
                 is_toggling.set(false);
+                // Refetch ideas to update sorting
+                ideas_resource.refetch();
                 // Reconcile with server truth
                 let locally_voted = voted_ideas.get_untracked().contains(&idea_id);
                 if now_voted != locally_voted {
