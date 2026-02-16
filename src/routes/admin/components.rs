@@ -16,6 +16,31 @@ use moderation::ModerationTab;
 use overview::OverviewTab;
 use users::UsersTab;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ResolvedTab {
+    Overview,
+    Flags,
+    Moderation,
+    Export,
+    Users,
+    Unknown,
+}
+
+fn show_admin_management_tabs(user: &UserSession) -> bool {
+    user.is_admin()
+}
+
+fn resolve_active_tab(active_tab: &str, is_admin: bool) -> ResolvedTab {
+    match active_tab {
+        "overview" => ResolvedTab::Overview,
+        "flags" => ResolvedTab::Flags,
+        "moderation" => ResolvedTab::Moderation,
+        "export" if is_admin => ResolvedTab::Export,
+        "users" if is_admin => ResolvedTab::Users,
+        _ => ResolvedTab::Unknown,
+    }
+}
+
 #[component]
 pub(super) fn AdminDashboard(user: UserSession) -> impl IntoView {
     let stats = Resource::new(|| (), |_| async { get_admin_stats().await });
@@ -45,7 +70,7 @@ pub(super) fn AdminDashboard(user: UserSession) -> impl IntoView {
                     on:click=move |_| active_tab.set("moderation")
                 >"Off-Topic Items"</button>
                 {move || {
-                    if user_for_tab_button.is_admin() {
+                    if show_admin_management_tabs(&user_for_tab_button) {
                         view! {
                             <button
                                 class:active=move || active_tab.get() == "export"
@@ -64,15 +89,80 @@ pub(super) fn AdminDashboard(user: UserSession) -> impl IntoView {
             </div>
 
             <div class="admin-content">
-                {move || match active_tab.get() {
-                    "overview" => view! { <OverviewTab stats=stats /> }.into_any(),
-                    "flags" => view! { <FlagsTab /> }.into_any(),
-                    "moderation" => view! { <ModerationTab /> }.into_any(),
-                    "export" if user_for_content.is_admin() => view! { <ExportTab /> }.into_any(),
-                    "users" if user_for_content.is_admin() => view! { <UsersTab /> }.into_any(),
-                    _ => view! { <p>"Unknown tab"</p> }.into_any(),
+                {move || match resolve_active_tab(active_tab.get(), user_for_content.is_admin()) {
+                    ResolvedTab::Overview => view! { <OverviewTab stats=stats /> }.into_any(),
+                    ResolvedTab::Flags => view! { <FlagsTab /> }.into_any(),
+                    ResolvedTab::Moderation => view! { <ModerationTab /> }.into_any(),
+                    ResolvedTab::Export => view! { <ExportTab /> }.into_any(),
+                    ResolvedTab::Users => view! { <UsersTab /> }.into_any(),
+                    ResolvedTab::Unknown => view! { <p>"Unknown tab"</p> }.into_any(),
                 }}
             </div>
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ResolvedTab, resolve_active_tab, show_admin_management_tabs};
+    use crate::auth::UserSession;
+
+    fn user_with_role(role: i16) -> UserSession {
+        UserSession {
+            id: 1,
+            email: "test@uab.edu".to_string(),
+            name: "Test User".to_string(),
+            role,
+        }
+    }
+
+    #[test]
+    fn admin_users_can_see_and_access_admin_tabs() {
+        let admin = user_with_role(2);
+
+        assert!(show_admin_management_tabs(&admin));
+        assert_eq!(
+            resolve_active_tab("export", admin.is_admin()),
+            ResolvedTab::Export
+        );
+        assert_eq!(
+            resolve_active_tab("users", admin.is_admin()),
+            ResolvedTab::Users
+        );
+    }
+
+    #[test]
+    fn non_admin_users_cannot_access_admin_tabs() {
+        let moderator = user_with_role(1);
+        let regular_user = user_with_role(0);
+
+        assert!(!show_admin_management_tabs(&moderator));
+        assert!(!show_admin_management_tabs(&regular_user));
+        assert_eq!(
+            resolve_active_tab("export", moderator.is_admin()),
+            ResolvedTab::Unknown
+        );
+        assert_eq!(
+            resolve_active_tab("users", regular_user.is_admin()),
+            ResolvedTab::Unknown
+        );
+    }
+
+    #[test]
+    fn shared_tabs_are_accessible_for_all_roles() {
+        let non_admin = user_with_role(0);
+
+        assert_eq!(
+            resolve_active_tab("overview", non_admin.is_admin()),
+            ResolvedTab::Overview
+        );
+        assert_eq!(
+            resolve_active_tab("flags", non_admin.is_admin()),
+            ResolvedTab::Flags
+        );
+        assert_eq!(
+            resolve_active_tab("moderation", non_admin.is_admin()),
+            ResolvedTab::Moderation
+        );
     }
 }
