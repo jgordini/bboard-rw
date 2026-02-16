@@ -1,92 +1,41 @@
 use leptos::prelude::*;
 
-use crate::routes::async_helpers::spawn_server_action;
-
-use super::super::{export_comments_csv, export_ideas_csv};
-
 #[cfg(feature = "hydrate")]
-#[wasm_bindgen::prelude::wasm_bindgen(
-    inline_js = r#"
-export function downloadCsv(filename, content) {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
+#[wasm_bindgen::prelude::wasm_bindgen(inline_js = r#"
+export function downloadCsv(url) {
   const link = document.createElement('a');
   link.href = url;
-  link.setAttribute('download', filename);
+  link.setAttribute('download', '');
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
 }
-"#
-)]
+"#)]
 extern "C" {
     #[wasm_bindgen::prelude::wasm_bindgen(js_name = downloadCsv)]
-    fn download_csv(filename: &str, content: &str);
+    fn download_csv(url: &str);
 }
 
-fn trigger_csv_download(filename: &str, content: &str) {
+fn trigger_csv_download(url: &str) {
     #[cfg(feature = "hydrate")]
-    download_csv(filename, content);
+    download_csv(url);
 
     #[cfg(not(feature = "hydrate"))]
-    let _ = (filename, content);
+    let _ = url;
 }
 
 #[component]
 pub(super) fn ExportTab() -> impl IntoView {
     let export_status = RwSignal::new(String::new());
-    let is_exporting = RwSignal::new(false);
-    let export_failed = RwSignal::new(false);
 
     let handle_export_ideas = move |_| {
-        if is_exporting.get() {
-            return;
-        }
-
-        is_exporting.set(true);
-        export_failed.set(false);
-        export_status.set("Preparing ideas CSV\u{2026}".to_string());
-
-        spawn_server_action(
-            export_ideas_csv(),
-            move |csv| {
-                trigger_csv_download("ideas_export.csv", &csv);
-                export_status.set("Ideas CSV downloaded.".to_string());
-                export_failed.set(false);
-                is_exporting.set(false);
-            },
-            move |error| {
-                export_status.set(format!("Failed to export ideas CSV: {}", error));
-                export_failed.set(true);
-                is_exporting.set(false);
-            },
-        );
+        trigger_csv_download("/admin/export/ideas.csv");
+        export_status.set("Ideas CSV download started.".to_string());
     };
 
     let handle_export_comments = move |_| {
-        if is_exporting.get() {
-            return;
-        }
-
-        is_exporting.set(true);
-        export_failed.set(false);
-        export_status.set("Preparing comments CSV\u{2026}".to_string());
-
-        spawn_server_action(
-            export_comments_csv(),
-            move |csv| {
-                trigger_csv_download("comments_export.csv", &csv);
-                export_status.set("Comments CSV downloaded.".to_string());
-                export_failed.set(false);
-                is_exporting.set(false);
-            },
-            move |error| {
-                export_status.set(format!("Failed to export comments CSV: {}", error));
-                export_failed.set(true);
-                is_exporting.set(false);
-            },
-        );
+        trigger_csv_download("/admin/export/comments.csv");
+        export_status.set("Comments CSV download started.".to_string());
     };
 
     view! {
@@ -101,7 +50,6 @@ pub(super) fn ExportTab() -> impl IntoView {
                     <button
                         type="button"
                         class="btn btn-primary admin-export-btn"
-                        disabled=move || is_exporting.get()
                         on:click=handle_export_ideas
                     >
                         "Export Ideas CSV"
@@ -109,7 +57,6 @@ pub(super) fn ExportTab() -> impl IntoView {
                     <button
                         type="button"
                         class="btn btn-primary admin-export-btn"
-                        disabled=move || is_exporting.get()
                         on:click=handle_export_comments
                     >
                         "Export Comments CSV"
@@ -118,8 +65,7 @@ pub(super) fn ExportTab() -> impl IntoView {
                 <Show when=move || !export_status.get().is_empty()>
                     <p
                         class="admin-export-status"
-                        class:error=move || export_failed.get()
-                        class:success=move || !export_failed.get()
+                        class:success=true
                         aria-live="polite"
                     >
                         {move || export_status.get()}

@@ -1,7 +1,7 @@
 use leptos::prelude::*;
-use leptos_axum::{generate_route_list, LeptosRoutes};
+use leptos_axum::{LeptosRoutes, generate_route_list};
 
-use crate::app::{shell, App};
+use crate::app::{App, shell};
 
 pub async fn init_app(configuration_path: Option<&str>) -> Result<(), String> {
     // Load .env file if present (silently ignore if missing, e.g. in Docker)
@@ -30,8 +30,22 @@ pub async fn init_app(configuration_path: Option<&str>) -> Result<(), String> {
         .append_index_html_on_directories(false);
 
     let app = axum::Router::new()
-        .route("/auth/cas/login", axum::routing::get(crate::auth::cas_login_redirect))
-        .route("/auth/cas/callback", axum::routing::get(crate::auth::cas_callback))
+        .route(
+            "/auth/cas/login",
+            axum::routing::get(crate::auth::cas_login_redirect),
+        )
+        .route(
+            "/auth/cas/callback",
+            axum::routing::get(crate::auth::cas_callback),
+        )
+        .route(
+            "/admin/export/ideas.csv",
+            axum::routing::get(crate::routes::admin_export_ideas_csv),
+        )
+        .route(
+            "/admin/export/comments.csv",
+            axum::routing::get(crate::routes::admin_export_comments_csv),
+        )
         .leptos_routes(&leptos_options, routes, {
             let leptos_options = leptos_options.clone();
             move || shell(leptos_options.clone())

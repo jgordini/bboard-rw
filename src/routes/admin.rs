@@ -1,10 +1,23 @@
 use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
-use crate::auth::{get_user, UserSession};
+
+use crate::auth::{UserSession, get_user};
+#[cfg(feature = "ssr")]
+use crate::models::{Flag, Idea};
 use crate::models::{IdeaWithAuthor, User};
 #[cfg(feature = "ssr")]
-use crate::models::{Idea, Flag};
+use async_stream::try_stream;
+#[cfg(feature = "ssr")]
+use axum::{
+    body::{Body, Bytes},
+    http::{HeaderMap, HeaderValue, StatusCode, header},
+    response::IntoResponse,
+};
+#[cfg(feature = "ssr")]
+use axum_extra::extract::CookieJar;
+#[cfg(feature = "ssr")]
+use futures_util::TryStreamExt;
 
 mod components;
 use components::AdminDashboard;
@@ -87,7 +100,10 @@ pub async fn clear_flags_action(target_type: String, target_id: i32) -> Result<(
 }
 
 #[server]
-pub async fn mark_idea_off_topic_action(idea_id: i32, is_off_topic: bool) -> Result<(), ServerFnError> {
+pub async fn mark_idea_off_topic_action(
+    idea_id: i32,
+    is_off_topic: bool,
+) -> Result<(), ServerFnError> {
     use crate::auth::require_moderator;
     require_moderator().await?;
 
@@ -179,38 +195,19 @@ pub async fn delete_user_action(user_id: i32) -> Result<(), ServerFnError> {
         .map_err(|e| ServerFnError::new(format!("Failed to delete user: {}", e)))
 }
 
-#[server]
-pub async fn export_ideas_csv() -> Result<String, ServerFnError> {
-    use crate::auth::require_admin;
-    require_admin().await?;
-
-    #[cfg(feature = "ssr")]
-    {
-        build_ideas_csv()
-            .await
-            .map_err(|e| ServerFnError::new(format!("Failed to export ideas CSV: {}", e)))
-    }
-    #[cfg(not(feature = "ssr"))]
-    {
-        Err(ServerFnError::new("CSV export is only available on the server"))
-    }
+#[cfg(feature = "ssr")]
+pub async fn admin_export_ideas_csv(jar: CookieJar) -> Result<impl IntoResponse, StatusCode> {
+    require_admin_cookie_jar(&jar)?;
+    Ok((csv_download_headers("ideas_export.csv")?, ideas_csv_body()))
 }
 
-#[server]
-pub async fn export_comments_csv() -> Result<String, ServerFnError> {
-    use crate::auth::require_admin;
-    require_admin().await?;
-
-    #[cfg(feature = "ssr")]
-    {
-        build_comments_csv()
-            .await
-            .map_err(|e| ServerFnError::new(format!("Failed to export comments CSV: {}", e)))
-    }
-    #[cfg(not(feature = "ssr"))]
-    {
-        Err(ServerFnError::new("CSV export is only available on the server"))
-    }
+#[cfg(feature = "ssr")]
+pub async fn admin_export_comments_csv(jar: CookieJar) -> Result<impl IntoResponse, StatusCode> {
+    require_admin_cookie_jar(&jar)?;
+    Ok((
+        csv_download_headers("comments_export.csv")?,
+        comments_csv_body(),
+    ))
 }
 
 // ============================================================================
@@ -292,15 +289,54 @@ fn role_name(role: i16) -> &'static str {
 
 #[cfg(feature = "ssr")]
 fn csv_escape(value: &str) -> String {
-    let escaped = value.replace('"', "\"\"");
+    let trimmed = value.trim_start_matches([' ', '\t']);
+    let mut sanitized = value.to_string();
+    if matches!(trimmed.chars().next(), Some('=' | '+' | '-' | '@')) {
+        sanitized.insert(0, '\'');
+    }
+    let escaped = sanitized.replace('"', "\"\"");
     format!("\"{}\"", escaped)
 }
 
 #[cfg(feature = "ssr")]
-async fn build_ideas_csv() -> Result<String, sqlx::Error> {
+fn csv_download_headers(filename: &str) -> Result<HeaderMap, StatusCode> {
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        header::CONTENT_TYPE,
+        HeaderValue::from_static("text/csv; charset=utf-8"),
+    );
+    headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    let content_disposition =
+        HeaderValue::from_str(&format!("attachment; filename=\"{filename}\"")).map_err(|e| {
+            tracing::error!("Failed to build content disposition header: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    headers.insert(header::CONTENT_DISPOSITION, content_disposition);
+    Ok(headers)
+}
+
+#[cfg(feature = "ssr")]
+fn require_admin_cookie_jar(jar: &CookieJar) -> Result<(), StatusCode> {
+    let Some(cookie) = jar.get("user_session") else {
+        return Err(StatusCode::UNAUTHORIZED);
+    };
+
+    let session: UserSession = serde_json::from_str(cookie.value()).map_err(|e| {
+        tracing::warn!("Rejected admin CSV export due to invalid session cookie: {e}");
+        StatusCode::UNAUTHORIZED
+    })?;
+    if session.is_admin() {
+        Ok(())
+    } else {
+        Err(StatusCode::FORBIDDEN)
+    }
+}
+
+#[cfg(feature = "ssr")]
+fn ideas_csv_body() -> Body {
     use sqlx::Row;
 
-    let rows = sqlx::query(
+    let mut rows = sqlx::query(
         r#"
         SELECT
             i.id,
@@ -322,56 +358,60 @@ async fn build_ideas_csv() -> Result<String, sqlx::Error> {
         ORDER BY i.created_at DESC
         "#,
     )
-    .fetch_all(crate::database::get_db())
-    .await?;
+    .fetch(crate::database::get_db());
 
-    let mut csv = String::from(
-        "id,user_id,author_name,author_email,title,content,tags,stage,is_public,is_off_topic,comments_enabled,vote_count,pinned_at,created_at\n",
-    );
+    let stream = try_stream! {
+        yield Bytes::from_static(
+            b"id,user_id,author_name,author_email,title,content,tags,stage,is_public,is_off_topic,comments_enabled,vote_count,pinned_at,created_at\n",
+        );
 
-    for row in rows {
-        let id: i32 = row.try_get("id")?;
-        let user_id: i32 = row.try_get("user_id")?;
-        let author_name: String = row.try_get("author_name")?;
-        let author_email: String = row.try_get("author_email")?;
-        let title: String = row.try_get("title")?;
-        let content: String = row.try_get("content")?;
-        let tags: String = row.try_get("tags")?;
-        let stage: String = row.try_get("stage")?;
-        let is_public: bool = row.try_get("is_public")?;
-        let is_off_topic: bool = row.try_get("is_off_topic")?;
-        let comments_enabled: bool = row.try_get("comments_enabled")?;
-        let vote_count: i32 = row.try_get("vote_count")?;
-        let pinned_at: Option<chrono::DateTime<chrono::Utc>> = row.try_get("pinned_at")?;
-        let created_at: chrono::DateTime<chrono::Utc> = row.try_get("created_at")?;
+        while let Some(row) = rows.try_next().await? {
+            let id: i32 = row.try_get("id")?;
+            let user_id: i32 = row.try_get("user_id")?;
+            let author_name: String = row.try_get("author_name")?;
+            let author_email: String = row.try_get("author_email")?;
+            let title: String = row.try_get("title")?;
+            let content: String = row.try_get("content")?;
+            let tags: String = row.try_get("tags")?;
+            let stage: String = row.try_get("stage")?;
+            let is_public: bool = row.try_get("is_public")?;
+            let is_off_topic: bool = row.try_get("is_off_topic")?;
+            let comments_enabled: bool = row.try_get("comments_enabled")?;
+            let vote_count: i32 = row.try_get("vote_count")?;
+            let pinned_at: Option<chrono::DateTime<chrono::Utc>> = row.try_get("pinned_at")?;
+            let created_at: chrono::DateTime<chrono::Utc> = row.try_get("created_at")?;
 
-        csv.push_str(&format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
-            id,
-            user_id,
-            csv_escape(&author_name),
-            csv_escape(&author_email),
-            csv_escape(&title),
-            csv_escape(&content),
-            csv_escape(&tags),
-            csv_escape(&stage),
-            is_public,
-            is_off_topic,
-            comments_enabled,
-            vote_count,
-            csv_escape(&pinned_at.map(|x| x.to_rfc3339()).unwrap_or_default()),
-            csv_escape(&created_at.to_rfc3339()),
-        ));
-    }
-
-    Ok(csv)
+            let line = format!(
+                "{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+                id,
+                user_id,
+                csv_escape(&author_name),
+                csv_escape(&author_email),
+                csv_escape(&title),
+                csv_escape(&content),
+                csv_escape(&tags),
+                csv_escape(&stage),
+                is_public,
+                is_off_topic,
+                comments_enabled,
+                vote_count,
+                csv_escape(&pinned_at.map(|x| x.to_rfc3339()).unwrap_or_default()),
+                csv_escape(&created_at.to_rfc3339()),
+            );
+            yield Bytes::from(line);
+        }
+    };
+    Body::from_stream(stream.map_err(|e: sqlx::Error| {
+        tracing::error!("Ideas CSV stream failed: {e}");
+        std::io::Error::other(e)
+    }))
 }
 
 #[cfg(feature = "ssr")]
-async fn build_comments_csv() -> Result<String, sqlx::Error> {
+fn comments_csv_body() -> Body {
     use sqlx::Row;
 
-    let rows = sqlx::query(
+    let mut rows = sqlx::query(
         r#"
         SELECT
             c.id,
@@ -390,39 +430,100 @@ async fn build_comments_csv() -> Result<String, sqlx::Error> {
         ORDER BY c.created_at DESC
         "#,
     )
-    .fetch_all(crate::database::get_db())
-    .await?;
+    .fetch(crate::database::get_db());
 
-    let mut csv = String::from(
-        "id,idea_id,idea_title,user_id,author_name,author_email,content,is_pinned,is_deleted,created_at\n",
-    );
+    let stream = try_stream! {
+        yield Bytes::from_static(
+            b"id,idea_id,idea_title,user_id,author_name,author_email,content,is_pinned,is_deleted,created_at\n",
+        );
 
-    for row in rows {
-        let id: i32 = row.try_get("id")?;
-        let idea_id: i32 = row.try_get("idea_id")?;
-        let idea_title: String = row.try_get("idea_title")?;
-        let user_id: i32 = row.try_get("user_id")?;
-        let author_name: String = row.try_get("author_name")?;
-        let author_email: String = row.try_get("author_email")?;
-        let content: String = row.try_get("content")?;
-        let is_pinned: bool = row.try_get("is_pinned")?;
-        let is_deleted: bool = row.try_get("is_deleted")?;
-        let created_at: chrono::DateTime<chrono::Utc> = row.try_get("created_at")?;
+        while let Some(row) = rows.try_next().await? {
+            let id: i32 = row.try_get("id")?;
+            let idea_id: i32 = row.try_get("idea_id")?;
+            let idea_title: String = row.try_get("idea_title")?;
+            let user_id: i32 = row.try_get("user_id")?;
+            let author_name: String = row.try_get("author_name")?;
+            let author_email: String = row.try_get("author_email")?;
+            let content: String = row.try_get("content")?;
+            let is_pinned: bool = row.try_get("is_pinned")?;
+            let is_deleted: bool = row.try_get("is_deleted")?;
+            let created_at: chrono::DateTime<chrono::Utc> = row.try_get("created_at")?;
 
-        csv.push_str(&format!(
-            "{},{},{},{},{},{},{},{},{},{}\n",
-            id,
-            idea_id,
-            csv_escape(&idea_title),
-            user_id,
-            csv_escape(&author_name),
-            csv_escape(&author_email),
-            csv_escape(&content),
-            is_pinned,
-            is_deleted,
-            csv_escape(&created_at.to_rfc3339()),
-        ));
+            let line = format!(
+                "{},{},{},{},{},{},{},{},{},{}\n",
+                id,
+                idea_id,
+                csv_escape(&idea_title),
+                user_id,
+                csv_escape(&author_name),
+                csv_escape(&author_email),
+                csv_escape(&content),
+                is_pinned,
+                is_deleted,
+                csv_escape(&created_at.to_rfc3339()),
+            );
+            yield Bytes::from(line);
+        }
+    };
+    Body::from_stream(stream.map_err(|e: sqlx::Error| {
+        tracing::error!("Comments CSV stream failed: {e}");
+        std::io::Error::other(e)
+    }))
+}
+
+#[cfg(all(test, feature = "ssr"))]
+mod tests {
+    use super::{csv_escape, require_admin_cookie_jar};
+    use crate::auth::UserSession;
+    use axum::http::StatusCode;
+    use axum_extra::extract::{CookieJar, cookie::Cookie};
+
+    #[test]
+    fn csv_escape_quotes_and_escapes_embedded_quotes() {
+        assert_eq!(csv_escape("he said \"hello\""), "\"he said \"\"hello\"\"\"");
     }
 
-    Ok(csv)
+    #[test]
+    fn csv_escape_prefixes_dangerous_formula_values() {
+        assert_eq!(csv_escape("=1+1"), "\"'=1+1\"");
+        assert_eq!(csv_escape(" +SUM(A1:A2)"), "\"' +SUM(A1:A2)\"");
+        assert_eq!(csv_escape("@cmd"), "\"'@cmd\"");
+    }
+
+    #[test]
+    fn require_admin_cookie_jar_denies_missing_cookie() {
+        let jar = CookieJar::new();
+        assert_eq!(
+            require_admin_cookie_jar(&jar),
+            Err(StatusCode::UNAUTHORIZED)
+        );
+    }
+
+    #[test]
+    fn require_admin_cookie_jar_denies_non_admin() {
+        let session = UserSession {
+            id: 1,
+            email: "mod@example.com".to_string(),
+            name: "Mod".to_string(),
+            role: 1,
+        };
+        let session_json =
+            serde_json::to_string(&session).expect("session serialization should succeed");
+        let jar = CookieJar::new().add(Cookie::new("user_session", session_json));
+        assert_eq!(require_admin_cookie_jar(&jar), Err(StatusCode::FORBIDDEN));
+    }
+
+    #[test]
+    fn require_admin_cookie_jar_allows_admin() {
+        let session = UserSession {
+            id: 2,
+            email: "admin@example.com".to_string(),
+            name: "Admin".to_string(),
+            role: 2,
+        };
+        let session_json =
+            serde_json::to_string(&session).expect("session serialization should succeed");
+        let jar = CookieJar::new().add(Cookie::new("user_session", session_json));
+        assert_eq!(require_admin_cookie_jar(&jar), Ok(()));
+    }
 }
