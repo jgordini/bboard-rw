@@ -15,5 +15,6 @@ mod account;
 mod reset_password;
 mod view_helpers;
 mod async_helpers;
+#[cfg(feature = "ssr")]
 mod validation_helpers;
 mod error_helpers;
