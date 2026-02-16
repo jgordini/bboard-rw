@@ -194,7 +194,7 @@ pub fn IdeasBoard() -> impl IntoView {
                                                         </div>
                                                         <div class="stat-box">
                                                             <span class="stat-value">{votes_count}</span>
-                                                            <span class="stat-label">"votes"</span>
+                                                            <span class="stat-label">"sparks"</span>
                                                         </div>
                                                     </div>
                                                 </div>

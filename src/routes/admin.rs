@@ -333,6 +333,10 @@ fn require_admin_cookie_jar(jar: &CookieJar) -> Result<(), StatusCode> {
 }
 
 #[cfg(feature = "ssr")]
+const IDEAS_CSV_HEADER: &[u8] =
+    b"id,user_id,author_name,author_email,title,content,tags,stage,is_public,is_off_topic,comments_enabled,spark_count,pinned_at,created_at\n";
+
+#[cfg(feature = "ssr")]
 fn ideas_csv_body() -> Body {
     use sqlx::Row;
 
@@ -361,9 +365,7 @@ fn ideas_csv_body() -> Body {
     .fetch(crate::database::get_db());
 
     let stream = try_stream! {
-        yield Bytes::from_static(
-            b"id,user_id,author_name,author_email,title,content,tags,stage,is_public,is_off_topic,comments_enabled,vote_count,pinned_at,created_at\n",
-        );
+        yield Bytes::from_static(IDEAS_CSV_HEADER);
 
         while let Some(row) = rows.try_next().await? {
             let id: i32 = row.try_get("id")?;
@@ -473,7 +475,7 @@ fn comments_csv_body() -> Body {
 
 #[cfg(all(test, feature = "ssr"))]
 mod tests {
-    use super::{csv_escape, require_admin_cookie_jar};
+    use super::{csv_escape, require_admin_cookie_jar, IDEAS_CSV_HEADER};
     use crate::auth::UserSession;
     use axum::http::StatusCode;
     use axum_extra::extract::{CookieJar, cookie::Cookie};
@@ -511,6 +513,20 @@ mod tests {
             serde_json::to_string(&session).expect("session serialization should succeed");
         let jar = CookieJar::new().add(Cookie::new("user_session", session_json));
         assert_eq!(require_admin_cookie_jar(&jar), Err(StatusCode::FORBIDDEN));
+    }
+
+    #[test]
+    fn ideas_csv_header_uses_spark_count_column() {
+        let header = std::str::from_utf8(IDEAS_CSV_HEADER).expect("header should be valid UTF-8");
+        let columns: Vec<&str> = header.trim_end().split(',').collect();
+        assert!(
+            columns.contains(&"spark_count"),
+            "CSV header should contain 'spark_count' column, got: {header}"
+        );
+        assert!(
+            !columns.contains(&"vote_count"),
+            "CSV header should not contain deprecated 'vote_count' column"
+        );
     }
 
     #[test]

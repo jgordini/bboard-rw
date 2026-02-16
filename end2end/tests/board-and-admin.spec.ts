@@ -48,10 +48,10 @@ test("sort tabs switch between Popular and Recent", async ({ page }) => {
 });
 
 // ============================================================
-// Board: vote interaction (requires login)
+// Board: spark interaction (requires login)
 // ============================================================
 
-test("logged-in user can vote on an idea", async ({ page }) => {
+test("logged-in user can spark an idea", async ({ page }) => {
   await signup(page);
   await page.goto(baseURL);
 
@@ -59,23 +59,50 @@ test("logged-in user can vote on an idea", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Post Idea" })).toBeVisible();
   await page.getByRole("button", { name: "Post Idea" }).click();
 
-  const title = `Vote Test ${randomId()}`;
+  const title = `Spark Test ${randomId()}`;
   await page.locator("#idea-title").fill(title);
-  await page.locator("#idea-description").fill("Testing vote interaction.");
+  await page.locator("#idea-description").fill("Testing spark interaction.");
   await page.getByRole("button", { name: "Submit Idea" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
-  // Find the idea's vote button
+  // Find the idea's spark button
   const ideaItem = page.locator(".digg-item", { hasText: title }).first();
   await expect(ideaItem).toBeVisible();
 
-  const voteBtn = ideaItem.locator(".digg-btn");
-  await expect(voteBtn).toBeVisible();
-  await voteBtn.click();
+  const sparkBtn = ideaItem.locator(".digg-btn");
+  await expect(sparkBtn).toBeVisible();
+  // Before sparking, button should say "spark"
+  await expect(sparkBtn).toHaveText("spark");
+  await sparkBtn.click();
 
-  // After voting the vote-box should have the voted class
+  // After sparking the vote-box should have the voted class and button says "sparked"
   const voteBox = ideaItem.locator(".digg-vote-box");
   await expect(voteBox).toHaveClass(/voted/);
+  await expect(sparkBtn).toHaveText("sparked");
+});
+
+test("logged-out user sees sparks label on idea detail", async ({ page }) => {
+  // First create an idea while logged in
+  await signup(page);
+  await page.goto(baseURL);
+
+  await page.getByRole("button", { name: "Post Idea" }).click();
+  const title = `Detail Spark ${randomId()}`;
+  await page.locator("#idea-title").fill(title);
+  await page.locator("#idea-description").fill("Testing sparks label.");
+  await page.getByRole("button", { name: "Submit Idea" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  // Log out
+  await page.getByRole("button", { name: "Logout" }).click();
+
+  // Navigate to idea detail
+  const ideaLink = page.locator("a.digg-content", { hasText: title }).first();
+  await expect(ideaLink).toBeVisible();
+  await ideaLink.click();
+
+  // Logged-out users should see "sparks" label instead of a button
+  await expect(page.locator(".detail-vote-label")).toHaveText("sparks");
 });
 
 // ============================================================
@@ -127,6 +154,17 @@ test("regular user is denied admin access", async ({ page }) => {
 
   // Regular users should see access denied
   await expect(page.getByText("Access denied")).toBeVisible();
+});
+
+// ============================================================
+// Board: sidebar uses sparks label
+// ============================================================
+
+test("sidebar community stats show sparks label", async ({ page }) => {
+  await page.goto(baseURL);
+
+  const sparksLabel = page.locator(".stat-label", { hasText: "sparks" });
+  await expect(sparksLabel).toBeVisible();
 });
 
 // ============================================================
