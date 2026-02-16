@@ -232,4 +232,64 @@ mod tests {
         assert!(!preparing.clone().is_error());
         assert!(error.is_error());
     }
+
+    #[test]
+    fn idle_is_not_active_and_has_empty_message() {
+        let idle = ExportStatus::Idle;
+        assert!(!idle.is_active());
+        assert!(!idle.is_success());
+        assert!(!idle.is_error());
+        assert_eq!(idle.message(), "");
+    }
+
+    #[test]
+    fn preparing_is_active_but_not_success_or_error() {
+        let preparing = preparing_status("Ideas");
+        assert!(preparing.is_active());
+        assert!(!preparing.is_success());
+        assert!(!preparing.is_error());
+    }
+
+    #[test]
+    fn success_is_active_and_success_but_not_error() {
+        let success = completion_status("Ideas", Ok(()));
+        assert!(success.is_active());
+        assert!(success.is_success());
+        assert!(!success.is_error());
+    }
+
+    #[test]
+    fn error_is_active_and_error_but_not_success() {
+        let error = completion_status("Ideas", Err("fail"));
+        assert!(error.is_active());
+        assert!(!error.is_success());
+        assert!(error.is_error());
+    }
+
+    #[test]
+    fn message_returns_inner_text_for_all_variants() {
+        assert_eq!(ExportStatus::Idle.message(), "");
+        assert_eq!(
+            ExportStatus::Preparing("loading...".into()).message(),
+            "loading..."
+        );
+        assert_eq!(
+            ExportStatus::Success("done".into()).message(),
+            "done"
+        );
+        assert_eq!(
+            ExportStatus::Error("failed".into()).message(),
+            "failed"
+        );
+    }
+
+    #[test]
+    fn completion_status_error_message_is_user_facing() {
+        let error = completion_status("Ideas", Err("any internal reason"));
+        // Error message should be user-facing, not expose the internal reason
+        assert_eq!(
+            error.message(),
+            "Could not start Ideas CSV download. Please try again."
+        );
+    }
 }
