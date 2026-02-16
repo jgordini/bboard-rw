@@ -11,7 +11,7 @@ use async_stream::try_stream;
 #[cfg(feature = "ssr")]
 use axum::{
     body::{Body, Bytes},
-    http::{HeaderMap, HeaderValue, StatusCode, header},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
     response::IntoResponse,
 };
 #[cfg(feature = "ssr")]
@@ -198,7 +198,10 @@ pub async fn delete_user_action(user_id: i32) -> Result<(), ServerFnError> {
 #[cfg(feature = "ssr")]
 pub async fn admin_export_ideas_csv(jar: CookieJar) -> Result<impl IntoResponse, StatusCode> {
     require_admin_cookie_jar(&jar).await?;
-    Ok((csv_download_headers("ideas_export.csv")?, ideas_csv_body().await?))
+    Ok((
+        csv_download_headers("ideas_export.csv")?,
+        ideas_csv_body().await?,
+    ))
 }
 
 #[cfg(feature = "ssr")]

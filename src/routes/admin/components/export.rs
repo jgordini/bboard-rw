@@ -273,14 +273,8 @@ mod tests {
             ExportStatus::Preparing("loading...".into()).message(),
             "loading..."
         );
-        assert_eq!(
-            ExportStatus::Success("done".into()).message(),
-            "done"
-        );
-        assert_eq!(
-            ExportStatus::Error("failed".into()).message(),
-            "failed"
-        );
+        assert_eq!(ExportStatus::Success("done".into()).message(), "done");
+        assert_eq!(ExportStatus::Error("failed".into()).message(), "failed");
     }
 
     #[test]

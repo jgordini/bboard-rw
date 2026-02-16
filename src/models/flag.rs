@@ -20,27 +20,6 @@ mod inner {
     }
 
     impl Flag {
-        /// Create a flag for an idea or comment
-        pub async fn create(
-            user_id: i32,
-            target_type: &str,
-            target_id: i32,
-        ) -> Result<(), sqlx::Error> {
-            sqlx::query!(
-                r#"
-                INSERT INTO flags (user_id, target_type, target_id)
-                VALUES ($1, $2, $3)
-                ON CONFLICT (user_id, target_type, target_id) DO NOTHING
-                "#,
-                user_id,
-                target_type,
-                target_id
-            )
-            .execute(crate::database::get_db())
-            .await?;
-            Ok(())
-        }
-
         /// Get all flagged items with counts
         pub async fn get_flagged_items() -> Result<Vec<FlaggedItem>, sqlx::Error> {
             sqlx::query_as!(
@@ -70,6 +49,64 @@ mod inner {
             .execute(crate::database::get_db())
             .await?;
             Ok(())
+        }
+
+        /// Check whether a user has flagged a specific target.
+        pub async fn user_has_flag(
+            user_id: i32,
+            target_type: &str,
+            target_id: i32,
+        ) -> Result<bool, sqlx::Error> {
+            let row = sqlx::query!(
+                r#"
+                SELECT EXISTS(
+                    SELECT 1 FROM flags
+                    WHERE user_id = $1 AND target_type = $2 AND target_id = $3
+                ) as "exists!"
+                "#,
+                user_id,
+                target_type,
+                target_id
+            )
+            .fetch_one(crate::database::get_db())
+            .await?;
+            Ok(row.exists)
+        }
+
+        /// Toggle a user flag and return the resulting flagged state.
+        pub async fn toggle_user_flag(
+            user_id: i32,
+            target_type: &str,
+            target_id: i32,
+        ) -> Result<bool, sqlx::Error> {
+            let deleted = sqlx::query!(
+                "DELETE FROM flags WHERE user_id = $1 AND target_type = $2 AND target_id = $3",
+                user_id,
+                target_type,
+                target_id
+            )
+            .execute(crate::database::get_db())
+            .await?
+            .rows_affected();
+
+            if deleted > 0 {
+                return Ok(false);
+            }
+
+            sqlx::query!(
+                r#"
+                INSERT INTO flags (user_id, target_type, target_id)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (user_id, target_type, target_id) DO NOTHING
+                "#,
+                user_id,
+                target_type,
+                target_id
+            )
+            .execute(crate::database::get_db())
+            .await?;
+
+            Ok(true)
         }
     }
 }

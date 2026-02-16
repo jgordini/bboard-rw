@@ -46,10 +46,12 @@ pub(super) fn ModerationTab() -> impl IntoView {
                                                 </div>
                                                 <div class="moderation-actions">
                                                     <button
+                                                        type="button"
                                                         class="btn btn-primary"
                                                         on:click=move |_| handle_restore(idea_id)
                                                     >"Restore"</button>
                                                     <button
+                                                        type="button"
                                                         class="btn btn-danger"
                                                         on:click=move |_| {
                                                             if confirm_action("Permanently delete this idea? This cannot be undone.") {

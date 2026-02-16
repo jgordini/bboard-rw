@@ -37,9 +37,9 @@ pub async fn create_idea_auth(
 
 #[server]
 pub async fn get_ideas_with_authors() -> Result<Vec<IdeaWithAuthor>, ServerFnError> {
-    Idea::get_all().await.map_err(|e| {
-        server_fn_error_with_log("Failed to fetch ideas", e, "Failed to fetch ideas")
-    })
+    Idea::get_all()
+        .await
+        .map_err(|e| server_fn_error_with_log("Failed to fetch ideas", e, "Failed to fetch ideas"))
 }
 
 #[server]
@@ -48,9 +48,9 @@ pub async fn toggle_vote(idea_id: i32) -> Result<bool, ServerFnError> {
     use crate::models::Vote;
 
     let user = require_auth().await?;
-    Vote::toggle(user.id, idea_id).await.map_err(|e| {
-        server_fn_error_with_log("Failed to toggle vote", e, "Failed to toggle vote")
-    })
+    Vote::toggle(user.id, idea_id)
+        .await
+        .map_err(|e| server_fn_error_with_log("Failed to toggle vote", e, "Failed to toggle vote"))
 }
 
 #[server]
@@ -59,9 +59,9 @@ pub async fn check_user_votes() -> Result<Vec<i32>, ServerFnError> {
     use crate::models::Vote;
 
     let user = require_auth().await?;
-    Vote::get_voted_ideas(user.id).await.map_err(|e| {
-        server_fn_error_with_log("Failed to check votes", e, "Failed to check votes")
-    })
+    Vote::get_voted_ideas(user.id)
+        .await
+        .map_err(|e| server_fn_error_with_log("Failed to check votes", e, "Failed to check votes"))
 }
 
 #[server]
@@ -91,14 +91,25 @@ pub async fn get_comment_counts() -> Result<HashMap<i32, i64>, ServerFnError> {
 }
 
 #[server]
-pub async fn flag_idea_server(idea_id: i32) -> Result<(), ServerFnError> {
+pub async fn check_idea_flag_server(idea_id: i32) -> Result<bool, ServerFnError> {
     use crate::auth::require_auth;
     use crate::models::Flag;
 
     let user = require_auth().await?;
-    Flag::create(user.id, "idea", idea_id)
+    Flag::user_has_flag(user.id, "idea", idea_id)
         .await
-        .map_err(|e| ServerFnError::new(format!("Failed to flag idea: {}", e)))
+        .map_err(|e| ServerFnError::new(format!("Failed to check idea flag: {}", e)))
+}
+
+#[server]
+pub async fn toggle_idea_flag_server(idea_id: i32) -> Result<bool, ServerFnError> {
+    use crate::auth::require_auth;
+    use crate::models::Flag;
+
+    let user = require_auth().await?;
+    Flag::toggle_user_flag(user.id, "idea", idea_id)
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to toggle idea flag: {}", e)))
 }
 
 // ============================================================================

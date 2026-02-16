@@ -131,7 +131,7 @@ impl User {
         password: String,
         cas_subject: String,
     ) -> Result<Self, sqlx::Error> {
-        use bcrypt::{DEFAULT_COST, hash};
+        use bcrypt::{hash, DEFAULT_COST};
 
         let password_hash = hash(password, DEFAULT_COST)
             .map_err(|e| sqlx::Error::Protocol(format!("Password hashing failed: {e}")))?;
@@ -154,20 +154,19 @@ impl User {
     /// Link an existing user to a CAS subject identifier.
     /// Only succeeds if the user currently has no CAS subject set.
     pub async fn link_cas_subject(user_id: i32, cas_subject: &str) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query(
-            "UPDATE users SET cas_subject = $1 WHERE id = $2 AND cas_subject IS NULL",
-        )
-        .bind(cas_subject)
-        .bind(user_id)
-        .execute(crate::database::get_db())
-        .await?;
+        let result =
+            sqlx::query("UPDATE users SET cas_subject = $1 WHERE id = $2 AND cas_subject IS NULL")
+                .bind(cas_subject)
+                .bind(user_id)
+                .execute(crate::database::get_db())
+                .await?;
 
         Ok(result.rows_affected() > 0)
     }
 
     /// Update a user's password hash by email.
     pub async fn set_password_by_email(email: &str, password: String) -> Result<(), sqlx::Error> {
-        use bcrypt::{DEFAULT_COST, hash};
+        use bcrypt::{hash, DEFAULT_COST};
 
         let password_hash = hash(password, DEFAULT_COST)
             .map_err(|e| sqlx::Error::Protocol(format!("Password hashing failed: {e}")))?;
@@ -243,7 +242,7 @@ impl User {
         }
 
         // Create admin user
-        use bcrypt::{DEFAULT_COST, hash};
+        use bcrypt::{hash, DEFAULT_COST};
         let password_hash = hash(password, DEFAULT_COST)
             .map_err(|e| sqlx::Error::Protocol(format!("Password hashing failed: {}", e)))?;
 

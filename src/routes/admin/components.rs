@@ -110,7 +110,7 @@ pub(super) fn AdminDashboard(user: UserSession) -> impl IntoView {
 
 #[cfg(test)]
 mod tests {
-    use super::{ResolvedTab, resolve_active_tab, show_admin_management_tabs};
+    use super::{resolve_active_tab, show_admin_management_tabs, ResolvedTab};
     use crate::auth::UserSession;
 
     fn user_with_role(role: i16) -> UserSession {

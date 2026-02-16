@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "ssr")]
 use axum::{
     extract::Query,
-    http::{HeaderValue, header::SET_COOKIE},
+    http::{header::SET_COOKIE, HeaderValue},
     response::{IntoResponse, Redirect, Response},
 };
 

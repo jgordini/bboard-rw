@@ -63,19 +63,22 @@ pub(super) fn FlagsTab() -> impl IntoView {
                                                 </div>
                                                 <div class="flagged-actions">
                                                     <button
-                                                        class="btn btn-secondary"
+                                                        type="button"
+                                                        class="btn btn-primary"
                                                         on:click=move |_| handle_clear_flags(target_type.clone(), target_id)
-                                                    >"Dismiss Flags"</button>
+                                                    >"Unflag"</button>
                                                     {move || {
                                                         let target_type_for_delete = target_type_for_check.clone();
                                                         if target_type_for_check == "idea" {
                                                             view! {
                                                                 <>
                                                                     <button
+                                                                        type="button"
                                                                         class="btn btn-warning"
                                                                         on:click=move |_| handle_mark_off_topic(target_id)
                                                                     >"Mark Off-Topic"</button>
                                                                     <button
+                                                                        type="button"
                                                                         class="btn btn-danger"
                                                                         on:click=move |_| {
                                                                             if confirm_action("Delete this idea? This cannot be undone.") {

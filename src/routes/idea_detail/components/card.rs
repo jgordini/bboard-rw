@@ -6,7 +6,7 @@ use crate::routes::async_helpers::{
     spawn_server_action, spawn_server_action_ok, spawn_server_action_refetch_resource,
     spawn_server_action_with_error,
 };
-use crate::routes::ideas::toggle_vote;
+use crate::routes::ideas::{check_idea_flag_server, toggle_idea_flag_server, toggle_vote};
 use crate::routes::view_helpers::{format_relative_time, stage_badge_color};
 
 use super::super::{toggle_idea_comments, update_idea_content_mod};
@@ -39,6 +39,17 @@ pub(super) fn IdeaDetailCard(
     let idea_title_value = StoredValue::new(idea_title.clone());
     let idea_content_value = StoredValue::new(idea_content.clone());
     let tags_str_value = StoredValue::new(tags_str.clone());
+
+    Effect::new(move |_| match user_resource.get() {
+        Some(Ok(Some(_))) => {
+            let id = idea_id_val;
+            spawn_server_action_ok(check_idea_flag_server(id), move |is_flagged| {
+                flagged.set(is_flagged);
+            });
+        }
+        Some(Ok(None)) => flagged.set(false),
+        _ => {}
+    });
 
     view! {
         <article class="detail-card">
@@ -247,16 +258,15 @@ pub(super) fn IdeaDetailCard(
                                             <button
                                                 type="button"
                                                 class="btn-flag btn btn-secondary"
-                                                disabled=move || flagged.get()
                                                 on:click=move |_| {
                                                     let id = idea_id_val;
-                                                    flagged.set(true);
-                                                    leptos::task::spawn_local(async move {
-                                                        let _ = crate::routes::ideas::flag_idea_server(id).await;
+                                                    spawn_server_action_ok(toggle_idea_flag_server(id), move |is_flagged| {
+                                                        flagged.set(is_flagged);
+                                                        idea_resource.refetch();
                                                     });
                                                 }
                                             >
-                                                {move || if flagged.get() { "Flagged" } else { "Flag" }}
+                                                {move || if flagged.get() { "Unflag" } else { "Flag" }}
                                             </button>
                                             <Show when=move || is_mod>
                                                 <button

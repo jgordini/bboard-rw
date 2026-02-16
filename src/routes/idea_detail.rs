@@ -42,13 +42,7 @@ pub async fn create_comment(idea_id: i32, content: String) -> Result<Comment, Se
     // Check if comments are enabled on this idea
     let idea = Idea::get_by_id(idea_id)
         .await
-        .map_err(|e| {
-            server_fn_error_with_log(
-                "Failed to fetch idea",
-                e,
-                "Failed to fetch idea",
-            )
-        })?
+        .map_err(|e| server_fn_error_with_log("Failed to fetch idea", e, "Failed to fetch idea"))?
         .ok_or_else(|| ServerFnError::new("Idea not found"))?;
 
     if !idea.comments_enabled {

@@ -1,7 +1,7 @@
 use std::future::Future;
 
 use leptos::prelude::{Resource, RwSignal, ServerFnError, Set};
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
 
 pub(crate) fn spawn_server_action<T, Fut, OnOk, OnErr>(future: Fut, on_ok: OnOk, on_err: OnErr)
 where

@@ -1447,6 +1447,10 @@ a {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
+
+  .btn {
+    border: 1px solid var(--border);
+  }
 }
 
 .btn-flag,
@@ -1753,6 +1757,7 @@ a {
 }
 
 .admin-page .admin-export-status {
+  display: none;
   margin: 0;
   padding: 0.625rem 0.75rem;
   font-size: var(--font-small);
@@ -1760,6 +1765,10 @@ a {
   border: 1px solid var(--evergreen-20);
   background: var(--evergreen-5);
   color: var(--uab-green);
+
+  &.active {
+    display: block;
+  }
 
   &.error {
     color: var(--destructive);
