@@ -24,6 +24,20 @@ test("signup shows logout in nav", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Logout" })).toBeVisible();
 });
 
+test("nav refreshes after signup, logout, and login", async ({ page }) => {
+  const account = await signup(page);
+
+  await page.getByRole("button", { name: "Logout" }).click();
+  await expect(page.getByRole("link", { name: "Login" })).toBeVisible();
+  await page.getByRole("link", { name: "Login" }).click();
+
+  await page.locator("#login-email").fill(account.email);
+  await page.locator("#login-password").fill(account.password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+
+  await expect(page.getByRole("button", { name: "Logout" })).toBeVisible();
+});
+
 test("profile updates after logout", async ({ page }) => {
   await signup(page);
   await page.goto(baseURL + "profile");
