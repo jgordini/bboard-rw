@@ -9,5 +9,14 @@
 
 	encode zstd gzip
 
+	# Cache static assets (JS, CSS, WASM) — 1 day; files change on deploy
+	header /pkg/* Cache-Control "public, max-age=86400"
+
+	# Cache static images/icons — 7 days
+	@staticfiles {
+		path *.ico *.jpg *.jpeg *.png *.svg *.webp
+	}
+	header @staticfiles Cache-Control "public, max-age=604800"
+
 	reverse_proxy web:8080
 }

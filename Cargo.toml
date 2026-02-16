@@ -39,12 +39,12 @@ leptos_axum = { version = "0.8.7", optional = true }
 leptos_router = "0.8.6"
 
 tracing = "0.1.43"
-tracing-subscriber = { version = "0.3.22", features = ["fmt"] }
+tracing-subscriber = { version = "0.3.22", features = ["fmt"], optional = true }
 tracing-wasm = { version = "0.2.1", optional = true }
 
 wasm-bindgen = "0.2.106"
-axum-extra = { version = "0.12.2", features = ["cookie"] }
-serde_json = "1.0"
+axum-extra = { version = "0.12.2", features = ["cookie"], optional = true }
+serde_json = { version = "1.0", optional = true }
 dotenvy = { version = "0.15.7", optional = true }
 
 [features]
@@ -62,6 +62,7 @@ ssr = [
     "leptos_router/ssr",
     "dep:leptos_axum",
     "dep:axum",
+    "dep:axum-extra",
     "dep:jsonwebtoken",
     "dep:tokio",
     "dep:tower",
@@ -75,8 +76,18 @@ ssr = [
     "dep:roxmltree",
     "dep:dotenvy",
     "dep:async-stream",
-    "dep:futures-util"
+    "dep:futures-util",
+    "dep:tracing-subscriber",
+    "dep:serde_json",
 ]
+
+[profile.release]
+lto = true
+codegen-units = 1
+
+[profile.wasm-release]
+inherits = "release"
+opt-level = "z"
 
 [package.metadata.cargo-all-features]
 denylist = [
@@ -135,3 +146,6 @@ bin-features = ["ssr"]
 #
 # Optional. Can be over-ridden with the command line parameter --lib-features
 lib-features = ["hydrate"]
+
+# Use size-optimized profile for WASM release builds
+lib-profile-release = "wasm-release"

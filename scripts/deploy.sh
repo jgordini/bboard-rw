@@ -242,6 +242,13 @@ if [ "${TLS_ENABLED}" = "true" ]; then
 fi
 
 echo ""
+# Warm up the TLS connection so the first real user doesn't wait for OCSP stapling
+if [ "${TLS_ENABLED}" = "true" ]; then
+    echo "Warming up TLS connection..."
+    curl -sf -o /dev/null --max-time 30 "https://${DOMAIN}/" 2>/dev/null && echo "Warmup OK" || echo "Warmup request failed (site may still be starting)"
+fi
+
+echo ""
 echo "========================================================================"
 echo "Deployment complete"
 echo "========================================================================"
