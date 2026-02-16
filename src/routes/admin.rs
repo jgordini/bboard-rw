@@ -1,4 +1,4 @@
-use crate::auth::{UserSession, get_user};
+use crate::auth::{get_user, UserSession};
 #[cfg(feature = "ssr")]
 use crate::models::{Flag, Idea};
 use crate::models::{IdeaWithAuthor, User};

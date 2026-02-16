@@ -3,7 +3,7 @@ use leptos_meta::Title;
 use leptos_router::components::A;
 use leptos_router::hooks::use_query_map;
 
-use crate::auth::{LoginMessages, LoginSignal, bump_auth_refresh};
+use crate::auth::{bump_auth_refresh, LoginMessages, LoginSignal};
 use crate::routes::paths;
 
 #[component]

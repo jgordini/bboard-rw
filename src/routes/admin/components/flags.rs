@@ -4,8 +4,8 @@ use crate::routes::async_helpers::spawn_server_action_refetch_resource;
 use crate::routes::view_helpers::confirm_action;
 
 use super::super::{
-    FlaggedItemDetail, clear_flags_action, delete_idea_action, get_flagged_content,
-    mark_idea_off_topic_action,
+    clear_flags_action, delete_idea_action, get_flagged_content, mark_idea_off_topic_action,
+    FlaggedItemDetail,
 };
 
 #[component]

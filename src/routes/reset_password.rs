@@ -58,7 +58,7 @@ fn reset_token_secret() -> Result<String, ServerFnError> {
 
 #[cfg(feature = "ssr")]
 fn encode_reset_token(email: &str) -> Result<String, ServerFnError> {
-    use jsonwebtoken::{EncodingKey, Header, encode};
+    use jsonwebtoken::{encode, EncodingKey, Header};
 
     let secret = reset_token_secret()?;
     let claims = ResetTokenClaims {
@@ -76,7 +76,7 @@ fn encode_reset_token(email: &str) -> Result<String, ServerFnError> {
 
 #[cfg(feature = "ssr")]
 fn decode_reset_token(token: &str) -> Result<ResetTokenClaims, ServerFnError> {
-    use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode};
+    use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 
     let secret = reset_token_secret()?;
     let mut validation = Validation::new(Algorithm::HS256);

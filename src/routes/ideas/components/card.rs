@@ -47,7 +47,7 @@ pub(super) fn IdeaCard(
         // Optimistic update: adjust count immediately
         let was_voted = voted_ideas.get().contains(&idea_id);
         if was_voted {
-            vote_count.update(|c| *c -= 1);
+            vote_count.update(|c| *c = (*c - 1).max(0));
         } else {
             vote_count.update(|c| *c += 1);
         }
@@ -63,7 +63,7 @@ pub(super) fn IdeaCard(
             move |now_voted| {
                 is_toggling.set(false);
                 // Reconcile with server truth
-                let locally_voted = voted_ideas.get().contains(&idea_id);
+                let locally_voted = voted_ideas.get_untracked().contains(&idea_id);
                 if now_voted != locally_voted {
                     voted_ideas.update(|v| {
                         if now_voted {
@@ -78,7 +78,7 @@ pub(super) fn IdeaCard(
                     if now_voted {
                         vote_count.update(|c| *c += 1);
                     } else {
-                        vote_count.update(|c| *c -= 1);
+                        vote_count.update(|c| *c = (*c - 1).max(0));
                     }
                 }
             },
@@ -93,7 +93,7 @@ pub(super) fn IdeaCard(
                         }
                     });
                 } else {
-                    vote_count.update(|c| *c -= 1);
+                    vote_count.update(|c| *c = (*c - 1).max(0));
                     voted_ideas.update(|v| v.retain(|&id| id != idea_id));
                 }
             },

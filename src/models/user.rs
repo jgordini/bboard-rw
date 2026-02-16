@@ -21,7 +21,7 @@ impl User {
         name: String,
         password: String,
     ) -> Result<Self, sqlx::Error> {
-        use bcrypt::{DEFAULT_COST, hash};
+        use bcrypt::{hash, DEFAULT_COST};
 
         let password_hash = hash(password, DEFAULT_COST)
             .map_err(|e| sqlx::Error::Protocol(format!("Password hashing failed: {}", e)))?;
@@ -112,7 +112,7 @@ impl User {
 
     /// Update a user's password hash by email.
     pub async fn set_password_by_email(email: &str, password: String) -> Result<(), sqlx::Error> {
-        use bcrypt::{DEFAULT_COST, hash};
+        use bcrypt::{hash, DEFAULT_COST};
 
         let password_hash = hash(password, DEFAULT_COST)
             .map_err(|e| sqlx::Error::Protocol(format!("Password hashing failed: {e}")))?;
@@ -188,7 +188,7 @@ impl User {
         }
 
         // Create admin user
-        use bcrypt::{DEFAULT_COST, hash};
+        use bcrypt::{hash, DEFAULT_COST};
         let password_hash = hash(password, DEFAULT_COST)
             .map_err(|e| sqlx::Error::Protocol(format!("Password hashing failed: {}", e)))?;
 

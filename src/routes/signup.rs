@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
 
-use crate::auth::{SignupAction, SignupResponse, SignupSignal, bump_auth_refresh, validate_signup};
+use crate::auth::{bump_auth_refresh, validate_signup, SignupAction, SignupResponse, SignupSignal};
 use crate::routes::paths;
 
 #[component]

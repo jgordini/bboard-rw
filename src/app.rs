@@ -1,9 +1,9 @@
 use leptos::prelude::*;
-use leptos_meta::{MetaTags, Stylesheet, provide_meta_context};
-use leptos_router::components::{A, Route, Router, Routes};
+use leptos_meta::{provide_meta_context, MetaTags, Stylesheet};
+use leptos_router::components::{Route, Router, Routes, A};
 use leptos_router::path;
 
-use crate::auth::{Logout, bump_auth_refresh, get_user, use_auth_refresh};
+use crate::auth::{bump_auth_refresh, get_user, use_auth_refresh, Logout};
 use crate::routes::paths;
 use crate::routes::{
     AccountPage, AdminPage, IdeaDetailPage, IdeasPage, Login, ResetPassword, Signup,

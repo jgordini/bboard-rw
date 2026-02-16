@@ -1,7 +1,7 @@
 use leptos::prelude::*;
-use leptos_axum::{LeptosRoutes, generate_route_list};
+use leptos_axum::{generate_route_list, LeptosRoutes};
 
-use crate::app::{App, shell};
+use crate::app::{shell, App};
 
 pub async fn init_app(configuration_path: Option<&str>) -> Result<(), String> {
     // Load .env file if present (silently ignore if missing, e.g. in Docker)

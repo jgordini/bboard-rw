@@ -6,8 +6,8 @@ use crate::auth::get_user;
 use crate::models::IdeaWithAuthor;
 
 use super::super::{
-    SortMode, check_user_votes, get_comment_counts, get_idea_statistics, get_ideas_with_authors,
-    sort_ideas,
+    check_user_votes, get_comment_counts, get_idea_statistics, get_ideas_with_authors, sort_ideas,
+    SortMode,
 };
 use super::card::IdeaCard;
 use super::submission::IdeaSubmissionDialog;
@@ -48,7 +48,9 @@ pub fn IdeasBoard() -> impl IntoView {
                             <h1 class="logo-font">"Spark"</h1>
                             <p>"Share your ideas to improve UAB IT services"</p>
                         </div>
-                        <div class="header-actions">
+                        <div class="header-right">
+                            <img src="/spark-logo.png" alt="Spark logo" class="header-logo"/>
+                            <div class="header-actions">
                             <Suspense fallback=|| ()>
                                 {move || user_resource.get().map(|user_result| {
                                     match user_result {
@@ -68,6 +70,7 @@ pub fn IdeasBoard() -> impl IntoView {
                                 })}
                             </Suspense>
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>
