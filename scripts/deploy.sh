@@ -27,9 +27,10 @@
 
 set -euo pipefail
 
-DEPLOYMENT_DIR="/var/bboard-rw"
-LEGACY_DIR="/var/fider"
+DEPLOYMENT_DIR="${DEPLOYMENT_DIR:-/var/bboard-rw}"
+LEGACY_DIR="${LEGACY_DIR:-/var/fider}"
 MODE="${1:-replace}"
+VERIFY_SLEEP_SECONDS="${VERIFY_SLEEP_SECONDS:-5}"
 
 usage() {
     echo "Usage: $0 [replace|replace-prebuilt|up|update|update-prebuilt|tls-init|renew-certs|status|down]"
@@ -132,6 +133,12 @@ deploy_stack_with_tls() {
     docker compose --profile tls up -d --remove-orphans "${build_flag}"
 }
 
+deploy_stack_with_tls_prebuilt() {
+    # Keep app/database in no-build mode, but explicitly build caddy (build-only service).
+    docker compose --profile tls up -d --remove-orphans --no-build db web
+    docker compose --profile tls up -d --remove-orphans --no-deps --build caddy
+}
+
 echo ""
 echo "[1/3] Validating compose configuration..."
 if [ "${TLS_ENABLED}" = "true" ]; then
@@ -158,7 +165,7 @@ case "$MODE" in
     replace-prebuilt)
         stop_legacy_stack
         if [ "${TLS_ENABLED}" = "true" ]; then
-            deploy_stack_with_tls "--no-build"
+            deploy_stack_with_tls_prebuilt
         else
             deploy_stack_without_tls "--no-build"
         fi
@@ -173,11 +180,19 @@ case "$MODE" in
         DEPLOY_RAN=true
         ;;
     update)
-        docker compose up -d --remove-orphans --no-deps --force-recreate --build web
+        if [ "${TLS_ENABLED}" = "true" ]; then
+            docker compose --profile tls up -d --no-deps --force-recreate --build web
+        else
+            docker compose up -d --no-deps --force-recreate --build web
+        fi
         DEPLOY_RAN=true
         ;;
     update-prebuilt)
-        docker compose up -d --remove-orphans --no-deps --force-recreate --no-build web
+        if [ "${TLS_ENABLED}" = "true" ]; then
+            docker compose --profile tls up -d --no-deps --force-recreate --no-build web
+        else
+            docker compose up -d --no-deps --force-recreate --no-build web
+        fi
         DEPLOY_RAN=true
         ;;
     tls-init)
@@ -213,7 +228,7 @@ fi
 
 echo ""
 echo "[3/3] Verifying deployment..."
-sleep 5
+sleep "${VERIFY_SLEEP_SECONDS}"
 echo ""
 echo "Container Status:"
 docker compose --profile tls ps
