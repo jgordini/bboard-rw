@@ -39,38 +39,37 @@ pub fn IdeasBoard() -> impl IntoView {
 
     view! {
         <Title text="UAB IT Idea Board"/>
-        <div class="ideas-page ideas-page-linear">
-            <div class="header-banner linear-hero-banner">
+        <div class="ideas-page">
+            <div class="header-banner">
                 <div class="container">
-                    <div class="header-content linear-hero-grid">
+                    <div class="header-content">
                         <div>
                             <span class="hero-eyebrow">"UAB IT Innovation Hub"</span>
                             <h1 class="logo-font">"Spark"</h1>
                             <p>"Share your ideas to improve UAB IT services"</p>
                         </div>
                         <div class="header-right">
-                            <img src="/spark-logo.png" alt="Spark logo" class="header-logo"/>
                             <div class="header-actions">
-                            <Suspense fallback=|| ()>
-                                {move || user_resource.get().map(|user_result| {
-                                    match user_result {
-                                        Ok(Some(user)) => view! {
-                                            <div class="user-menu">
-                                                <span class="user-name">"Hello, " {user.name.clone()}</span>
-                                            </div>
-                                        }.into_any(),
-                                        Ok(None) => view! {
-                                            <div class="auth-links">
-                                                <A href="/login" attr:class="auth-link">"Login"</A>
-                                                <A href="/signup" attr:class="auth-link auth-link-primary">"Sign Up"</A>
-                                            </div>
-                                        }.into_any(),
-                                        Err(_) => ().into_any()
-                                    }
-                                })}
-                            </Suspense>
+                                <Suspense fallback=|| ()>
+                                    {move || user_resource.get().map(|user_result| {
+                                        match user_result {
+                                            Ok(Some(user)) => view! {
+                                                <div class="user-menu">
+                                                    <span class="user-name">"Hello, " {user.name.clone()}</span>
+                                                </div>
+                                            }.into_any(),
+                                            Ok(None) => view! {
+                                                <div class="auth-links">
+                                                    <A href="/login" attr:class="auth-link">"Login"</A>
+                                                    <A href="/signup" attr:class="auth-link auth-link-primary">"Sign Up"</A>
+                                                </div>
+                                            }.into_any(),
+                                            Err(_) => ().into_any()
+                                        }
+                                    })}
+                                </Suspense>
+                            </div>
                         </div>
-                    </div>
                     </div>
                 </div>
             </div>

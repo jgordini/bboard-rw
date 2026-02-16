@@ -22,7 +22,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <link rel="shortcut icon" type="image/ico" href="/favicon.ico?v=20260214"/>
                 <MetaTags/>
             </head>
-            <body class="alt-linear-theme">
+            <body>
                 <App/>
             </body>
         </html>

@@ -90,6 +90,9 @@ pub fn Login() -> impl IntoView {
                             <A href=paths::RESET_PASSWORD>Reset password</A>
                             <button class="btn btn-lg btn-primary pull-xs-right">"Sign in"</button>
                         </ActionForm>
+                        <p class="text-xs-center">
+                            <A href=paths::SIGNUP>"Need an account?"</A>
+                        </p>
                     </div>
                 </div>
             </div>

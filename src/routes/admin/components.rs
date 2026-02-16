@@ -50,8 +50,8 @@ pub(super) fn AdminDashboard(user: UserSession) -> impl IntoView {
     let user_for_content = user.clone();
 
     view! {
-        <div class="admin-page admin-page-linear">
-            <div class="admin-header admin-linear-header">
+        <div class="admin-page">
+            <div class="admin-header">
                 <span class="hero-eyebrow">"Moderator Console"</span>
                 <h1>"Admin Dashboard"</h1>
                 <p>"Logged in as: " {user.name.clone()} " (" {role_name(user.role)} ")"</p>
