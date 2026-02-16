@@ -5,6 +5,28 @@ use leptos_router::hooks::use_query_map;
 
 use crate::auth::{AuthRefresh, LoginMessages, LoginSignal};
 
+fn cas_error_message(code: &str) -> &'static str {
+    match code {
+        "missing_ticket" => "CAS login was missing a ticket. Please try again.",
+        "validation" => "CAS ticket validation failed. Please try again.",
+        "user" => "CAS user provisioning failed. Please contact support.",
+        "session" => "CAS session could not be created. Please try again.",
+        "config" => "CAS login is not configured correctly. Please contact support.",
+        "link_required" => {
+            "CAS login matches an existing local account. Please contact support to link accounts."
+        }
+        _ => "CAS login failed. Please try again.",
+    }
+}
+
+fn resolve_error_text(action_error: Option<&'static str>, cas_error: Option<&str>) -> &'static str {
+    if let Some(message) = action_error {
+        return message;
+    }
+
+    cas_error.map(cas_error_message).unwrap_or_default()
+}
+
 #[component]
 pub fn Login(login: LoginSignal) -> impl IntoView {
     let result_of_call = login.value();
@@ -19,34 +41,22 @@ pub fn Login(login: LoginSignal) -> impl IntoView {
     });
 
     let error = move || {
+        let action_error = result_of_call.with(|msg| {
+            msg.as_ref().map(|inner| match inner {
+                Ok(LoginMessages::Unsuccessful) => "Incorrect user or password",
+                Ok(LoginMessages::Successful) => {
+                    tracing::info!("login success!");
+                    "Done"
+                }
+                Err(x) => {
+                    tracing::error!("Problem during login: {x:?}");
+                    "There was a problem, try again later"
+                }
+            })
+        });
+
         let cas_error = query.with(|q| q.get("cas_error"));
-
-        if let Some(code) = cas_error {
-            return match code.as_str() {
-                "missing_ticket" => "CAS login was missing a ticket. Please try again.",
-                "validation" => "CAS ticket validation failed. Please try again.",
-                "user" => "CAS user provisioning failed. Please contact support.",
-                "session" => "CAS session could not be created. Please try again.",
-                "config" => "CAS login is not configured correctly. Please contact support.",
-                _ => "CAS login failed. Please try again.",
-            };
-        }
-
-        result_of_call.with(|msg| {
-            msg.as_ref()
-                .map(|inner| match inner {
-                    Ok(LoginMessages::Unsuccessful) => "Incorrect user or password",
-                    Ok(LoginMessages::Successful) => {
-                        tracing::info!("login success!");
-                        "Done"
-                    }
-                    Err(x) => {
-                        tracing::error!("Problem during login: {x:?}");
-                        "There was a problem, try again later"
-                    }
-                })
-                .unwrap_or_default()
-        })
+        resolve_error_text(action_error, cas_error.as_deref())
     };
 
     view! {
@@ -83,5 +93,26 @@ pub fn Login(login: LoginSignal) -> impl IntoView {
                 </div>
             </div>
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{cas_error_message, resolve_error_text};
+
+    #[test]
+    fn maps_link_required_cas_error() {
+        assert_eq!(
+            cas_error_message("link_required"),
+            "CAS login matches an existing local account. Please contact support to link accounts."
+        );
+    }
+
+    #[test]
+    fn action_error_takes_precedence_over_cas_query_error() {
+        assert_eq!(
+            resolve_error_text(Some("Incorrect user or password"), Some("validation"),),
+            "Incorrect user or password"
+        );
     }
 }

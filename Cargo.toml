@@ -22,6 +22,7 @@ regex = { version = "1.12.2", optional = true }
 bcrypt = { version = "0.17", optional = true }
 time = { version = "0.3", optional = true }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"], optional = true }
+roxmltree = { version = "0.21", optional = true }
 async-stream = { version = "0.3.6", optional = true }
 futures-util = { version = "0.3.31", optional = true }
 
@@ -71,6 +72,7 @@ ssr = [
     "dep:bcrypt",
     "dep:time",
     "dep:reqwest",
+    "dep:roxmltree",
     "dep:dotenvy",
     "dep:async-stream",
     "dep:futures-util"

@@ -12,7 +12,7 @@ use axum::{
 use axum_extra::extract::cookie::{Cookie, SameSite};
 
 #[cfg(feature = "ssr")]
-use regex::Regex;
+use std::time::Duration;
 
 /// When this signal is updated, the nav's user resource refetches (e.g. after login).
 #[derive(Clone, Copy)]
@@ -46,6 +46,7 @@ pub struct CasCallbackQuery {
 #[cfg(feature = "ssr")]
 #[derive(Debug)]
 struct CasUserInfo {
+    subject: String,
     username: String,
     email: String,
     display_name: String,
@@ -67,6 +68,16 @@ fn cas_validate_url() -> String {
 fn cas_service_id() -> String {
     std::env::var("CAS_SERVICE_ID")
         .unwrap_or_else(|_| "http://localhost:3000/auth/cas/callback".to_string())
+}
+
+#[cfg(feature = "ssr")]
+fn cas_http_timeout() -> Duration {
+    let seconds = std::env::var("CAS_HTTP_TIMEOUT_SECS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|seconds| *seconds > 0)
+        .unwrap_or(10);
+    Duration::from_secs(seconds)
 }
 
 #[cfg(feature = "ssr")]
@@ -102,18 +113,63 @@ fn set_session_cookie_response(session: &UserSession) -> Result<(), ServerFnErro
 }
 
 #[cfg(feature = "ssr")]
-fn extract_tag(xml: &str, tag: &str) -> Option<String> {
-    let pattern = format!(r"(?s)<(?:\w+:)?{}>\s*([^<]+?)\s*</(?:\w+:)?{}>", tag, tag);
-    Regex::new(&pattern)
-        .ok()?
-        .captures(xml)
-        .and_then(|captures| captures.get(1))
-        .map(|capture| capture.as_str().trim().to_string())
+fn find_descendant_text(node: roxmltree::Node<'_, '_>, tags: &[&str]) -> Option<String> {
+    tags.iter().find_map(|tag| {
+        node.descendants()
+            .filter(|candidate| candidate.is_element() && candidate.tag_name().name() == *tag)
+            .find_map(|candidate| {
+                candidate
+                    .text()
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .map(ToString::to_string)
+            })
+    })
 }
 
 #[cfg(feature = "ssr")]
-fn first_tag(xml: &str, tags: &[&str]) -> Option<String> {
-    tags.iter().find_map(|tag| extract_tag(xml, tag))
+fn parse_cas_user_info(body: &str) -> Result<CasUserInfo, ServerFnError> {
+    let doc = roxmltree::Document::parse(body)
+        .map_err(|e| ServerFnError::new(format!("CAS response XML parse failed: {e}")))?;
+
+    let service_response = doc
+        .descendants()
+        .find(|node| node.is_element() && node.tag_name().name() == "serviceResponse")
+        .ok_or_else(|| ServerFnError::new("CAS response missing serviceResponse"))?;
+
+    if let Some(failure) = service_response
+        .descendants()
+        .find(|node| node.is_element() && node.tag_name().name() == "authenticationFailure")
+    {
+        let detail = failure
+            .text()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("CAS authentication failed");
+        return Err(ServerFnError::new(format!(
+            "CAS authentication failed: {detail}"
+        )));
+    }
+
+    let success = service_response
+        .descendants()
+        .find(|node| node.is_element() && node.tag_name().name() == "authenticationSuccess")
+        .ok_or_else(|| ServerFnError::new("CAS response missing authenticationSuccess"))?;
+
+    let username = find_descendant_text(success, &["user"])
+        .ok_or_else(|| ServerFnError::new("CAS response missing user"))?;
+    let subject = find_descendant_text(success, &["eduPersonPrincipalName", "uid", "user"])
+        .ok_or_else(|| ServerFnError::new("CAS response missing subject"))?;
+    let email = ensure_email(&username, find_descendant_text(success, &["mail", "email"]));
+    let display_name = find_descendant_text(success, &["displayName", "cn", "name"])
+        .unwrap_or_else(|| username.clone());
+
+    Ok(CasUserInfo {
+        subject,
+        username,
+        email,
+        display_name,
+    })
 }
 
 #[cfg(feature = "ssr")]
@@ -135,48 +191,63 @@ async fn validate_cas_ticket(ticket: &str, service: &str) -> Result<CasUserInfo,
         .append_pair("service", service)
         .append_pair("ticket", ticket);
 
-    let response = reqwest::Client::new()
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(5))
+        .timeout(cas_http_timeout())
+        .build()
+        .map_err(|e| ServerFnError::new(format!("CAS client build failed: {e}")))?;
+
+    let response = client
         .get(validate_url)
         .send()
         .await
         .map_err(|e| ServerFnError::new(format!("CAS validation request failed: {e}")))?;
+
+    if !response.status().is_success() {
+        return Err(ServerFnError::new(format!(
+            "CAS validation returned non-success status: {}",
+            response.status()
+        )));
+    }
 
     let body = response
         .text()
         .await
         .map_err(|e| ServerFnError::new(format!("CAS validation response read failed: {e}")))?;
 
-    if body.contains("authenticationFailure") {
-        return Err(ServerFnError::new("CAS authentication failed"));
-    }
+    parse_cas_user_info(&body)
+}
 
-    let username = first_tag(&body, &["user"])
-        .ok_or_else(|| ServerFnError::new("CAS response missing user"))?;
-    let email = ensure_email(
-        &username,
-        first_tag(&body, &["mail", "email", "eduPersonPrincipalName", "user"]),
-    );
-    let display_name =
-        first_tag(&body, &["displayName", "cn", "name"]).unwrap_or_else(|| username.clone());
-
-    Ok(CasUserInfo {
-        username,
-        email,
-        display_name,
-    })
+#[cfg(feature = "ssr")]
+enum CasProvisionError {
+    LinkRequired,
+    Server(ServerFnError),
 }
 
 #[cfg(feature = "ssr")]
 async fn get_or_create_cas_user(
     cas_user: &CasUserInfo,
-) -> Result<crate::models::User, ServerFnError> {
+) -> Result<crate::models::User, CasProvisionError> {
     use crate::models::User;
 
-    if let Some(existing) = User::get_by_email(&cas_user.email)
+    if let Some(existing) = User::get_by_cas_subject(&cas_user.subject)
         .await
-        .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?
+        .map_err(|e| {
+            CasProvisionError::Server(ServerFnError::new(format!("Database error: {e}")))
+        })?
     {
         return Ok(existing);
+    }
+
+    if let Some(existing) = User::get_by_email(&cas_user.email).await.map_err(|e| {
+        CasProvisionError::Server(ServerFnError::new(format!("Database error: {e}")))
+    })? {
+        tracing::warn!(
+            email = existing.email,
+            cas_subject = cas_user.subject,
+            "refusing to auto-link CAS account to an existing email-only user"
+        );
+        return Err(CasProvisionError::LinkRequired);
     }
 
     // CAS-authenticated users still need a non-null password hash in local storage.
@@ -187,23 +258,45 @@ async fn get_or_create_cas_user(
         chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
     );
 
-    match User::create(
+    match User::create_cas_user(
         cas_user.email.clone(),
         cas_user.display_name.clone(),
         generated_password,
+        cas_user.subject.clone(),
     )
     .await
     {
         Ok(created) => Ok(created),
         Err(sqlx::Error::Database(db_error)) if db_error.is_unique_violation() => {
-            User::get_by_email(&cas_user.email)
+            if let Some(existing) =
+                User::get_by_cas_subject(&cas_user.subject)
+                    .await
+                    .map_err(|e| {
+                        CasProvisionError::Server(ServerFnError::new(format!(
+                            "Database error: {e}"
+                        )))
+                    })?
+            {
+                return Ok(existing);
+            }
+
+            if User::get_by_email(&cas_user.email)
                 .await
-                .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?
-                .ok_or_else(|| ServerFnError::new("CAS user lookup failed after create race"))
+                .map_err(|e| {
+                    CasProvisionError::Server(ServerFnError::new(format!("Database error: {e}")))
+                })?
+                .is_some()
+            {
+                return Err(CasProvisionError::LinkRequired);
+            }
+
+            Err(CasProvisionError::Server(ServerFnError::new(
+                "CAS user lookup failed after create race",
+            )))
         }
-        Err(e) => Err(ServerFnError::new(format!(
+        Err(e) => Err(CasProvisionError::Server(ServerFnError::new(format!(
             "Failed to create CAS user: {e}"
-        ))),
+        )))),
     }
 }
 
@@ -245,7 +338,14 @@ pub async fn cas_callback(Query(query): Query<CasCallbackQuery>) -> Response {
 
     let user = match get_or_create_cas_user(&cas_user).await {
         Ok(user) => user,
-        Err(error) => {
+        Err(CasProvisionError::LinkRequired) => {
+            tracing::warn!(
+                cas_subject = cas_user.subject,
+                "CAS login requires explicit account linking"
+            );
+            return Redirect::temporary("/login?cas_error=link_required").into_response();
+        }
+        Err(CasProvisionError::Server(error)) => {
             tracing::error!("CAS user provisioning failed: {error}");
             return Redirect::temporary("/login?cas_error=user").into_response();
         }
@@ -451,5 +551,76 @@ pub async fn require_admin() -> Result<UserSession, ServerFnError> {
         Ok(user)
     } else {
         Err(ServerFnError::new("Admin access required"))
+    }
+}
+
+#[cfg(all(test, feature = "ssr"))]
+mod tests {
+    use super::parse_cas_user_info;
+
+    #[test]
+    fn parses_authentication_success_xml() {
+        let body = r#"
+<cas:serviceResponse xmlns:cas="http://www.yale.edu/tp/cas">
+  <cas:authenticationSuccess>
+    <cas:user>blazerid</cas:user>
+    <cas:attributes>
+      <cas:mail>blazerid@uab.edu</cas:mail>
+      <cas:displayName>Blazer User</cas:displayName>
+      <cas:eduPersonPrincipalName>blazerid@uab.edu</cas:eduPersonPrincipalName>
+    </cas:attributes>
+  </cas:authenticationSuccess>
+</cas:serviceResponse>
+"#;
+
+        let info = parse_cas_user_info(body).expect("CAS success XML should parse");
+        assert_eq!(info.username, "blazerid");
+        assert_eq!(info.subject, "blazerid@uab.edu");
+        assert_eq!(info.email, "blazerid@uab.edu");
+        assert_eq!(info.display_name, "Blazer User");
+    }
+
+    #[test]
+    fn rejects_missing_authentication_success() {
+        let body = r#"
+<cas:serviceResponse xmlns:cas="http://www.yale.edu/tp/cas">
+  <cas:user>blazerid</cas:user>
+</cas:serviceResponse>
+"#;
+
+        let error = parse_cas_user_info(body).expect_err("missing authenticationSuccess");
+        assert!(
+            error.to_string().contains("authenticationSuccess"),
+            "error should mention missing authenticationSuccess"
+        );
+    }
+
+    #[test]
+    fn rejects_authentication_failure() {
+        let body = r#"
+<cas:serviceResponse xmlns:cas="http://www.yale.edu/tp/cas">
+  <cas:authenticationFailure code="INVALID_TICKET">bad ticket</cas:authenticationFailure>
+</cas:serviceResponse>
+"#;
+
+        let error = parse_cas_user_info(body).expect_err("authenticationFailure must fail");
+        assert!(
+            error.to_string().contains("authentication failed"),
+            "error should indicate CAS authentication failure"
+        );
+    }
+
+    #[test]
+    fn falls_back_to_uab_email_when_mail_is_missing() {
+        let body = r#"
+<cas:serviceResponse xmlns:cas="http://www.yale.edu/tp/cas">
+  <cas:authenticationSuccess>
+    <cas:user>blazerid</cas:user>
+  </cas:authenticationSuccess>
+</cas:serviceResponse>
+"#;
+
+        let info = parse_cas_user_info(body).expect("CAS success XML should parse");
+        assert_eq!(info.email, "blazerid@uab.edu");
     }
 }

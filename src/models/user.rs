@@ -110,6 +110,47 @@ impl User {
         .await
     }
 
+    /// Get user by CAS subject identifier.
+    pub async fn get_by_cas_subject(cas_subject: &str) -> Result<Option<Self>, sqlx::Error> {
+        sqlx::query_as::<_, User>(
+            r#"
+            SELECT id, email, name, NULL::VARCHAR as password_hash, role, created_on
+            FROM users
+            WHERE cas_subject = $1
+            "#,
+        )
+        .bind(cas_subject)
+        .fetch_optional(crate::database::get_db())
+        .await
+    }
+
+    /// Create a CAS-linked user with a hashed password and immutable CAS subject.
+    pub async fn create_cas_user(
+        email: String,
+        name: String,
+        password: String,
+        cas_subject: String,
+    ) -> Result<Self, sqlx::Error> {
+        use bcrypt::{DEFAULT_COST, hash};
+
+        let password_hash = hash(password, DEFAULT_COST)
+            .map_err(|e| sqlx::Error::Protocol(format!("Password hashing failed: {e}")))?;
+
+        sqlx::query_as::<_, User>(
+            r#"
+            INSERT INTO users (email, name, password_hash, role, cas_subject)
+            VALUES ($1, $2, $3, 0, $4)
+            RETURNING id, email, name, NULL::VARCHAR as password_hash, role, created_on
+            "#,
+        )
+        .bind(email)
+        .bind(name)
+        .bind(password_hash)
+        .bind(cas_subject)
+        .fetch_one(crate::database::get_db())
+        .await
+    }
+
     /// Update a user's password hash by email.
     pub async fn set_password_by_email(email: &str, password: String) -> Result<(), sqlx::Error> {
         use bcrypt::{DEFAULT_COST, hash};
