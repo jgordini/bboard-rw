@@ -75,6 +75,8 @@ run_deploy() {
             "ENABLE_LETSENCRYPT=true"
             "CLOUDFLARE_DNS_API_TOKEN=test-token"
         )
+    else
+        env_vars+=("ENABLE_LETSENCRYPT=false")
     fi
 
     env "${env_vars[@]}" "${DEPLOY_SCRIPT}" "${mode}" >/dev/null
@@ -84,29 +86,29 @@ run_deploy() {
 test_update_tls() {
     local log_file
     log_file="$(run_deploy update true)"
-    assert_contains "${log_file}" "compose --profile tls up -d --no-deps --force-recreate --build web"
-    assert_not_contains "${log_file}" "compose --profile tls up -d --remove-orphans --no-deps --force-recreate --build web"
+    assert_contains "${log_file}" "compose --profile tls up -d --no-deps --force-recreate --build web" || return 1
+    assert_not_contains "${log_file}" "compose --profile tls up -d --remove-orphans --no-deps --force-recreate --build web" || return 1
 }
 
 test_update_non_tls() {
     local log_file
     log_file="$(run_deploy update false)"
-    assert_contains "${log_file}" "compose up -d --no-deps --force-recreate --build web"
-    assert_not_contains "${log_file}" "compose --profile tls up -d --no-deps --force-recreate --build web"
+    assert_contains "${log_file}" "compose up -d --no-deps --force-recreate --build web" || return 1
+    assert_not_contains "${log_file}" "compose --profile tls up -d --no-deps --force-recreate --build web" || return 1
 }
 
 test_update_prebuilt_tls() {
     local log_file
     log_file="$(run_deploy update-prebuilt true)"
-    assert_contains "${log_file}" "compose --profile tls up -d --no-deps --force-recreate --no-build web"
-    assert_not_contains "${log_file}" "compose --profile tls up -d --remove-orphans --no-deps --force-recreate --no-build web"
+    assert_contains "${log_file}" "compose --profile tls up -d --no-deps --force-recreate --no-build web" || return 1
+    assert_not_contains "${log_file}" "compose --profile tls up -d --remove-orphans --no-deps --force-recreate --no-build web" || return 1
 }
 
 test_replace_prebuilt_tls() {
     local log_file
     log_file="$(run_deploy replace-prebuilt true)"
-    assert_contains "${log_file}" "compose --profile tls up -d --remove-orphans --no-build db web"
-    assert_contains "${log_file}" "compose --profile tls up -d --remove-orphans --no-deps --build caddy"
+    assert_contains "${log_file}" "compose --profile tls up -d --remove-orphans --no-build db web" || return 1
+    assert_contains "${log_file}" "compose --profile tls up -d --remove-orphans --no-deps --build caddy" || return 1
 }
 
 run_test() {
