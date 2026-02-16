@@ -38,7 +38,7 @@ pub fn IdeasBoard() -> impl IntoView {
     });
 
     view! {
-        <Title text="UAB IT Idea Board"/>
+        <Title text="Spark"/>
         <div class="ideas-page">
             <div class="header-banner">
                 <div class="container">
