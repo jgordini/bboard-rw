@@ -81,6 +81,9 @@ ssr = [
     "dep:serde_json",
 ]
 
+[profile.dev]
+debug = 1
+
 [profile.release]
 lto = true
 codegen-units = 1

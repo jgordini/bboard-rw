@@ -25,13 +25,13 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 # Stage 2: Build dependencies (cached layer)
 FROM chef AS cacher
-ENV CARGO_BUILD_JOBS=1
+ENV CARGO_BUILD_JOBS=4
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
 # Stage 3: Build the application
 FROM chef AS builder
-ENV CARGO_BUILD_JOBS=1
+ENV CARGO_BUILD_JOBS=4
 ENV JWT_SECRET="replaceme when ran in prod"
 ENV SQLX_OFFLINE=true
 
