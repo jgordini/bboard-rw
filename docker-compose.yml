@@ -1,7 +1,6 @@
 services:
   web:
-    image: uab-spark:0.1.0
-    build: .
+    image: ghcr.io/jgordini/bboard-rw:latest
     restart: unless-stopped
     environment:
       DATABASE_URL: '${DATABASE_URL:-postgres://postgres:postgres@db/realworld}'
