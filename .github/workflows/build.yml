@@ -35,3 +35,6 @@ jobs:
           tags: ${{ env.IMAGE }}:latest,${{ env.IMAGE }}:${{ github.sha }}
           cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.IMAGE }}:buildcache,mode=max
+
+      - name: Deploy via Coolify
+        run: curl -fsSL -X GET "${{ secrets.COOLIFY_WEBHOOK }}"
