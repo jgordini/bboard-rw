@@ -1,0 +1,18 @@
+http:
+  routers:
+    mbar-path-redirect:
+      rule: "Host(`mbar.uabspark.com`) && PathPrefix(`/mbar`)"
+      entryPoints:
+        - https
+      middlewares:
+        - mbar-strip-prefix
+      service: noop@internal
+      tls:
+        certResolver: letsencrypt
+      priority: 200
+  middlewares:
+    mbar-strip-prefix:
+      redirectRegex:
+        regex: "^https://mbar\\.uabspark\\.com/mbar(/?.*)"
+        replacement: "https://mbar.uabspark.com/${1}"
+        permanent: true
