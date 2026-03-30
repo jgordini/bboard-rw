@@ -37,4 +37,4 @@ jobs:
           cache-to: type=registry,ref=${{ env.IMAGE }}:buildcache,mode=max
 
       - name: Deploy via Coolify
-        run: curl -fsSL -X GET "${{ secrets.COOLIFY_WEBHOOK }}"
+        run: curl -fsSL -X GET "${{ secrets.COOLIFY_WEBHOOK }}" -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
