@@ -131,7 +131,6 @@ fn AppFooter() -> impl IntoView {
                 <span class="attribution">
                     "UAB Information Technology"
                 </span>
-                <A href=paths::ADMIN attr:class="footer-link">"Admin"</A>
             </div>
         </footer>
     }
