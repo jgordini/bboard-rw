@@ -4,153 +4,89 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-UAB Spark (Idea Board) — a full-stack Rust web application for authenticated idea submission, voting, commenting, and moderation. Built with Leptos 0.8 (SSR + WASM hydration), Axum, and PostgreSQL.
+UAB Spark is an anonymous idea submission and voting platform for the UAB IT community. It is a full-stack Rust application using Leptos (reactive UI), Axum (web server), PostgreSQL (database), JWT + CAS SSO (auth), and Playwright (E2E tests).
 
-## Build & Development Commands
+## Development Commands
 
 ```bash
-# Prerequisites (one-time setup)
-rustup target add wasm32-unknown-unknown
-cargo install cargo-leptos
-cargo install sqlx-cli
-
-# Database setup (requires PostgreSQL running)
-cargo sqlx database setup
-
-# Development server with hot reload (http://localhost:3000)
+# Start local dev server with hot reload
 cargo leptos watch
 
-# Production build
+# Release build
 cargo leptos build -r
 
-# Run all unit tests
-cargo test
-
-# Run a single test by name
-cargo test validate_idea_title_and_content_rejects_empty_title
-
-# Run tests in a specific module
-cargo test --lib routes::validation_helpers::tests
-
-# End-to-end tests (requires app running + Playwright installed)
+# Run end-to-end tests (requires dev server running)
 cargo leptos end-to-end
 
-# Run a single e2e test
-cd end2end && npx playwright test --grep "test name"
+# Apply database migrations
+cargo sqlx database setup
 
-# Docker development
-docker compose up
+# Lint Rust code
+cargo clippy
+
+# Lint SCSS (from end2end/ directory)
+npx stylelint "../style/**/*.scss"
 ```
+
+A `.env` file is required locally. See `.env.example` for required variables:
+- `DATABASE_URL` — PostgreSQL connection string
+- `JWT_SECRET` — session signing key
+- `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD` — seeded admin account
+- `CAS_*` — UAB Padlock SSO config
+- `MAILER_*` — SMTP email config
 
 ## Architecture
 
-**Stack:** Leptos 0.8 (SSR + WASM hydration), Axum, PostgreSQL/sqlx, SCSS
+### Full-Stack Rust with Leptos + Axum
 
-**Build features** control the SSR/client split:
-- `ssr` — server binary: Axum, sqlx, bcrypt, auth, validation, profanity filter
-- `hydrate` — WASM client bundle, entry point is `hydrate()` in `lib.rs`
-- Both are in the default feature set; `cargo test` uses `ssr` automatically
+The app uses `cargo-leptos` to build a single binary that serves both SSR HTML and the WASM client bundle. Leptos components defined under `ssr` feature gates run only on the server; those under `hydrate` run in the browser. Most components use Leptos server functions (`#[server]`) that compile to HTTP calls on the client and run directly on the server.
 
-**Source layout:**
+**Cargo features:**
+- `ssr` — enables backend (Axum, SQLx, auth, email)
+- `hydrate` — enables WASM/client-side hydration
+
+### Code Layout
 
 ```
 src/
-├── main.rs              # Entry: calls setup::init_app()
-├── lib.rs               # Crate root, mod declarations, WASM hydrate() entry
-├── app.rs               # App component, Router, NavBar, shell()
-├── auth.rs              # CAS SSO + email/password auth, session cookies, role guards
-├── database.rs          # PgPool via OnceLock, auto-runs migrations at startup
-├── setup.rs             # Axum router, Leptos route generation, admin bootstrap
-├── profanity.rs         # Profanity filter (SSR-only)
-├── models/              # Data structs (always compiled) + DB methods (SSR-gated)
-│   ├── idea.rs          # Idea CRUD, moderation, stats
-│   ├── vote.rs          # Vote toggle, lookup
-│   ├── comment.rs       # Comment CRUD, soft-delete, pin
-│   ├── user.rs          # User auth, roles, bootstrap_admin
-│   └── flag.rs          # Content flagging
-├── routes/
-│   ├── paths.rs         # Path constants (HOME, LOGIN, ADMIN, etc.)
-│   ├── ideas.rs         # IdeasPage + server fns (list, create, vote, flag, sort)
-│   ├── ideas/components/ # IdeasBoard, IdeaCard, IdeaSubmissionModal
-│   ├── idea_detail.rs   # IdeaDetailPage + server fns (comments, moderation)
-│   ├── idea_detail/components/ # IdeaDetailCard, CommentsSection
-│   ├── admin.rs         # AdminPage + server fns (stats, flags, export, users)
-│   ├── admin/components/ # Tabbed dashboard: Overview, Flags, Moderation, Users, Export
-│   ├── login.rs, signup.rs, reset_password.rs, account.rs
-│   ├── validation_helpers.rs  # SSR-only input validation (has unit tests)
-│   ├── error_helpers.rs       # ServerFnError logging wrappers
-│   ├── async_helpers.rs       # spawn_local wrappers for server actions
-│   └── view_helpers.rs        # UI utilities (relative time, stage badges, confirm)
+  main.rs          — binary entry, starts Axum server (ssr only)
+  lib.rs           — library root, module declarations, hydration entry
+  app.rs           — root Leptos <App/> component and client-side routing
+  setup.rs         — Axum router wiring, DB pool init, static file serving
+  auth.rs          — JWT session management, CAS SSO flow, cookie handling
+  database.rs      — SQLx pool creation
+  profanity.rs     — content filtering
+  models/          — database model structs + sqlx query functions
+    idea.rs, user.rs, vote.rs, comment.rs, flag.rs
+  routes/          — one file per page/feature area
+    ideas.rs       — main board (listing + submission form)
+    idea_detail.rs — per-idea detail, comments, editing
+    admin.rs       — admin panel (moderation, users, flags, CSV export)
+    login.rs, signup.rs, account.rs, reset_password.rs
+    paths.rs       — route path constants (single source of truth for URLs)
+    async_helpers.rs, validation_helpers.rs, error_helpers.rs, view_helpers.rs
+style/
+  main.scss        — all styles; uses UAB brand colors via CSS variables
+assets/            — static files (logos, favicon)
+js/utils.js        — thin JS bridge (JWT decode, email regex)
+migrations/        — numbered SQL migrations applied via sqlx-cli
+end2end/           — Playwright tests (TypeScript)
 ```
 
-**Legacy files to ignore:** `models/article.rs`, `models/pagination.rs`, `routes/home.rs`, `routes/editor.rs`, `routes/article.rs`, `routes/profile.rs`, `routes/settings.rs`, `src/components/` — all remnants from a RealWorld fork, unused.
+### Authentication Flow
 
-## Route Module Pattern
+Two auth methods share a common JWT session cookie:
+1. **Email/password** — bcrypt hashing, JWT issued on login
+2. **CAS SSO** — redirects to UAB Padlock, callback validates ticket via `CAS_VALIDATE_URL`, parses XML response with `roxmltree`, links/creates user by `cas_subject` column
 
-Each route follows a consistent structure:
+User roles are integers stored on the `users` table: `0` = User, `1` = Moderator, `2` = Admin.
 
-1. **Server functions** (`#[server]`) at the top of the file — SSR imports inside the function body
-2. **Page component** at the bottom — creates `Resource`s and passes to sub-components
-3. **Sub-components** in a parallel `<route>/components/` directory
+### Database
 
-Server function template:
-```rust
-#[server]
-pub async fn some_action(args...) -> Result<ReturnType, ServerFnError> {
-    use crate::auth::require_auth; // SSR imports inside fn body
-    let user = require_auth().await?;
-    validate_...()?;
-    Model::db_operation(...)
-        .await
-        .map_err(|e| server_fn_error_with_log("context", e, "user message"))
-}
-```
+PostgreSQL via SQLx with compile-time query checking (`SQLX_OFFLINE=true` in Docker). Migration files in `migrations/` are numbered chronologically. The major schema migration (`20260205000000_user_auth_system.up.sql`) replaced the old `admin_users` + fingerprint-voting model with full user accounts and per-user votes.
 
-Auth guards: `require_auth()`, `require_moderator()`, `require_admin()` — defined in `auth.rs`.
+New `.sqlx/` JSON files are generated by `cargo sqlx prepare` and must be committed when queries change.
 
-## Authentication
+### Deployment
 
-**Two login paths:**
-1. **CAS SSO (BlazerID)** — redirects to `padlock.idm.uab.edu`, callback at `/auth/cas/callback` auto-creates or retrieves user
-2. **Email/password** — signup, login, logout server functions in `auth.rs`; bcrypt hashing
-
-**Sessions:** HTTP-only `user_session` cookie with JSON-serialized `UserSession` (id, email, name, role). 7-day lifetime, SameSite=Lax.
-
-**Roles** (stored as `i16`): 0=User, 1=Moderator, 2=Admin. Admin bootstrap on startup from `INITIAL_ADMIN_EMAIL`/`INITIAL_ADMIN_PASSWORD` env vars.
-
-**Auth refresh:** `AuthRefresh(RwSignal<u32>)` provided via context — bump after login/logout to re-fetch user in NavBar without page reload.
-
-## Database
-
-Migrations run automatically at startup via `sqlx::migrate!()` in `database.rs`. The `.sqlx/` directory (checked in) holds compile-time query metadata for offline builds (`SQLX_OFFLINE=true` in Docker).
-
-**Key tables:** `ideas` (title, content, tags, stage, vote_count, pinned_at, comments_enabled), `votes` (user_id + idea_id unique), `comments` (soft-delete via is_deleted, is_pinned), `users` (email unique, role), `flags` (target_type + target_id + user_id unique)
-
-**Triggers:** DB-level triggers auto-maintain `ideas.vote_count` on vote insert/delete.
-
-**Idea stages:** `["Ideate", "Review", "In Progress", "Completed"]` — defined as `STAGES` const in `models/idea.rs`.
-
-After changing any SQL query, regenerate offline metadata: `cargo sqlx prepare`.
-
-## Environment Variables
-
-Required in `.env` (see `.env.example`):
-- `DATABASE_URL` — PostgreSQL connection string
-- `JWT_SECRET` — for password reset tokens
-- `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD` — bootstrap admin (one-time)
-- `MAILER_EMAIL` / `MAILER_PASSWD` / `MAILER_SMTP_SERVER` — SMTP for password reset
-- `CAS_LOGIN_URL` / `CAS_VALIDATE_URL` / `CAS_SERVICE_ID` — CAS SSO config
-
-Loaded automatically by `dotenvy` at startup.
-
-## Key Business Rules
-
-- Ideas: title max 100 chars, content max 500 chars, tags max 200 chars; validated against profanity filter
-- Voting: one vote per user per idea (DB unique constraint)
-- Comments: max 500 chars, soft-deleted (is_deleted flag), can be pinned, comments can be locked per-idea
-- Flagging: users can flag ideas/comments; moderators review in admin dashboard
-- Admin dashboard: 5 tabs — Overview, Flagged Content, Off-Topic, Data Export (CSV), User Management
-
-## Styling
-
-Single SCSS file at `style/main.scss`. UAB theme colors as CSS custom properties (`--uab-green`, `--uab-gold`, etc.). Font: Inter via Google Fonts. Body uses `alt-linear-theme` class.
+Docker Compose (`docker-compose.yml`) runs three services: `web` (Rust app on port 8080), `db` (PostgreSQL 17), and optional `caddy` (HTTPS via Cloudflare DNS challenge). Deployment scripts live in `scripts/`. The Dockerfile uses a multi-stage build with `cargo-chef` for dependency caching and `CARGO_BUILD_JOBS=4` for parallelism.
