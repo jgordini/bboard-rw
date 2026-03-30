@@ -216,46 +216,45 @@ impl User {
         Ok(())
     }
 
-    /// Bootstrap admin user from environment variables
-    /// Creates admin if no admin exists
+    /// Bootstrap admin user from environment variables.
+    /// Creates admin if none exists; updates password if admin already exists.
     pub async fn bootstrap_admin() -> Result<(), sqlx::Error> {
-        // Check if any admin exists
-        let admin_count = sqlx::query_scalar!("SELECT COUNT(*) FROM users WHERE role = 2")
-            .fetch_one(crate::database::get_db())
-            .await?
-            .unwrap_or(0);
-
-        if admin_count > 0 {
-            return Ok(()); // Admin already exists
-        }
-
-        // Get credentials from environment
         let email = std::env::var("INITIAL_ADMIN_EMAIL").unwrap_or_else(|_| "admin".to_string());
         let password =
             std::env::var("INITIAL_ADMIN_PASSWORD").unwrap_or_else(|_| "admin".to_string());
 
-        // Warn if using default credentials
-        if email == "admin" && password == "admin" {
-            eprintln!(
-                "⚠️  WARNING: Using default admin credentials (admin/admin). Please change these in production!"
-            );
-        }
-
-        // Create admin user
         use bcrypt::{hash, DEFAULT_COST};
-        let password_hash = hash(password, DEFAULT_COST)
+        let password_hash = hash(&password, DEFAULT_COST)
             .map_err(|e| sqlx::Error::Protocol(format!("Password hashing failed: {}", e)))?;
 
-        sqlx::query!(
-            "INSERT INTO users (email, name, password_hash, role) VALUES ($1, $2, $3, 2)",
-            email,
-            "Administrator",
-            password_hash
-        )
-        .execute(crate::database::get_db())
-        .await?;
+        let admin = sqlx::query_scalar!("SELECT id FROM users WHERE role = 2 LIMIT 1")
+            .fetch_optional(crate::database::get_db())
+            .await?;
 
-        println!("✅ Admin user created: {}", email);
+        match admin {
+            Some(id) => {
+                sqlx::query!(
+                    "UPDATE users SET password_hash = $1 WHERE id = $2",
+                    password_hash,
+                    id
+                )
+                .execute(crate::database::get_db())
+                .await?;
+                println!("✅ Admin password synced from env");
+            }
+            None => {
+                sqlx::query!(
+                    "INSERT INTO users (email, name, password_hash, role) VALUES ($1, $2, $3, 2)",
+                    email,
+                    "Administrator",
+                    password_hash
+                )
+                .execute(crate::database::get_db())
+                .await?;
+                println!("✅ Admin user created: {}", email);
+            }
+        }
+
         Ok(())
     }
 
